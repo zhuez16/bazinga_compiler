@@ -41,8 +41,8 @@ syntax_tree_node *node(const char *node_name, int children_num, ...);
 %type <node> program comp_unit decl const_decl btype const_defs const_def const_init_val 
 const_exp const_init_vals var_decl var_def init_val func_def func_type funcf_param funcf_params
 block block_item stmt exp cond lval primary_exp number unary_exp unary_op assign_stmt if_stmt exp_stmt iter_stmt
-break_stmt continue_stmt return_stmt
-func_rparams mulexp addexp relexp eqexp landexp lorexp constexp const_pointer
+break_stmt continue_stmt return_stmt lval_addr func_call
+func_rparams mulexp addexp relexp eqexp landexp lorexp  const_pointer
 %%
 program: comp_unit {$$=node("program",1,$1); gt->root=$$;}
 
@@ -225,8 +225,15 @@ stmt:       assign_stmt{
             return_stmt{
                 $$=node("stmt",1,$1);
             }
-assign_stmt:lval ASSIN exp SEMICOLON{
+assign_stmt:lval_addr ASSIN exp SEMICOLON{
                 $$=node("assign_stmt",4,$1,$2,$3,$4);
+            }
+
+lval_addr:  IDENT{
+                $$=node("lval",1,$1);
+            }|
+            IDENT pointer{
+                $$=node("lval",2,$1,$2);
             }
 exp_stmt:   SEMICOLON{
                 $$=node("exp_stmt",1,$1);
@@ -294,20 +301,96 @@ number:     INT_CONST{
 unary_exp:  primary_exp{
                 $$=node("unary_exp",1,$1);
             }|
-            IDENT LPARENTHESE RPARENTHESE{
+            unary_op unary_exp{
+                $$=node("unary_exp",2,$1,$2);
+            }
+            func_call{
+                $$=node("unary_exp");
+            }
+func_call:  IDENT LPARENTHESE RPARENTHESE{
                 $$=node("unary_exp",3,$1,$2,$3);
             }|
             IDENT LPARENTHESE func_rparams RPARENTHESE{
                 $$=node("unary_exp",4,$1,$2,$3,$4);
+            }|
+
+func_rparams: exp{
+                $$=node("func_rparams",1,$1);
+            }|
+            func_rparams exp{
+                $$=node("func_rparams",2,$1,$2);
             }
 
+mulexp:     unary_exp{
+                $$=node("mulexp",1,$1);
+            }|
+            mulexp MUL unaryexp{
+                $$=node("mulexp",3,$1,$2,$3);
+            }|
+            mulexp DIV unaryexp{
+                $$=node("mulexp",3,$1,$2,$3);
+            }|
+            mulexp MOD unary_exp{
+                $$=node("mulexp",3,$1,$2,$3);
+            }
 
+addexp:     mulexp{
+                $$=node("addexp",1,$1);
+            }|
+            addexp ADD mulexp{
+                $$=node("addexp",3,$1,$2,$3);
+            }|
+            addexp SUB unaryexp{
+                $$=node("addexp",3,$1,$2,$3);
+            }
+
+relexp:     addexp{
+                $$=node("relexp",1,$1);
+            }|
+            relexp GT addexp{
+                $$=node("relexp",3,$1,$2,$3);
+            }|
+            relexp GTE addexp{
+                $$=node("relexp",3,$1,$2,$3);
+            }|
+            relexp LT addexp{
+                $$=node("relexp",3,$1,$2,$3);
+            }|
+            relexp LTE addexp{
+                $$=node("relexp",3,$1,$2,$3);
+            }
+
+eqexp:      relexp{
+                $$=node("eqexp",1,$1);
+            }|
+            eqexp EQ relexp{
+                $$=node("eqexp",2,$1,$2);
+            }|
+            eqexp NEQ relexp{
+                $$=node("eqexp",3,$1,$2,$3);
+            }
+
+landexp:    eqexp{
+                $$=node("landexp",1,$1);
+            }|
+            landexp AND eqexp{
+                $$=node("landexp",3,$1,$2,$3);
+            }
+
+lorexp:     landexp{
+                $$=node("lorexp",1,$1);
+            }|
+            lorexp OR landexp{
+                $$=node("lorexp",1,$1);
+            }
+
+const_exp:  addexp{
+                $$=node("const_exp",1,$1);
+            }
 %%
 /// The error reporting function.
 void yyerror(const char *s)
 {
-    // TO STUDENTS: This is just an example.
-    // You can customize it as you like.
     fprintf(stderr, "error at line %d column %d: %s, yytext = %s\n", lines, pos_start, s, yytext);
 }
 
