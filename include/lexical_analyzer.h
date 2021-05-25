@@ -2,6 +2,7 @@
 #define _LEXICAL_ANALYZER_H_
 
 #include <stdio.h>
+#include <vector>
 
 extern int fileno (FILE *__stream) __THROW __wur;
 
@@ -66,9 +67,8 @@ typedef struct{
     int pos_end;
 } Token_Node;
 
-#define MAX_NUM_TOKEN_NODE 1024
 
-void analyzer(char* input_file, Token_Node* token_stream);
+void analyzer(char* input_file, std::vector<Token_Node>& token_stream);
 
 #endif /* YYTOKENTYPE */
 #endif /* lexical_analyzer.h */
