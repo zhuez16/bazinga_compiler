@@ -166,7 +166,7 @@ func_type:  VOID{
 funcf_params: funcf_param{
                 $$=node("funcf_params",1,$1);
             }|
-            funcf_param COMMA funcf_params{
+            funcf_params COMMA funcf_param{
                 $$=node("funcf_params",3,$1,$2,$3);
             }
 
