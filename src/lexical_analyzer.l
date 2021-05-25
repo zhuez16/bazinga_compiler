@@ -3,6 +3,7 @@
 /*****************声明和选项设置  begin*****************/
 #include <stdio.h>
 #include <stdlib.h>
+#include <vector>
 
 #include "include/lexical_analyzer.h"
 
@@ -87,7 +88,7 @@ break    {return BREAK;}
 /// \param input_file, 需要分析的文件路径
 /// \param token stream, Token_Node结构体数组，用于存储分析结果，具体定义参考lexical_analyer.h
 
-void analyzer(char* input_file, Token_Node* token_stream){
+void analyzer(char* input_file, std::vector<Token_Node>& token_stream){
     lines = 1;
     pos_start = 1;
     pos_end = 1;
@@ -98,7 +99,7 @@ void analyzer(char* input_file, Token_Node* token_stream){
     printf("[START]: Read from: %s\n", input_file);
 
     int token;
-    int index = 0;
+    // int index = 0;
 
     while(token = yylex()){
         switch(token){
@@ -136,25 +137,32 @@ void analyzer(char* input_file, Token_Node* token_stream){
 			default:
             	pos_start = pos_end;
             	pos_end += strlen(yytext);
+                Token_Node tk;
                 if (token == ERROR) {
-                    sprintf(token_stream[index].text, "[ERR]: unable to analysize %s at %d line, from %d to %d", yytext, lines, pos_start, pos_end);
+                    sprintf(tk.text, "[ERR]: unable to analysize %s at %d line, from %d to %d", yytext, lines, pos_start, pos_end);
                 } else {
-                    strcpy(token_stream[index].text, yytext);
+                    strcpy(tk.text, yytext);
                 }
-                token_stream[index].token = token;
-                token_stream[index].lines = lines;
-                token_stream[index].pos_start = pos_start;
-                token_stream[index].pos_end = pos_end;
+                tk.token = token;
+                tk.lines = lines;
+                tk.pos_start = pos_start;
+                tk.pos_end = pos_end;
+                /*
                 index++;
                 if (index >= MAX_NUM_TOKEN_NODE) {
                     printf("%s has too many tokens (> %d)", input_file, MAX_NUM_TOKEN_NODE);
                     exit(1);
                 }
+                */
+                token_stream.push_back(tk);
         }
     }
     printf("[END]: Analysis completed.\n");
     return;
 }
+
+
+
 
 
 
