@@ -38,8 +38,8 @@ syntax_tree_node *node(const char *node_name, int children_num, ...);
     NEQ GTE LTE ADD SUB MUL DIV LT GT ASSIN SEMICOLON COMMA LPARENTHESE
     RPARENTHESE LBRACKET RBRACKET LBRACE RBRACE ID COMMENT BLANK EOL
     CONTINUE BREAK POS NEG NOT MOD AND OR CONST IDENT
-%type <node> program comp_unit decl const_decl btype const_defs const_def const_init_val 
-const_exp const_init_vals var_decl var_def var_defs init_vals init_val func_def func_type funcf_param funcf_params
+%type <node> program comp_unit decl const_decl const_defs const_def const_init_val 
+const_exp const_init_vals var_decl var_def var_defs init_vals init_val func_def funcf_param funcf_params
 block block_item block_items stmt exp cond lval primary_exp number unary_exp unary_op assign_stmt if_stmt exp_stmt iter_stmt
 break_stmt continue_stmt return_stmt lval_addr func_call pointer
 func_rparams mulexp addexp relexp eqexp landexp lorexp  const_pointer
@@ -66,13 +66,10 @@ decl:       const_decl {
                 $$=node("decl",1,$1);
             }
 
-const_decl: CONST btype const_defs SEMICOLON{
+const_decl: CONST INT const_defs SEMICOLON{
                 $$=node("const_decl",4,$1,$2,$3,$4);
             }
 
-btype:      INT {
-                $$=node("btype",1,$1);
-            }
 
 const_defs: const_defs COMMA const_def{
                 $$=node("const_defs",3,$1,$2,$3);
@@ -85,7 +82,7 @@ const_def:  IDENT ASSIN const_init_val{
                 $$=node("const_def",3,$1,$2,$3);
             }|
             IDENT const_pointer ASSIN const_init_val{
-                $$=node("const_def",4,$1,$2,$3);
+                $$=node("const_def",4,$1,$2,$3,$4);
             }
 
 const_pointer:LBRACKET const_exp RBRACKET const_pointer{
@@ -111,7 +108,7 @@ const_init_vals: const_init_val {
                 $$=node("const_init_vals",3,$1,$2,$3);
             }
 
-var_decl :  func_type var_defs SEMICOLON{
+var_decl :  INT var_defs SEMICOLON{
                 $$=node("var_decl",3,$1,$2,$3);
             }
 
@@ -149,18 +146,17 @@ init_vals:  init_val {
                 $$=node("const_init_vals",3,$1,$2,$3);
             }
 
-func_def:   func_type IDENT LPARENTHESE RPARENTHESE block{
+func_def:   VOID IDENT LPARENTHESE RPARENTHESE block{
                 $$=node("func_def",5,$1,$2,$3,$4,$5);
             }|
-            func_type IDENT LPARENTHESE funcf_params RPARENTHESE block{
-                $$=node("func_def",6,$1,$2,$3,$4,$5,$6);
-            }
-
-func_type:  VOID{
-                $$=node("func_type",1,$1);
+            INT IDENT LPARENTHESE RPARENTHESE block{
+                $$=node("func_def",5,$1,$2,$3,$4,$5);
             }|
-            INT{
-                $$=node("func_type",1,$1);
+            VOID IDENT LPARENTHESE funcf_params RPARENTHESE block{
+                $$=node("func_def",6,$1,$2,$3,$4,$5,$6);
+            }|
+            INT IDENT LPARENTHESE funcf_params RPARENTHESE block{
+                $$=node("func_def",6,$1,$2,$3,$4,$5,$6);
             }
 
 funcf_params: funcf_param{
@@ -170,13 +166,13 @@ funcf_params: funcf_param{
                 $$=node("funcf_params",3,$1,$2,$3);
             }
 
-funcf_param:btype IDENT{
+funcf_param:INT IDENT{
                 $$=node("funcf_param",2,$1,$2);
             }|
-            btype IDENT LBRACKET RBRACKET {
+            INT IDENT LBRACKET RBRACKET {
                 $$=node("funcf_param",4,$1,$2,$3,$4);
             }|
-            btype IDENT LBRACKET RBRACKET pointer{
+            INT IDENT LBRACKET RBRACKET pointer{
                 $$=node("funcf_param",5,$1,$2,$3,$4,$5);
             }
 
