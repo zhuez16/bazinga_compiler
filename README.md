@@ -11,7 +11,13 @@ mkdir build && cd build && cmake .. && make
 
 
 ### ChangeLog
-- 2021/5/25
+- 2021/5/25 guch8017@github
   * 添加测试工具链
   * 使用Vector结构替代了原来的列表，现在TOKEN数量不再受到限制
   * 注：parser文件有问题，很多token无对应生成规则
+
+- 2021/5/26 misakihanayo@github
+  * 完成Parser文件编写
+
+- 2021/5/29 guch8017@github
+  * 修正Parser Bugs
