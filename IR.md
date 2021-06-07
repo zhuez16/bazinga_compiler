@@ -73,36 +73,52 @@ Type *get_PtrElement_type();
 
 * 子类：
 	* IntegerType：
-		* 成员： num_bits_ 整型长度
-		* API： 
-			* unsigned get_num_bits_()； //获得整型长度
-			* static IntegerType *get(unsigned num_bits)； //获取整型
+		* 成员： 
+			* num_bits_ 整型长度
+		* API：
+		
+		``` C++ 
+		unsigned get_num_bits_()； //获得整型长度
+		static IntegerType *get(unsigned num_bits)； //获取整型
+		```
+
 	* FunctionType：
 		* 成员： 
 			* return_ 返回值
 			* args_ 参数表
 		* API：
-			* check_return_type(Type *type); //检验参数与返回值类型是否正确
-			* check_arguement_type(Type *type);
-			*  static FunctionType *get(Type *result, std::vector<Type *> args); //获取函数
-			*  unsigned get_args_num(); //获取参数数目
-			*  Type *get_args_type(unsigned i); //获得参数类型
-			*  Type *get_return_type(unsigned i); //获得返回值类型
+
+		``` C++ 
+		check_return_type(Type *type); //检验参数与返回值类型是否正确
+		check_arguement_type(Type *type);
+		static FunctionType *get(Type *result, std::vector<Type *> args); //获取函数
+		unsigned get_args_num(); //获取参数数目
+		Type *get_args_type(unsigned i); //获得参数类型
+		Type *get_return_type(unsigned i); //获得返回值类型
+		```
+ 
 	* ArrayType：
 		* 成员：
 			* contained_ //数组成员数据类型
 			* num_elements_ //数组成员数
 		* API：
-			* static bool  check_element_type(Type  type); //检验数组成员类型是否正确
-			* static ArrayType *get(Type *contained, unsigned num_elements); //获得数组
-			* Type *get_element_type()； //获得数组成员类型
-			* unsigned get_elements_num()； //获得数组成员数
-			* std::vector<unsigned> get_Dims(); //获得数组维数信息
+
+		``` C++ 
+		static bool  check_element_type(Type  type); //检验数组成员类型是否正确
+		static ArrayType *get(Type *contained, unsigned num_elements); //获得数组
+		Type *get_element_type()； //获得数组成员类型
+		unsigned get_elements_num()； //获得数组成员数
+		std::vector<unsigned> get_Dims(); //获得数组维数信息
+		```
+ 
 	* PointerType：
 		* 成员：contained_ //指针指向的数据类型
 		* API：
-			* static PointerType *get(Type contained); //获取指针
-			* Type *get_element_type()； //获取指针指向的数据类型
+
+		``` C++ 
+		static PointerType *get(Type contained); //获取指针
+		Type *get_element_type()； //获取指针指向的数据类型
+		```
 
 #### Value
 
