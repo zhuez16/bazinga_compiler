@@ -106,28 +106,84 @@ Type *get_PtrElement_type();
 		``` C++ 
 		static bool  check_element_type(Type  type); //检验数组成员类型是否正确
 		static ArrayType *get(Type *contained, unsigned num_elements); //获得数组
-		Type *get_element_type()； //获得数组成员类型
-		unsigned get_elements_num()； //获得数组成员数
+		Type *get_element_type(); //获得数组成员类型
+		unsigned get_elements_num(); //获得数组成员数
 		std::vector<unsigned> get_Dims(); //获得数组维数信息
 		```
  
 	* PointerType：
-		* 成员：contained_ //指针指向的数据类型
+		* 成员：
+			* contained_ //指针指向的数据类型
 		* API：
 
 		``` C++ 
 		static PointerType *get(Type contained); //获取指针
-		Type *get_element_type()； //获取指针指向的数据类型
+		Type *get_element_type(); //获取指针指向的数据类型
 		```
 
 #### Value
 
+* 含义：变量
+* 成员：
+  * type 类型变量指针
+  * use_list_ 变量调用表，谁使用了这个变量
+  * name_ 变量名
+* API：
+
+``` C++
+Type *getType(); //获得变量类型
+std::list<Use> &get_use_list(); //获得调用表
+void add_use(Value *val, unsigned arg_no = 0); //增加调用者
+void remove_use(Value *val, unsigned arg_no); //删除调用者
+void replace_use_list(Value *new_val); //更换调用表
+bool set_name(std::string name); //变量命名
+std::string get_name(); //获取变量名
+```
+
 #### Instruction
 
+
+
 #### GlobalVariable
+
+* 含义：全局变量
+* 成员：
+  * is_const_ 是否为常值
+  * init_val_ 变量指针
+* API：
+
+``` C++
+Constant *get_Init(); //获得全局变量
+static GlobalVariable *create(std::string name, Module *m, Type *type, bool is_const, Constant *init); //创建全局变量
+```
 
 #### Function
 
 #### Constant
 
+* 含义：常值
+* 子类；
+	* ConstantInt：
+		* 成员：
+			* value_ 整型常值
+		* API：
+
+		``` C++
+		static int getValue(ConstantInt *const_val); //获得整型值
+  		int getValue();
+  		void setValue(int val); //赋值
+  		static ConstantInt *get(int val, Module *m); //获得目标整型常值
+		```
+
+	* ConstantArray：
+		* 成员：
+			* std::vector<Constant *> const_array;
+		* API：
+		 
+		``` C++
+		unsigned get_elements_num(); //获得数组成员数
+		static ConstantArray *get(ArrayType *ty, const std::vector<Constant *> &val); //获得常值数组
+		```
+
 #### BasicBlock
+
