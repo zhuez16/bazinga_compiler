@@ -142,7 +142,15 @@ std::string get_name(); //获取变量名
 
 #### Instruction
 
-
+* 成员：
+  * parent 指令所属的basicblock
+  * op_id 指令的编号
+  * num_ops 指令的操作数个数
+* 子类：
+  * BinaryInst 双目运算符
+  * 其他子类和LightIR所有指令一一对应
+* API：
+  * Builder来添加指令
 
 #### GlobalVariable
 
@@ -214,4 +222,32 @@ void set_instr_name();
 		```
 
 #### BasicBlock
+
+* 含义：基本块，是一个单入单出的基本块
+* 成员
+  * Instr_list 指令链表
+  * pre_basic_blocks 前驱bb
+  * succ_basic_block 后继bb
+* API
+
+```c++
+static BasicBlock *create(Module *m, const std::string &name, Function *parent);
+Function *get_parent();
+Module *get_module();
+Instruction *get_terminator(); //return the last instr is ret/br or not
+void push_back_instruction(Instruction *instr); //push instr into the back of the list
+void push_front_instruction(Instruction *instr); //push instr into the front of the list
+void delete_instruction(Instruction *instr); //delete instr and keep the use list
+bool is_empty();
+int get_num_of_instr();
+std::list<Instruction *> &get_instructions();
+void erase_from_parents();
+
+std::list<BasicBlock*> &get_pre_basic_blocks();
+std::list<BasicBlock*> &get_succ_basic_blocks();
+void add_pre_basic_block(BasicBlock *bb);
+void add_succ_basic_block(BasicBlock *bb);
+void del_pre_basic_block(BasicBlock *bb);
+void del_succ_basic_block(BasicBlock *bb);
+```
 
