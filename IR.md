@@ -96,7 +96,7 @@ Type *get_PtrElement_type();
 		Type *get_args_type(unsigned i); //获得参数类型
 		Type *get_return_type(unsigned i); //获得返回值类型
 		```
- 
+
 	* ArrayType：
 		* 成员：
 			* contained_ //数组成员数据类型
@@ -110,7 +110,7 @@ Type *get_PtrElement_type();
 		unsigned get_elements_num(); //获得数组成员数
 		std::vector<unsigned> get_Dims(); //获得数组维数信息
 		```
- 
+
 	* PointerType：
 		* 成员：
 			* contained_ //指针指向的数据类型
@@ -159,6 +159,34 @@ static GlobalVariable *create(std::string name, Module *m, Type *type, bool is_c
 
 #### Function
 
+* 含义：一个函数
+* 成员
+  * function_type 函数类型
+  * function_id 函数名称
+  * function_vars 函数参数表
+  * basic_blocks 基本块列表
+  * arguments_ 行参列表
+  * parent_ 函数所处于的module
+* API:
+
+```c++
+static Function *create_function(std::string id, Module *m, Type *type, vector args_);
+FunctionType *get_function_type() const;
+Type *get_return_type() const;
+void add_basic_block(BasicBlock *bb);
+unsigned get_num_of_args() const;
+unsigned get_num_basic_blocks() const;
+Module *get_parents() const;
+std::list<Argument *>::iterator arg_begin();
+std::list<Argument *>::iterator arg_end();
+void remove(BasicBlock *bb);
+std::list<BasicBlock *> &get_basic_blocks();
+std::list<Argument *> &get_args();
+void set_instr_name();
+```
+
+
+
 #### Constant
 
 * 含义：常值
@@ -179,7 +207,7 @@ static GlobalVariable *create(std::string name, Module *m, Type *type, bool is_c
 		* 成员：
 			* std::vector<Constant *> const_array;
 		* API：
-		 
+		
 		``` C++
 		unsigned get_elements_num(); //获得数组成员数
 		static ConstantArray *get(ArrayType *ty, const std::vector<Constant *> &val); //获得常值数组
