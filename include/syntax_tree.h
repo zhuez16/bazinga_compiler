@@ -79,6 +79,9 @@ public:
         result += std::to_string(this->node_type);
         result += ']';
         result += this->node_name;
+        result += '(';
+        result += std::to_string(this->children.size());
+        result += ')';
         std::cout << result << std::endl;
         for (TreeNode* node: this->children){
             node->print_tree(depth + 1);

@@ -124,6 +124,9 @@ var_defs:   var_def {
 var_def:    IDENT {
                 $$=node("var_def",AST_var_def,1,$1);
             }|
+            IDENT ASSIN init_val {
+            	$$=node("var_def",AST_var_def,3,$1,$2,$3);
+            }|
             IDENT const_pointer {
                 $$=node("var_def",AST_var_def,2,$1,$2);
             }|
@@ -171,11 +174,11 @@ funcf_params: funcf_param{
 funcf_param:INT IDENT{
                 $$=node("funcf_param",AST_funcf_param,2,$1,$2);
             }|
-            INT IDENT LBRACKET RBRACKET {
-                $$=node("funcf_param",AST_funcf_param,4,$1,$2,$3,$4);
+            INT IDENT ARRAY {
+                $$=node("funcf_param",AST_funcf_param,3,$1,$2,$3);
             }|
-            INT IDENT LBRACKET RBRACKET pointer{
-                $$=node("funcf_param",AST_funcf_param,5,$1,$2,$3,$4,$5);
+            INT IDENT ARRAY pointer{
+                $$=node("funcf_param",AST_funcf_param,4,$1,$2,$3,$4);
             }
 
 block:      LBRACE RBRACE{

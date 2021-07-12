@@ -4,7 +4,7 @@
 
 #include "syntax_tree.h"
 #include "parser.h"
-#include "ast.h"
+// #include "ast.h"
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
