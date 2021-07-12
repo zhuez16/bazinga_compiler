@@ -1,3 +1,5 @@
 make/
 tmp/
 build/
+.idea/
+cmake-build-debug/

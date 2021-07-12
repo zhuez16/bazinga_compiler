@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <vector>
 
-extern int fileno (FILE *__stream) __THROW __wur;
+// extern int fileno (FILE *__stream) __THROW __wur;
 
 #ifndef YYTOKENTYPE
 #define YYTOKENTYPE

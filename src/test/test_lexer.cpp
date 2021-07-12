@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
     _m[266] = "GTE";
     _m[267] = "EQ";
     _m[268] = "NEQ";
-    _m[269] = "ASSIN";
+    _m[269] = "ASSIGN";
     _m[293] = "MOD";
     _m[296] = "NOT";
     _m[297] = "AND";
