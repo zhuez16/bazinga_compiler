@@ -1,15 +1,16 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 PROJECT(bazinga_compiler)
 
-set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -std=c99")
+set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -std=c99 -Wno-deprecated-register")
 set(CMAKE_BUILD_TYPE "Debug")
 set(CMAKE_C_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g2 -ggdb")
 set(CMAKE_C_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")
 set(CMAKE_CXX_STANDARD 11)
 
 SET(MID_LEVEL_DIR "${CMAKE_SOURCE_DIR}/tmp")
+SET(MID_LEVEL_HEADER "${MID_LEVEL_DIR}/include")
 file(MAKE_DIRECTORY ${MID_LEVEL_DIR})
-file(MAKE_DIRECTORY ${MID_LEVEL_DIR}/include)
+file(MAKE_DIRECTORY ${MID_LEVEL_HEADER})
 
 find_package(BISON REQUIRED)
 find_package(FLEX REQUIRED)
@@ -28,6 +29,5 @@ ADD_EXECUTABLE(lexer
         )
 ADD_EXECUTABLE(parser
         src/test/test_parser.cpp
-        tmp/include/bison_parser.h
         ${FLEX_lexer2_OUTPUTS}
         ${BISON_parser_OUTPUTS})

@@ -11,31 +11,37 @@
 
 #include <iostream>
 #include <string>
+#include <utility>
 #include <vector>
 #include <algorithm>
+#include "ast_typedef.h"
 
 typedef struct TreeNode {
     struct TreeNode *parent;
     struct std::vector<struct TreeNode *> children;
     std::string node_name;
+    LL_AST_TYPE node_type;
 
 public:
     TreeNode() {
-        this->parent = NULL;
+        this->parent = nullptr;
         this->children = std::vector<struct TreeNode *>();
         this->node_name = "Anonymous";
+        this->node_type = AST_UNKNOWN;
     }
 
-    TreeNode(const std::string name) {
-        this->parent = NULL;
+    explicit TreeNode(const std::string& name, LL_AST_TYPE t) {
+        this->parent = nullptr;
         this->children = std::vector<struct TreeNode *>();
         this->node_name = name;
+        this->node_type = t;
     }
 
-    TreeNode(const char *name) {
-        this->parent = NULL;
+    explicit TreeNode(const char *name, LL_AST_TYPE t) {
+        this->parent = nullptr;
         this->children = std::vector<struct TreeNode *>();
         this->node_name = name;
+        this->node_type = t;
     }
 
     void set_parent(TreeNode *p) {
@@ -43,14 +49,14 @@ public:
     }
 
     void add_child(struct TreeNode *c) {
-        if (c != NULL) {
+        if (c != nullptr) {
             this->children.push_back(c);
             c->set_parent(this);
         }
     }
 
     void set_name(std::string name) {
-        this->node_name = name;
+        this->node_name = std::move(name);
     }
 
     void set_name(const char *name) {
@@ -58,9 +64,9 @@ public:
     }
 
     void remove_child(TreeNode *c) {
-        if (c != NULL) {
+        if (c != nullptr) {
             std::remove(this->children.begin(), this->children.end(), c);
-            c->set_parent(NULL);
+            c->set_parent(nullptr);
         }
     }
 
@@ -69,6 +75,9 @@ public:
         for (int i = 0; i < depth; ++i){
             result += '|';
         }
+        result += '[';
+        result += std::to_string(this->node_type);
+        result += ']';
         result += this->node_name;
         std::cout << result << std::endl;
         for (TreeNode* node: this->children){
@@ -80,7 +89,7 @@ public:
 struct SyntaxTree {
     TreeNode *root;
 
-    void print_tree() {
+    void print_tree() const {
         root->print_tree(0);
     }
 };

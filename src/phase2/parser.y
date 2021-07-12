@@ -5,6 +5,7 @@
 #include <stdarg.h>
 
 #include "syntax_tree.h"
+#include "ast_typedef.h"
 
 // external functions from lex
 extern int yylex();
@@ -23,7 +24,7 @@ SyntaxTree *syntax_tree;
 void yyerror(const char *s);
 
 // Helper functions written for you with love
-TreeNode *node(const char *node_name, int children_num, ...);
+TreeNode *node(const char *node_name, LL_AST_TYPE type, int children_num, ...);
 %}
 
 /* TODO: Complete this definition. */
@@ -45,348 +46,348 @@ block block_item block_items stmt exp cond lval primary_exp number unary_exp una
 break_stmt continue_stmt return_stmt lval_addr func_call pointer
 func_rparams mulexp addexp relexp eqexp landexp lorexp  const_pointer
 %%
-program: comp_unit {$$=node("program",1,$1); syntax_tree->root=$$;}
+program: comp_unit {$$=node("program",AST_program,1,$1); syntax_tree->root=$$;}
 
 comp_unit:  comp_unit decl {
-                $$=node("comp_unit",2,$1,$2);
+                $$=node("comp_unit",AST_comp_unit,2,$1,$2);
             }|
             comp_unit func_def {
-                $$=node("comp_unit",2,$1,$2);
+                $$=node("comp_unit",AST_comp_unit,2,$1,$2);
             }|
             decl {
-                $$=node("comp_unit",1,$1);
+                $$=node("comp_unit",AST_comp_unit,1,$1);
             }|
             func_def{
-                $$=node("comp_unit",1,$1);
+                $$=node("comp_unit",AST_comp_unit,1,$1);
             }
 
 decl:       const_decl {
-                $$=node("decl",1,$1);
+                $$=node("decl",AST_decl,1,$1);
             }|
             var_decl {
-                $$=node("decl",1,$1);
+                $$=node("decl",AST_decl,1,$1);
             }
 
 const_decl: CONST INT const_defs SEMICOLON{
-                $$=node("const_decl",4,$1,$2,$3,$4);
+                $$=node("const_decl",AST_const_decl,4,$1,$2,$3,$4);
             }
 
 
 const_defs: const_defs COMMA const_def{
-                $$=node("const_defs",3,$1,$2,$3);
+                $$=node("const_defs",AST_const_defs,3,$1,$2,$3);
             }|
             const_def {
-                $$=node("const_defs",1,$1);
+                $$=node("const_defs",AST_const_defs,1,$1);
             }
 
 const_def:  IDENT ASSIN const_init_val{
-                $$=node("const_def",3,$1,$2,$3);
+                $$=node("const_def",AST_const_def,3,$1,$2,$3);
             }|
             IDENT const_pointer ASSIN const_init_val{
-                $$=node("const_def",4,$1,$2,$3,$4);
+                $$=node("const_def",AST_const_def,4,$1,$2,$3,$4);
             }
 
 const_pointer:LBRACKET const_exp RBRACKET const_pointer{
-                $$=node("const_pointer",4,$1,$2,$3,$4);
+                $$=node("const_pointer",AST_const_pointer,4,$1,$2,$3,$4);
             }|
             LBRACKET const_exp RBRACKET{
-                $$=node("const_pointer",3,$1,$2,$3);
+                $$=node("const_pointer",AST_const_pointer,3,$1,$2,$3);
             }
 const_init_val: const_exp{
-                $$=node("const_init_val",1,$1);
+                $$=node("const_init_val",AST_const_init_val,1,$1);
             }|
             LBRACE RBRACE{
-                $$=node("const_init_val",2,$1,$2);
+                $$=node("const_init_val",AST_const_init_val,2,$1,$2);
             }|
             LBRACE const_init_vals RBRACE{
-                $$=node("const_init_val",3,$1,$2,$3);
+                $$=node("const_init_val",AST_const_init_val,3,$1,$2,$3);
             }
             
 const_init_vals: const_init_val {
-                $$=node("const_init_vals",1,$1);
+                $$=node("const_init_vals",AST_const_init_vals,1,$1);
             }|
             const_init_vals COMMA const_init_val{
-                $$=node("const_init_vals",3,$1,$2,$3);
+                $$=node("const_init_vals",AST_const_init_vals,3,$1,$2,$3);
             }
 
 var_decl :  INT var_defs SEMICOLON{
-                $$=node("var_decl",3,$1,$2,$3);
+                $$=node("var_decl",AST_var_decl,3,$1,$2,$3);
             }
 
 var_defs:   var_def {
-                $$=node("var_defs",1,$1);
+                $$=node("var_defs",AST_var_defs,1,$1);
             }|
             var_defs COMMA var_def{
-                $$=node("var_defs",3,$1,$2,$3);
+                $$=node("var_defs",AST_var_defs,3,$1,$2,$3);
             }
 
 var_def:    IDENT {
-                $$=node("var_def",1,$1);
+                $$=node("var_def",AST_var_def,1,$1);
             }|
             IDENT const_pointer {
-                $$=node("var_def",2,$1,$2);
+                $$=node("var_def",AST_var_def,2,$1,$2);
             }|
             IDENT const_pointer ASSIN init_val{
-                $$=node("var_def",4,$1,$2,$3,$4);
+                $$=node("var_def",AST_var_def,4,$1,$2,$3,$4);
             }
 
 init_val:   exp{
-                $$=node("init_val",1,$1);
+                $$=node("init_val",AST_init_val,1,$1);
             }|
             LBRACE RBRACE{
-                $$=node("init_val",2,$1,$2);
+                $$=node("init_val",AST_init_val,2,$1,$2);
             }|
             LBRACE init_vals RBRACE{
-                $$=node("init_val",3,$1,$2,$3);
+                $$=node("init_val",AST_init_val,3,$1,$2,$3);
             }
 
 init_vals:  init_val {
-                $$=node("init_vals",1,$1);
+                $$=node("init_vals",AST_init_vals,1,$1);
             }|
             init_vals COMMA init_val{
-                $$=node("const_init_vals",3,$1,$2,$3);
+                $$=node("const_init_vals",AST_const_init_vals,3,$1,$2,$3);
             }
 
 func_def:   VOID IDENT LPARENTHESE RPARENTHESE block{
-                $$=node("func_def",5,$1,$2,$3,$4,$5);
+                $$=node("func_def",AST_func_def,5,$1,$2,$3,$4,$5);
             }|
             INT IDENT LPARENTHESE RPARENTHESE block{
-                $$=node("func_def",5,$1,$2,$3,$4,$5);
+                $$=node("func_def",AST_func_def,5,$1,$2,$3,$4,$5);
             }|
             VOID IDENT LPARENTHESE funcf_params RPARENTHESE block{
-                $$=node("func_def",6,$1,$2,$3,$4,$5,$6);
+                $$=node("func_def",AST_func_def,6,$1,$2,$3,$4,$5,$6);
             }|
             INT IDENT LPARENTHESE funcf_params RPARENTHESE block{
-                $$=node("func_def",6,$1,$2,$3,$4,$5,$6);
+                $$=node("func_def",AST_func_def,6,$1,$2,$3,$4,$5,$6);
             }
 
 funcf_params: funcf_param{
-                $$=node("funcf_params",1,$1);
+                $$=node("funcf_params",AST_funcf_params,1,$1);
             }|
             funcf_params COMMA funcf_param{
-                $$=node("funcf_params",3,$1,$2,$3);
+                $$=node("funcf_params",AST_funcf_params,3,$1,$2,$3);
             }
 
 funcf_param:INT IDENT{
-                $$=node("funcf_param",2,$1,$2);
+                $$=node("funcf_param",AST_funcf_param,2,$1,$2);
             }|
             INT IDENT LBRACKET RBRACKET {
-                $$=node("funcf_param",4,$1,$2,$3,$4);
+                $$=node("funcf_param",AST_funcf_param,4,$1,$2,$3,$4);
             }|
             INT IDENT LBRACKET RBRACKET pointer{
-                $$=node("funcf_param",5,$1,$2,$3,$4,$5);
+                $$=node("funcf_param",AST_funcf_param,5,$1,$2,$3,$4,$5);
             }
 
 block:      LBRACE RBRACE{
-                $$=node("block",2,$1,$2);
+                $$=node("block",AST_block,2,$1,$2);
             }|
             LBRACE block_items RBRACE{
-                $$=node("block",3,$1,$2,$3);
+                $$=node("block",AST_block,3,$1,$2,$3);
             }
 
 block_items:block_item{
-                $$=node("block_items",1,$1);
+                $$=node("block_items",AST_block_items,1,$1);
             }|
             block_items block_item{
-                $$=node("block_items",2,$1,$2);
+                $$=node("block_items",AST_block_items,2,$1,$2);
             }
 
 block_item: decl{
-                $$=node("block_item",1,$1);
+                $$=node("block_item",AST_block_item,1,$1);
             }|
             stmt{
-                $$=node("block_item",1,$1);
+                $$=node("block_item",AST_block_item,1,$1);
             }
 
 stmt:       assign_stmt{
-                $$=node("stmt",1,$1);
+                $$=node("stmt",AST_stmt,1,$1);
             }|
             exp_stmt{
-                $$=node("stmt",1,$1);
+                $$=node("stmt",AST_stmt,1,$1);
             }|
             block{
-                $$=node("stmt",1,$1);
+                $$=node("stmt",AST_stmt,1,$1);
             }|
             if_stmt{
-                $$=node("stmt",1,$1);
+                $$=node("stmt",AST_stmt,1,$1);
             }|
             iter_stmt{
-                $$=node("stmt",1,$1);
+                $$=node("stmt",AST_stmt,1,$1);
             }|
             break_stmt{
-                $$=node("stmt",1,$1);
+                $$=node("stmt",AST_stmt,1,$1);
             }|
             continue_stmt{
-                $$=node("stmt",1,$1);
+                $$=node("stmt",AST_stmt,1,$1);
             }|
             return_stmt{
-                $$=node("stmt",1,$1);
+                $$=node("stmt",AST_stmt,1,$1);
             }
 assign_stmt:lval_addr ASSIN exp SEMICOLON{
-                $$=node("assign_stmt",4,$1,$2,$3,$4);
+                $$=node("assign_stmt",AST_assign_stmt,4,$1,$2,$3,$4);
             }
 
 lval_addr:  IDENT{
-                $$=node("lval",1,$1);
+                $$=node("lval",AST_lval,1,$1);
             }|
             IDENT pointer{
-                $$=node("lval",2,$1,$2);
+                $$=node("lval",AST_lval,2,$1,$2);
             }
 exp_stmt:   SEMICOLON{
-                $$=node("exp_stmt",1,$1);
+                $$=node("exp_stmt",AST_exp_stmt,1,$1);
             }|
             exp SEMICOLON{
-                $$=node("exp_stmt",2,$1,$2);
+                $$=node("exp_stmt",AST_exp_stmt,2,$1,$2);
             }
 if_stmt:    IF LPARENTHESE cond RPARENTHESE stmt{
-                $$=node("if_stmt",5,$1,$2,$3,$4,$5);
+                $$=node("if_stmt",AST_if_stmt,5,$1,$2,$3,$4,$5);
             }|
             IF LPARENTHESE cond RPARENTHESE stmt ELSE stmt{
-                $$=node("if_else_stmt",7,$1,$2,$3,$4,$5,$6,$7);
+                $$=node("if_else_stmt",AST_if_stmt,7,$1,$2,$3,$4,$5,$6,$7);
             }
 iter_stmt:  WHILE LPARENTHESE cond RPARENTHESE stmt{
-                $$=node("iter_stmt",5,$1,$2,$3,$4,$5);
+                $$=node("iter_stmt",AST_iter_stmt,5,$1,$2,$3,$4,$5);
             }
 break_stmt: BREAK SEMICOLON{
-                $$=node("break_stmt",2,$1,$2);
+                $$=node("break_stmt",AST_break_stmt,2,$1,$2);
             }
 continue_stmt:CONTINUE SEMICOLON{
-                $$=node("continue_stmt",2,$1,$2);
+                $$=node("continue_stmt",AST_continue_stmt,2,$1,$2);
             }
 return_stmt:RETURN SEMICOLON{
-                $$=node("return_stmt",2,$1,$2);
+                $$=node("return_stmt",AST_return_stmt,2,$1,$2);
             }|
             RETURN exp SEMICOLON{
-                $$=node("return_stmt",3,$1,$2,$3);
+                $$=node("return_stmt",AST_return_stmt,3,$1,$2,$3);
             }
 exp:        addexp{
-                $$=node("exp",1,$1);
+                $$=node("exp",AST_exp,1,$1);
             }
 
 cond:       lorexp{
-                $$=node("cond",1,$1);
+                $$=node("cond",AST_cond,1,$1);
             }
 
 lval:       IDENT{
-                $$=node("lval",1,$1);
+                $$=node("lval",AST_lval,1,$1);
             }|
             IDENT pointer{
-                $$=node("lval",2,$1,$2);
+                $$=node("lval",AST_lval,2,$1,$2);
             }
 
 pointer:    LBRACKET exp RBRACKET{
-                $$=node("pointer",3,$1,$2,$3);
+                $$=node("pointer",AST_pointer,3,$1,$2,$3);
             }|
             LBRACKET exp RBRACKET pointer{
-                $$=node("pointer",4,$1,$2,$3,$4);
+                $$=node("pointer",AST_pointer,4,$1,$2,$3,$4);
             }
 
 primary_exp:LPARENTHESE exp RPARENTHESE{
-                $$=node("primary_exp",3,$1,$2,$3);
+                $$=node("primary_exp",AST_primary_exp,3,$1,$2,$3);
             }|
             lval{
-                $$=node("primary_exp",1,$1);
+                $$=node("primary_exp",AST_primary_exp,1,$1);
             }|
             number{
-                $$=node("primary_exp",1,$1);
+                $$=node("primary_exp",AST_primary_exp,1,$1);
             }
 
 number:     INT_CONST{
-                $$=node("number",1,$1);
+                $$=node("number",AST_number,1,$1);
             }
 
-unary_op:   ADD { $$=node("unary_op", 1, $1); }|
-            SUB { $$=node("unary_op", 1, $1); }|
-            NOT { $$=node("unary_op", 1, $1); }
+unary_op:   ADD { $$=node("unary_op", AST_unary_op, 1, $1); }|
+            SUB { $$=node("unary_op", AST_unary_op, 1, $1); }|
+            NOT { $$=node("unary_op", AST_unary_op, 1, $1); }
 
 unary_exp:  primary_exp{
-                $$=node("unary_exp",1,$1);
+                $$=node("unary_exp",AST_unary_exp,1,$1);
             }|
             unary_op unary_exp{
-                $$=node("unary_exp",2,$1,$2);
+                $$=node("unary_exp",AST_unary_exp,2,$1,$2);
             }|
             func_call{
-                $$=node("unary_exp", 1, $1);
+                $$=node("unary_exp", AST_unary_exp, 1, $1);
             }
 func_call:  IDENT LPARENTHESE RPARENTHESE{
-                $$=node("unary_exp",3,$1,$2,$3);
+                $$=node("unary_exp",AST_unary_exp,3,$1,$2,$3);
             }|
             IDENT LPARENTHESE func_rparams RPARENTHESE{
-                $$=node("unary_exp",4,$1,$2,$3,$4);
+                $$=node("unary_exp",AST_unary_exp,4,$1,$2,$3,$4);
             }
 
 func_rparams: exp{
-                $$=node("func_rparams",1,$1);
+                $$=node("func_rparams",AST_func_rparams,1,$1);
             }|
             func_rparams exp{
-                $$=node("func_rparams",2,$1,$2);
+                $$=node("func_rparams",AST_func_rparams,2,$1,$2);
             }
 
 mulexp:     unary_exp{
-                $$=node("mulexp",1,$1);
+                $$=node("mulexp",AST_mulexp,1,$1);
             }|
             mulexp MUL unary_exp{
-                $$=node("mulexp",3,$1,$2,$3);
+                $$=node("mulexp",AST_mulexp,3,$1,$2,$3);
             }|
             mulexp DIV unary_exp{
-                $$=node("mulexp",3,$1,$2,$3);
+                $$=node("mulexp",AST_mulexp,3,$1,$2,$3);
             }|
             mulexp MOD unary_exp{
-                $$=node("mulexp",3,$1,$2,$3);
+                $$=node("mulexp",AST_mulexp,3,$1,$2,$3);
             }
 
 addexp:     mulexp{
-                $$=node("addexp",1,$1);
+                $$=node("addexp",AST_addexp,1,$1);
             }|
             addexp ADD mulexp{
-                $$=node("addexp",3,$1,$2,$3);
+                $$=node("addexp",AST_addexp,3,$1,$2,$3);
             }|
             addexp SUB unary_exp{
-                $$=node("addexp",3,$1,$2,$3);
+                $$=node("addexp",AST_addexp,3,$1,$2,$3);
             }
 
 relexp:     addexp{
-                $$=node("relexp",1,$1);
+                $$=node("relexp",AST_relexp,1,$1);
             }|
             relexp GT addexp{
-                $$=node("relexp",3,$1,$2,$3);
+                $$=node("relexp",AST_relexp,3,$1,$2,$3);
             }|
             relexp GTE addexp{
-                $$=node("relexp",3,$1,$2,$3);
+                $$=node("relexp",AST_relexp,3,$1,$2,$3);
             }|
             relexp LT addexp{
-                $$=node("relexp",3,$1,$2,$3);
+                $$=node("relexp",AST_relexp,3,$1,$2,$3);
             }|
             relexp LTE addexp{
-                $$=node("relexp",3,$1,$2,$3);
+                $$=node("relexp",AST_relexp,3,$1,$2,$3);
             }
 
 eqexp:      relexp{
-                $$=node("eqexp",1,$1);
+                $$=node("eqexp",AST_eqexp,1,$1);
             }|
             eqexp EQ relexp{
-                $$=node("eqexp",2,$1,$2);
+                $$=node("eqexp",AST_eqexp,2,$1,$2);
             }|
             eqexp NEQ relexp{
-                $$=node("eqexp",3,$1,$2,$3);
+                $$=node("eqexp",AST_eqexp,3,$1,$2,$3);
             }
 
 landexp:    eqexp{
-                $$=node("landexp",1,$1);
+                $$=node("landexp",AST_landexp,1,$1);
             }|
             landexp AND eqexp{
-                $$=node("landexp",3,$1,$2,$3);
+                $$=node("landexp",AST_landexp,3,$1,$2,$3);
             }
 
 lorexp:     landexp{
-                $$=node("lorexp",1,$1);
+                $$=node("lorexp",AST_lorexp,1,$1);
             }|
             lorexp OR landexp{
-                $$=node("lorexp",1,$1);
+                $$=node("lorexp",AST_lorexp,1,$1);
             }
 
 const_exp:  addexp{
-                $$=node("const_exp",1,$1);
+                $$=node("const_exp",AST_const_exp,1,$1);
             }
 %%
 /// The error reporting function.
@@ -423,12 +424,12 @@ SyntaxTree *parse(const char *input_path)
 /// e.g.
 ///     $$ = node("program", 1, $1);
 ///     $$ = node("local-declarations", 0);
-TreeNode *node(const char *name, int children_num, ...)
+TreeNode *node(const char *name, LL_AST_TYPE type, int children_num, ...)
 {
-    TreeNode *p = new TreeNode(name);
+    TreeNode *p = new TreeNode(name, type);
     TreeNode *child;
     if (children_num == 0) {
-        child = new TreeNode("epsilon");
+        child = new TreeNode("epsilon", AST_EMPTY);
         p->add_child(child);
     } else {
         va_list ap;
