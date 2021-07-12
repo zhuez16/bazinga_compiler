@@ -8,26 +8,27 @@
 
 // external functions from lex
 extern int yylex();
+extern void yyrestart(FILE* fp);
 
 // external variables from lexical_analyzer module
 extern int lines;
 extern char *yytext;
 extern int pos_end;
 extern int pos_start;
-FILE* yyin;
+extern FILE* yyin;
 // Global syntax tree
-syntax_tree *gt;
+SyntaxTree *syntax_tree;
 
 // Error reporting
 void yyerror(const char *s);
 
 // Helper functions written for you with love
-syntax_tree_node *node(const char *node_name, int children_num, ...);
+TreeNode *node(const char *node_name, int children_num, ...);
 %}
 
 /* TODO: Complete this definition. */
 %union {
-    syntax_tree_node* node;
+    TreeNode* node;
 }
 
 /* TODO: Your tokens here. */
@@ -44,7 +45,7 @@ block block_item block_items stmt exp cond lval primary_exp number unary_exp una
 break_stmt continue_stmt return_stmt lval_addr func_call pointer
 func_rparams mulexp addexp relexp eqexp landexp lorexp  const_pointer
 %%
-program: comp_unit {$$=node("program",1,$1); gt->root=$$;}
+program: comp_unit {$$=node("program",1,$1); syntax_tree->root=$$;}
 
 comp_unit:  comp_unit decl {
                 $$=node("comp_unit",2,$1,$2);
@@ -98,7 +99,7 @@ const_init_val: const_exp{
                 $$=node("const_init_val",2,$1,$2);
             }|
             LBRACE const_init_vals RBRACE{
-                $$=node("const_init_val",$1,$2,$3);
+                $$=node("const_init_val",3,$1,$2,$3);
             }
             
 const_init_vals: const_init_val {
@@ -241,7 +242,7 @@ if_stmt:    IF LPARENTHESE cond RPARENTHESE stmt{
                 $$=node("if_stmt",5,$1,$2,$3,$4,$5);
             }|
             IF LPARENTHESE cond RPARENTHESE stmt ELSE stmt{
-                $$=node("if_else_stmt"7,$1,$2,$3,$4,$5,$6,$7);
+                $$=node("if_else_stmt",7,$1,$2,$3,$4,$5,$6,$7);
             }
 iter_stmt:  WHILE LPARENTHESE cond RPARENTHESE stmt{
                 $$=node("iter_stmt",5,$1,$2,$3,$4,$5);
@@ -398,8 +399,9 @@ void yyerror(const char *s)
 /// to stdout.  If input_path is NULL, read from stdin.
 ///
 /// This function initializes essential states before running yyparse().
-syntax_tree *parse(const char *input_path)
+SyntaxTree *parse(const char *input_path)
 {
+    yydebug = 1;
     if (input_path != NULL) {
         if (!(yyin = fopen(input_path, "r"))) {
             fprintf(stderr, "[ERR] Open input file %s failed.\n", input_path);
@@ -410,10 +412,10 @@ syntax_tree *parse(const char *input_path)
     }
 
     lines = pos_start = pos_end = 1;
-    gt = new_syntax_tree();
+    syntax_tree = new SyntaxTree();
     yyrestart(yyin);
     yyparse();
-    return gt;
+    return syntax_tree;
 }
 
 /// A helper function to quickly construct a tree node.
@@ -421,19 +423,19 @@ syntax_tree *parse(const char *input_path)
 /// e.g.
 ///     $$ = node("program", 1, $1);
 ///     $$ = node("local-declarations", 0);
-syntax_tree_node *node(const char *name, int children_num, ...)
+TreeNode *node(const char *name, int children_num, ...)
 {
-    syntax_tree_node *p = new_syntax_tree_node(name);
-    syntax_tree_node *child;
+    TreeNode *p = new TreeNode(name);
+    TreeNode *child;
     if (children_num == 0) {
-        child = new_syntax_tree_node("epsilon");
-        syntax_tree_add_child(p, child);
+        child = new TreeNode("epsilon");
+        p->add_child(child);
     } else {
         va_list ap;
         va_start(ap, children_num);
         for (int i = 0; i < children_num; ++i) {
-            child = va_arg(ap, syntax_tree_node *);
-            syntax_tree_add_child(p, child);
+            child = va_arg(ap, TreeNode *);
+            p->add_child(child);
         }
         va_end(ap);
     }
