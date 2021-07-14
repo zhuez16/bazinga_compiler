@@ -4,7 +4,7 @@
 
 #include "syntax_tree.h"
 #include "parser.h"
-// #include "ast.h"
+#include "ast.h"
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
@@ -14,4 +14,5 @@ int main(int argc, char *argv[]) {
 
     SyntaxTree *tree = parse(argv[1]);
     tree->print_tree();
+    new ASTProgram(tree);
 }

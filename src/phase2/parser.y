@@ -313,17 +313,17 @@ unary_exp:  primary_exp{
                 $$=node("unary_exp", AST_unary_exp, 1, $1);
             }
 func_call:  IDENT LPARENTHESE RPARENTHESE{
-                $$=node("unary_exp",AST_unary_exp,3,$1,$2,$3);
+                $$=node("func_call",AST_func_call,3,$1,$2,$3);
             }|
             IDENT LPARENTHESE func_rparams RPARENTHESE{
-                $$=node("unary_exp",AST_unary_exp,4,$1,$2,$3,$4);
+                $$=node("func_call",AST_func_call,4,$1,$2,$3,$4);
             }
 
 func_rparams: exp{
                 $$=node("func_rparams",AST_func_rparams,1,$1);
             }|
-            func_rparams exp{
-                $$=node("func_rparams",AST_func_rparams,2,$1,$2);
+            func_rparams COMMA exp{
+                $$=node("func_rparams",AST_func_rparams,3,$1,$2,$3);
             }
 
 mulexp:     unary_exp{
