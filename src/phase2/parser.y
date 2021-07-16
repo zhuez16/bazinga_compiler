@@ -386,7 +386,7 @@ lorexp:     landexp{
                 $$=node("lorexp",AST_lorexp,1,$1);
             }|
             lorexp OR landexp{
-                $$=node("lorexp",AST_lorexp,1,$1);
+                $$=node("lorexp",AST_lorexp,3,$1,$2,$3);
             }
 
 const_exp:  addexp{

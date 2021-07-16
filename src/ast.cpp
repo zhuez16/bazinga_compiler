@@ -43,6 +43,8 @@ ASTInstruction *ASTUnaryOp::getUnaryOp(TreeNode *t) {
                     return new ASTLVal(node->children[0]);
                 case AST_number:
                     return new ASTConstant(node->children[0]->children[0]);
+                case AST_IDENT:
+                    return new ASTFuncCall(node);
                 default:
                     assert(0 && "ASTPrimaryExp got unknown child node type");
             }
