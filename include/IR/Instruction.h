@@ -31,9 +31,6 @@ public:
         call,
         getelementptr, 
         zext, // zero extend
-        fptosi,
-        sitofp
-        // float binary operators Logical operators
 
     };
     // create instruction, auto insert to bb
@@ -67,8 +64,6 @@ public:
             case call: return "call"; break;
             case getelementptr: return "getelementptr"; break;
             case zext: return "zext"; break;
-            case fptosi: return "fptosi"; break;
-            case sitofp: return "sitofp"; break;
         
         default: return ""; break;
         }
@@ -90,8 +85,6 @@ public:
     bool is_mul() { return op_id_ == mul; }
     bool is_div() { return op_id_ == sdiv; }
     
-    bool is_fp2si() { return op_id_ == fptosi; }
-    bool is_si2fp() { return op_id_ == sitofp; }
 
     bool is_cmp() { return op_id_ == cmp; }
     bool is_fcmp() { return op_id_ == fcmp; }
@@ -321,37 +314,7 @@ private:
     Type *dest_ty_;
 };
 
-class FpToSiInst : public Instruction
-{
-private:
-    FpToSiInst(OpID op, Value *val, Type *ty, BasicBlock *bb);
 
-public:
-    static FpToSiInst *create_fptosi(Value *val, Type *ty, BasicBlock *bb);
-
-    Type *get_dest_type() const;
-
-    virtual std::string print() override;
-
-private:
-    Type *dest_ty_;
-};
-
-class SiToFpInst : public Instruction
-{
-private:
-    SiToFpInst(OpID op, Value *val, Type *ty, BasicBlock *bb);
-
-public:
-    static SiToFpInst *create_sitofp(Value *val, Type *ty, BasicBlock *bb);
-
-    Type *get_dest_type() const;
-
-    virtual std::string print() override;
-
-private:
-    Type *dest_ty_;
-};
 
 class PhiInst : public Instruction
 {
