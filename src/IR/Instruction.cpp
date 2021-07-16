@@ -159,52 +159,6 @@ std::string CmpInst::print()
     return instr_ir;
 }
 
-FCmpInst::FCmpInst(Type *ty, CmpOp op, Value *lhs, Value *rhs, 
-            BasicBlock *bb)
-    : Instruction(ty, Instruction::fcmp, 2, bb), cmp_op_(op)
-{
-    set_operand(0, lhs);
-    set_operand(1, rhs);
-    // assertValid();
-}
-
-void FCmpInst::assert_valid()
-{
-    assert(get_operand(0)->get_type()->is_float_type());
-    assert(get_operand(1)->get_type()->is_float_type());
-}
-
-FCmpInst *FCmpInst::create_fcmp(CmpOp op, Value *lhs, Value *rhs, 
-                        BasicBlock *bb, Module *m)
-{
-    return new FCmpInst(m->get_int1_type(), op, lhs, rhs, bb);
-}
-
-std::string FCmpInst::print()
-{
-    std::string instr_ir;
-    instr_ir += "%";
-    instr_ir += this->get_name();
-    instr_ir += " = ";
-    instr_ir += this->get_module()->get_instr_op_name( this->get_instr_type() );
-    instr_ir += " ";
-    instr_ir += print_fcmp_type(this->cmp_op_);
-    instr_ir += " ";
-    instr_ir += this->get_operand(0)->get_type()->print();
-    instr_ir += " ";
-    instr_ir += print_as_op(this->get_operand(0), false);
-    instr_ir += ",";
-    if (Type::is_eq_type(this->get_operand(0)->get_type(), this->get_operand(1)->get_type()))
-    {
-        instr_ir += print_as_op(this->get_operand(1), false);
-    }
-    else
-    {
-        instr_ir += print_as_op(this->get_operand(1), true);
-    }
-    return instr_ir;
-}
-
 CallInst::CallInst(Function *func, std::vector<Value *> args, BasicBlock *bb)
     : Instruction(func->get_return_type(), Instruction::call, args.size() + 1, bb)
 {

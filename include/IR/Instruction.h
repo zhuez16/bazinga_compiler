@@ -26,7 +26,6 @@ public:
         store,
         // Other operators
         cmp,
-        fcmp,
         phi,
         call,
         getelementptr, 
@@ -59,7 +58,6 @@ public:
             case load: return "load"; break;
             case store: return "store"; break;
             case cmp: return "cmp"; break;
-            case fcmp: return "fcmp"; break;
             case phi: return "phi"; break;
             case call: return "call"; break;
             case getelementptr: return "getelementptr"; break;
@@ -87,7 +85,6 @@ public:
     
 
     bool is_cmp() { return op_id_ == cmp; }
-    bool is_fcmp() { return op_id_ == fcmp; }
 
     bool is_call() { return op_id_ == call; }
     bool is_gep() { return op_id_ == getelementptr; }
@@ -164,36 +161,6 @@ private:
     void assertValid();
 };
 
-class FCmpInst : public Instruction
-{
-public:
-    enum CmpOp
-    {
-        EQ, // ==
-        NE, // !=
-        GT, // >
-        GE, // >=
-        LT, // <
-        LE  // <=
-    };
-
-private:
-    FCmpInst(Type *ty, CmpOp op, Value *lhs, Value *rhs,
-             BasicBlock *bb);
-
-public:
-    static FCmpInst *create_fcmp(CmpOp op, Value *lhs, Value *rhs,
-                                 BasicBlock *bb, Module *m);
-
-    CmpOp get_cmp_op() { return cmp_op_; }
-
-    virtual std::string print() override;
-
-private:
-    CmpOp cmp_op_;
-
-    void assert_valid();
-};
 
 class CallInst : public Instruction
 {
