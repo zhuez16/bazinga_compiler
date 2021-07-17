@@ -1,3 +1,6 @@
+#ifndef SYSYC_MODULE_H
+#define SYSYC_MODULE_H
+
 #include "Type.h"
 #include "Instruction.h"
 #include <vector>
@@ -5,6 +8,7 @@
 #include <list>
 #include "Function.h"
 #include <string>
+#include "GlobalVariable.h"
 class Module{
     public:
         Module();
@@ -28,3 +32,5 @@ class Module{
         Type* IntType;
         Type* BoolType;
 };
+
+#endif
