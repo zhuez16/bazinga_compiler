@@ -31,7 +31,6 @@ bool in_global_init = false;
 Value *ret;
 void ASTvisitor::visit(ASTProgram &node) {
 }
-void ASTvisitor::visit(ASTInstruction &node) {}
 void ASTvisitor::visit(ASTConstant &node) 
 {
     tmp_int = node.getValue();
@@ -41,12 +40,12 @@ void ASTvisitor::visit(ASTUnaryOp &node)
     if (use_int) {
         int val;
         if (sub_exp) {
-            node.getExpression->accept(*this);
+            node.getExpression()->accept(*this);
             val = tmp_int;
         } else {
             //_IRBUILDER_ERROR_("Function call in ConstExp!");
         }
-        switch (node.getUnaryOpType) {
+        switch (node.getUnaryOpType()) {
             case AST_OP_POSITIVE:
                 tmp_int = 0 + val;
                 break;
@@ -62,10 +61,10 @@ void ASTvisitor::visit(ASTUnaryOp &node)
     }
 
     Value *val;
-    node.getExpression->accept(*this);
+    node.getExpression()->accept(*this);
     val = tmp_val;
 
-    switch (node.getUnaryOpType) {
+    switch (node.getUnaryOpType()) {
     case AST_OP_POSITIVE:
         val = builder->create_iadd(CONST(0), val);
         break;
@@ -80,16 +79,16 @@ void ASTvisitor::visit(ASTUnaryOp &node)
 }
 void ASTvisitor::visit(ASTMulOp &node) 
 {
-    if(node.getOperand1==nullptr)
-        node.getOperand2->accept(*this);
+    if(node.getOperand1()==nullptr)
+        node.getOperand2()->accept(*this);
     else
     {
-        node.getOperand1->accept(*this);
+        node.getOperand1()->accept(*this);
         auto l_val = tmp_int;
-        node.getOperand2->accept(*this);
+        node.getOperand2()->accept(*this);
         auto r_val = tmp_int;
         if(use_int){
-            switch (node.getOpType) {
+            switch (node.getOpType()) {
                 case AST_OP_MUL:
                     tmp_int = l_val * r_val;
                     break;
@@ -109,7 +108,7 @@ void ASTvisitor::visit(ASTMulOp &node)
             if (r_val->getType()->is_Int1()) {
             r_val = builder->create_zext(r_val, TyInt32);
         }
-        switch (node.getOpType) {
+        switch (node.getOpType()) {
             case OP_MUL:
                 tmp_val = builder->create_imul(l_val, r_val);
             break;
@@ -124,16 +123,16 @@ void ASTvisitor::visit(ASTMulOp &node)
 }
 void ASTvisitor::visit(ASTAddOp &node) 
 {
-    if(node.getOperand1==nullptr)
-        node.getOperand2->accept(*this);
+    if(node.getOperand1()==nullptr)
+        node.getOperand2()->accept(*this);
     else
     {
-        node.getOperand1->accept(*this);
+        node.getOperand1()->accept(*this);
         auto l_val = tmp_int;
-        node.getOperand2->accept(*this);
+        node.getOperand2()->accept(*this);
         auto r_val = tmp_int;
         if(use_int){
-            switch (node.getOpType) {
+            switch (node.getOpType()) {
                 case AST_OP_ADD:
                     tmp_int = l_val + r_val;
                     break;
@@ -150,7 +149,7 @@ void ASTvisitor::visit(ASTAddOp &node)
             if (r_val->getType()->is_Int1()) {
             r_val = builder->create_zext(r_val, TyInt32);
         }
-        switch (node.getOpType) {
+        switch (node.getOpType()) {
             case AST_OP_ADD:
                 tmp_val = builder->create_iadd(l_val, r_val);
             break;
@@ -162,12 +161,12 @@ void ASTvisitor::visit(ASTAddOp &node)
 }
 void ASTvisitor::visit(ASTRelOp &node) 
 {
-    if (node.getOperand1 == nullptr)
-        node.getOperand2->accept(*this); 
+    if (node.getOperand1() == nullptr)
+        node.getOperand2()->accept(*this); 
     else {
-        node.getOperand1->accept(*this);
+        node.getOperand1()->accept(*this);
         auto l_val = tmp_val;
-        node.getOperand2->accept(*this);
+        node.getOperand2()->accept(*this);
         auto r_val = tmp_val;
 
         if (l_val->getType()->is_Int1())
@@ -177,7 +176,7 @@ void ASTvisitor::visit(ASTRelOp &node)
             r_val = builder->create_zext(r_val, TyInt32);
         }
 
-        switch (node.getOpType) {
+        switch (node.getOpType()) {
             case AST_OP_LTE:
                 tmp_val = builder->create_icmp_le(l_val, r_val);
                 break;
@@ -195,12 +194,12 @@ void ASTvisitor::visit(ASTRelOp &node)
 }
 void ASTvisitor::visit(ASTEqOp &node) 
 {
-    if (node.getOperand1 == nullptr)
-        node.getOperand2->accept(*this); 
+    if (node.getOperand1() == nullptr)
+        node.getOperand2()->accept(*this); 
     else {
-        node.getOperand1->accept(*this);
+        node.getOperand1()->accept(*this);
         auto l_val = tmp_val;
-        node.getOperand2->accept(*this);
+        node.getOperand2()->accept(*this);
         auto r_val = tmp_val;
 
         if (l_val->getType()->is_Int1())
@@ -210,7 +209,7 @@ void ASTvisitor::visit(ASTEqOp &node)
             r_val = builder->create_zext(r_val, TyInt32);
         }
 
-        switch (node.getOpType) {
+        switch (node.getOpType()) {
             case AST_OP_EQ:
                 tmp_val = builder->create_icmp_eq(l_val, r_val);
                 break;
@@ -222,12 +221,12 @@ void ASTvisitor::visit(ASTEqOp &node)
 }
 void ASTvisitor::visit(ASTAndOp &node) 
 {
-    if (node.getOperand1 == nullptr)
-        node.getOperand2->accept(*this); 
+    if (node.getOperand1() == nullptr)
+        node.getOperand2()->accept(*this); 
     else {
-        node.getOperand1->accept(*this);
+        node.getOperand1()->accept(*this);
         auto l_val = tmp_val;
-        node.getOperand2->accept(*this);
+        node.getOperand2()->accept(*this);
         auto r_val = tmp_val;
 
         if (l_val->getType()->is_Int1())
@@ -242,17 +241,17 @@ void ASTvisitor::visit(ASTAndOp &node)
 }
 void ASTvisitor::visit(ASTOrOp &node) 
 {
-    if (node.getOperand1 == nullptr)
+    if (node.getOperand1() == nullptr)
     {
-        node.getOperand2->accept(*this); 
+        node.getOperand2()->accept(*this); 
         if (tmp_val->getType()->is_Int32()) {
             tmp_val = builder->create_icmp_ne(tmp_val, CONST(0));
         }
     }    
     else {
-        node.getOperand1->accept(*this);
+        node.getOperand1()->accept(*this);
         auto l_val = tmp_val;
-        node.getOperand2->accept(*this);
+        node.getOperand2()->accept(*this);
         auto r_val = tmp_val;
 
         if (l_val->getType()->is_Int1())
@@ -328,7 +327,28 @@ void ASTvisitor::visit(ASTLVal &node)
     }
     */
 }
-void ASTvisitor::visit(ASTFuncCall &node) {}
+void ASTvisitor::visit(ASTFuncCall &node) 
+{
+    auto func_name = scope.find(node.getFunctionName());
+    if (func_name == nullptr) 
+        exit(120);
+    std::vector<Value *> args;
+    std::vector<ASTAddOp *> params=node.getParamList();
+    for (int i = 0; i < size; i++) {
+        auto arg = params[i];
+        auto arg_type =
+            static_cast<Function *>(func_name)->get_function_type()->get_args_type(i);
+        if (arg_type->is_Integer_type())
+            require_address = false;
+        else 
+            require_address = true;
+        arg->accept(*this);
+        require_address = false;
+        args.push_back(tmp_val);
+    }
+    tmp_val = builder->create_call(static_cast<Function *>(func_name), args);
+}
+}
 void compute_ast_constant(){};
 void ASTvisitor::visit(ASTVarDecl &node) {
     for (ASTVarDecl::ASTVarDeclInst *it: node.getVarDeclList()) {
