@@ -64,6 +64,7 @@ public:
         return std::move(module);
     }
 private:
+    virtual void visit(ASTInstruction &);
     virtual void visit(ASTProgram &) override final;
     virtual void visit(ASTConstant &) override final;
     virtual void visit(ASTUnaryOp &) override final;
@@ -82,8 +83,8 @@ private:
     virtual void visit(ASTExpressionStmt &) override final;
     virtual void visit(ASTIfStmt &) override final;
     virtual void visit(ASTWhileStmt &) override final;
-    virtual void visit(ASTBreakStmtStmt &) override final;
-    virtual void visit(ASTContinueStmtStmt &) override final;
+    virtual void visit(ASTBreakStmt &) override final;
+    virtual void visit(ASTContinueStmt &) override final;
 
     IRBuilder *builder;
     Scope scope;

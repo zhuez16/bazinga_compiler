@@ -1450,4 +1450,31 @@ public:
     }
 };
 
+class ASTvisitor{
+public:
+    virtual void visit(ASTInstruction &);
+    virtual void visit(ASTProgram &) =0;
+    virtual void visit(ASTConstant &) =0;
+    virtual void visit(ASTUnaryOp &) =0;
+    virtual void visit(ASTMulOp &) =0;
+    virtual void visit(ASTAddOp &) =0;
+    virtual void visit(ASTRelOp &) =0;
+    virtual void visit(ASTEqOp &) =0;
+    virtual void visit(ASTAndOp &) =0;
+    virtual void visit(ASTOrOp &) =0;
+    virtual void visit(ASTLVal &) =0;
+    virtual void visit(ASTFuncCall &) =0;
+    virtual void visit(ASTStatement &) =0;
+    virtual void visit(ASTDecl &) =0;
+    virtual void visit(ASTVarDecl &) =0;
+    virtual void visit(ASTAssignStmt &) =0;
+    virtual void visit(ASTExpressionStmt &) =0;
+    virtual void visit(ASTIfStmt &) =0;
+    virtual void visit(ASTWhileStmt &) =0;
+    virtual void visit(ASTBreakStmt &) =0;
+    virtual void visit(ASTContinueStmt &) =0;
+};
+
+
+
 #endif //BAZINGA_COMPILER_AST_H

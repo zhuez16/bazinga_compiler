@@ -21,5 +21,5 @@ void ASTvisitor::visit(ASTAssignStmt &) {}
 void ASTvisitor::visit(ASTExpressionStmt &) {}
 void ASTvisitor::visit(ASTIfStmt &) {}
 void ASTvisitor::visit(ASTWhileStmt &) {}
-void ASTvisitor::visit(ASTBreakStmtStmt &) {}
-void ASTvisitor::visit(ASTContinueStmtStmt &) {}
+void ASTvisitor::visit(ASTBreakStmt &) {}
+void ASTvisitor::visit(ASTContinueStmt &) {}
