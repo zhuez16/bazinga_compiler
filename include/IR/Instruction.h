@@ -127,7 +127,7 @@ public:
     // create Div instruction, auto insert to bb
     static BinaryInst *create_sdiv(Value *v1, Value *v2, BasicBlock *bb, Module *m);
     // create Mod instruction, auto insert to bb
-    static BinaryInst *create_mode(Value *v1, Value *v2, BasicBlock *bb, Module *m);
+    static BinaryInst *create_mod(Value *v1, Value *v2, BasicBlock *bb, Module *m);
     virtual std::string print() override;
 
 private:
