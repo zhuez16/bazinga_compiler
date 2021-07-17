@@ -7,7 +7,9 @@
 
 // ============  BEGIN OF METHODS IMPLEMENT =================
 
-
+void ASTProgram::runVisitor(ASTvisitor &node){
+    accept(node);
+}
 ASTUnaryOp::ASTUnaryOp(TreeNode *t) : ASTInstruction(AST_UNARY_EXP) {
     assert(t != nullptr && t->node_type == AST_unary_exp && t->children.size() == 2 &&
            "ASTUnaryOp got invalid TreeNode pointer");

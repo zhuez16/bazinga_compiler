@@ -1,0 +1,4 @@
+/Users/misakihanayo/bzcompiler/cmake-build-default/CMakeFiles/parser.dir
+/Users/misakihanayo/bzcompiler/cmake-build-default/CMakeFiles/rebuild_cache.dir
+/Users/misakihanayo/bzcompiler/cmake-build-default/CMakeFiles/edit_cache.dir
+/Users/misakihanayo/bzcompiler/cmake-build-default/CMakeFiles/lexer.dir

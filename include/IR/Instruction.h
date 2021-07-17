@@ -20,6 +20,7 @@ public:
         sub,
         mul,
         sdiv,
+        mod,
         // Memory operators
         alloca,
         load,
@@ -60,6 +61,7 @@ public:
             case cmp: return "cmp"; break;
             case phi: return "phi"; break;
             case call: return "call"; break;
+            case mod: return "mod"; break;
             case getelementptr: return "getelementptr"; break;
             case zext: return "zext"; break;
         
@@ -82,6 +84,7 @@ public:
     bool is_sub() { return op_id_ == sub; }
     bool is_mul() { return op_id_ == mul; }
     bool is_div() { return op_id_ == sdiv; }
+    bool is_mod() { return op_id_ == mod; }
     
 
     bool is_cmp() { return op_id_ == cmp; }
@@ -93,8 +96,7 @@ public:
 
     bool isBinary()
     {
-        return (is_add() || is_sub() || is_mul() || is_div() ||
-                is_fadd() || is_fsub() || is_fmul() || is_fdiv()) &&
+        return (is_add() || is_sub() || is_mul() || is_div() || is_mod()) &&
                (get_num_operand() == 2);
     }
 
@@ -124,6 +126,8 @@ public:
 
     // create Div instruction, auto insert to bb
     static BinaryInst *create_sdiv(Value *v1, Value *v2, BasicBlock *bb, Module *m);
+    // create Mod instruction, auto insert to bb
+    static BinaryInst *create_mode(Value *v1, Value *v2, BasicBlock *bb, Module *m);
     virtual std::string print() override;
 
 private:
