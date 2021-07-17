@@ -991,6 +991,8 @@ public:
         std::cout << " Right Value:" << std::endl;
         getExpression()->print(depth + 1);
     }
+
+    void visit() override;
 };
 
 class ASTExpressionStmt : public ASTStatement {

@@ -97,3 +97,5 @@ ASTStatement *ASTStatement::getASTStatement(TreeNode *t) {
 
 
 // ============  BEGIN OF VISITOR PATTERN =================
+
+void 
