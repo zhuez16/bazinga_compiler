@@ -52,6 +52,12 @@ public:
     AST_INST_TYPE getType() {
         return _inst_type;
     }
+
+    virtual void print(int depth) {
+        for (int i = 0; i < depth; ++i) {
+            std::cout << "  ";
+        }
+    }
 };
 
 class ASTConstant : public ASTInstruction {
@@ -69,6 +75,11 @@ public:
      */
     int getValue() const {
         return _value;
+    }
+
+    void print(int depth) override {
+        ASTInstruction::print(depth);
+        std::cout << "Constant[" << getValue() << "]" << std::endl;
     }
 };
 
@@ -92,6 +103,28 @@ public:
 
     ASTInstruction *getExpression() {
         return _sub_exp;
+    }
+
+    AST_UNARY_OP_TYPE getUnaryOpType() {
+        return _op_type;
+    }
+
+    void print(int depth) override {
+        ASTInstruction::print(depth);
+        std::cout << "Unary Expression[Op: ";
+        switch (getUnaryOpType()) {
+            case AST_OP_INVERSE:
+                std::cout << '!';
+                break;
+            case AST_OP_POSITIVE:
+                std::cout << '+';
+                break;
+            case AST_OP_NEGATIVE:
+                std::cout << '-';
+                break;
+        }
+        std::cout << ']' << std::endl;
+        getExpression()->print(depth);
     }
 
     static ASTInstruction *getUnaryOp(TreeNode *t);
@@ -165,6 +198,31 @@ public:
      */
     AST_MUL_OP_TYPE getOpType() const {
         return _tp;
+    }
+
+    void print(int depth) override {
+        ASTInstruction::print(depth);
+        std::cout << "Multiply Expression[";
+        if (isUnaryExp()) {
+            std::cout << "Unary]" << std::endl;
+            getOperand1()->print(depth + 1);
+        } else {
+            std::cout << "Op: ";
+            switch (getOpType()) {
+                case AST_OP_MUL:
+                    std::cout << '*';
+                    break;
+                case AST_OP_MOD:
+                    std::cout << '%';
+                    break;
+                case AST_OP_DIV:
+                    std::cout << '/';
+                    break;
+            }
+            std::cout << ']' << std::endl;
+            getOperand1()->print(depth + 1);
+            getOperand2()->print(depth + 1);
+        }
     }
 
 };
@@ -249,6 +307,28 @@ public:
         return _tp;
     }
 
+    void print(int depth) override {
+        ASTInstruction::print(depth);
+        std::cout << "Add Expression[";
+        if (isUnaryExp()) {
+            std::cout << "Unary]" << std::endl;
+            getOperand1()->print(depth + 1);
+        } else {
+            std::cout << "Op: ";
+            switch (getOpType()) {
+                case AST_OP_MINUS:
+                    std::cout << '-';
+                    break;
+                case AST_OP_ADD:
+                    std::cout << '+';
+                    break;
+            }
+            std::cout << ']' << std::endl;
+            getOperand1()->print(depth + 1);
+            getOperand2()->print(depth + 1);
+        }
+    }
+
 };
 
 class ASTRelOp : public ASTInstruction {
@@ -267,7 +347,7 @@ private:
 
 public:
     explicit ASTRelOp(TreeNode *t) : ASTInstruction(AST_REL_EXP) {
-        assert(t != nullptr && t->node_type == AST_mulexp && "ASTMulExpression got invalid TreeNode.");
+        assert(t != nullptr && t->node_type == AST_relexp && "ASTMulExpression got invalid TreeNode.");
         _is_unary = t->children.size() == 1;
         r_op = nullptr;
         if (_is_unary) {
@@ -326,6 +406,33 @@ public:
         return _tp;
     }
 
+    void print(int depth) override {
+        ASTInstruction::print(depth);
+        std::cout << "Relation Expression[";
+        if (isUnaryExp()) {
+            std::cout << "Unary]" << std::endl;
+            getOperand1()->print(depth + 1);
+        } else {
+            std::cout << "Op: ";
+            switch (getOpType()) {
+                case AST_OP_LTE:
+                    std::cout << "<=";
+                    break;
+                case AST_OP_LT:
+                    std::cout << '<';
+                    break;
+                case AST_OP_GTE:
+                    std::cout << ">=";
+                    break;
+                case AST_OP_GT:
+                    std::cout << '>';
+                    break;
+            }
+            std::cout << ']' << std::endl;
+            getOperand1()->print(depth + 1);
+            getOperand2()->print(depth + 1);
+        }
+    }
 };
 
 class ASTEqOp : public ASTInstruction {
@@ -342,7 +449,7 @@ private:
 
 public:
     explicit ASTEqOp(TreeNode *t) : ASTInstruction(AST_EQ_EXP) {
-        assert(t != nullptr && t->node_type == AST_mulexp && "ASTMulExpression got invalid TreeNode.");
+        assert(t != nullptr && t->node_type == AST_eqexp && "ASTMulExpression got invalid TreeNode.");
         _is_unary = t->children.size() == 1;
         r_op = nullptr;
         if (_is_unary) {
@@ -394,6 +501,28 @@ public:
     AST_EQ_OP_TYPE getOpType() const {
         return _tp;
     }
+
+    void print(int depth) override {
+        ASTInstruction::print(depth);
+        std::cout << "Equality Expression[";
+        if (isUnaryExp()) {
+            std::cout << "Unary]" << std::endl;
+            getOperand1()->print(depth + 1);
+        } else {
+            std::cout << "Op: ";
+            switch (getOpType()) {
+                case AST_OP_NEQ:
+                    std::cout << "!=";
+                    break;
+                case AST_OP_EQ:
+                    std::cout << "==";
+                    break;
+            }
+            std::cout << ']' << std::endl;
+            getOperand1()->print(depth + 1);
+            getOperand2()->print(depth + 1);
+        }
+    }
 };
 
 class ASTAndOp : public ASTInstruction {
@@ -404,7 +533,7 @@ private:
 
 public:
     explicit ASTAndOp(TreeNode *t) : ASTInstruction(AST_AND_EXP) {
-        assert(t != nullptr && t->node_type == AST_mulexp && "ASTAndExpression got invalid TreeNode.");
+        assert(t != nullptr && t->node_type == AST_landexp && "ASTAndExpression got invalid TreeNode.");
         _is_unary = t->children.size() == 1;
         r_op = nullptr;
         if (_is_unary) {
@@ -438,6 +567,19 @@ public:
     ASTInstruction *getOperand2() const {
         return r_op;
     }
+
+    void print(int depth) override {
+        ASTInstruction::print(depth);
+        std::cout << "And Expression[";
+        if (isUnaryExp()) {
+            std::cout << "Unary]" << std::endl;
+            getOperand1()->print(depth + 1);
+        } else {
+            std::cout << "&&]" << std::endl;
+            getOperand1()->print(depth + 1);
+            getOperand2()->print(depth + 1);
+        }
+    }
 };
 
 class ASTOrOp : public ASTInstruction {
@@ -448,7 +590,7 @@ private:
 
 public:
     explicit ASTOrOp(TreeNode *t) : ASTInstruction(AST_OR_EXP) {
-        assert(t != nullptr && t->node_type == AST_mulexp && "ASTOrExpression got invalid TreeNode.");
+        assert(t != nullptr && t->node_type == AST_lorexp && "ASTOrExpression got invalid TreeNode.");
         _is_unary = t->children.size() == 1;
         r_op = nullptr;
         if (_is_unary) {
@@ -481,6 +623,19 @@ public:
      */
     ASTInstruction *getOperand2() const {
         return r_op;
+    }
+
+    void print(int depth) override {
+        ASTInstruction::print(depth);
+        std::cout << "And Expression[";
+        if (isUnaryExp()) {
+            std::cout << "Unary]" << std::endl;
+            getOperand1()->print(depth + 1);
+        } else {
+            std::cout << "&&]" << std::endl;
+            getOperand1()->print(depth + 1);
+            getOperand2()->print(depth + 1);
+        }
     }
 };
 
@@ -516,6 +671,18 @@ public:
     std::vector<ASTAddOp *> getPointerExpression() {
         return _pointer_exp;
     }
+
+    void print(int depth) override {
+        ASTInstruction::print(depth);
+        std::cout << "Variable[Name: " << getVarName() << ']' << std::endl;
+        if (hasAddress()) {
+            ASTInstruction::print(depth);
+            std::cout << " Array indexes:" << std::endl;
+            for (auto index: getPointerExpression()) {
+                index->print(depth + 1);
+            }
+        }
+    }
 };
 
 class ASTFuncCall : public ASTInstruction {
@@ -534,7 +701,7 @@ private:
 
 public:
     explicit ASTFuncCall(TreeNode *t) : ASTInstruction(AST_FUNC_CALL) {
-        assert(t != nullptr && t->node_type != AST_func_call && "ASTFuncCall got nullptr");
+        assert(t != nullptr && t->node_type == AST_func_call && "ASTFuncCall got nullptr");
         _func_name = t->children[0]->node_name;
         if (t->children.size() == 4) {
             param_walker(t->children[2]);
@@ -551,6 +718,18 @@ public:
 
     std::vector<ASTAddOp *> getParamList() {
         return _params;
+    }
+
+    void print(int depth) override {
+        ASTInstruction::print(depth);
+        std::cout << "Function Call[FunctionName: " << getFunctionName() << ']' << std::endl;
+        if (hasParams()) {
+            ASTInstruction::print(depth);
+            std::cout << " Function params:" << std::endl;
+            for (auto param: getParamList()) {
+                param->print(depth + 1);
+            }
+        }
     }
 };
 
@@ -586,14 +765,36 @@ public:
         AST_VAR_INT,
     };
 
+    struct ASTArrayList {
+        bool isArray;
+        bool isEmpty;
+        ASTAddOp *value{};
+        std::vector<ASTArrayList *> list;
+
+        explicit ASTArrayList(ASTAddOp *v) {
+            value = v;
+            isEmpty = isArray = false;
+        }
+
+        explicit ASTArrayList(const std::vector<ASTArrayList *> &l) {
+            list = l;
+            isArray = true;
+            isEmpty = false;
+        }
+
+        ASTArrayList() {
+            isArray = isEmpty = true;
+        }
+    };
+
     struct ASTVarDeclInst {
         std::string var_name;
         ASTVarType var_type;
         bool array;
         int dimension;
-        std::vector<TreeNode *> _array_list;
+        std::vector<ASTAddOp *> _array_list;
         bool has_initial;
-        TreeNode *initial_node;
+        std::vector<ASTArrayList *> initial_value;
 
         ASTVarDeclInst(std::string name, ASTVarType type) {
             var_name = std::move(name);
@@ -601,17 +802,15 @@ public:
             array = false;
             dimension = 0;
             has_initial = false;
-            initial_node = nullptr;
         }
 
-        ASTVarDeclInst(std::string name, ASTVarType type, const std::vector<TreeNode *> &array_list) {
+        ASTVarDeclInst(std::string name, ASTVarType type, const std::vector<ASTAddOp *> &array_list) {
             var_name = std::move(name);
             var_type = type;
             array = true;
             _array_list = array_list;
             dimension = array_list.size();
             has_initial = false;
-            initial_node = nullptr;
         }
 
         ASTVarDeclInst(std::string name, ASTVarType type, TreeNode *init) {
@@ -620,17 +819,17 @@ public:
             array = false;
             dimension = 0;
             has_initial = true;
-            initial_node = init;
+            initial_walker(init, initial_value);
         }
 
-        ASTVarDeclInst(std::string name, ASTVarType type, const std::vector<TreeNode *> &array_list, TreeNode *init) {
+        ASTVarDeclInst(std::string name, ASTVarType type, const std::vector<ASTAddOp *> &array_list, TreeNode *init) {
             var_name = std::move(name);
             var_type = type;
             array = true;
             _array_list = array_list;
             dimension = array_list.size();
             has_initial = true;
-            initial_node = init;
+            initial_walker(init, initial_value);
         }
     };
 
@@ -640,10 +839,31 @@ private:
     bool _is_const;
     ASTVarType _var_type;
 
-    void index_walker(TreeNode *node, std::vector<TreeNode *> &ind_list) {
-        ind_list.push_back(node->children[1]);
+    void index_walker(TreeNode *node, std::vector<ASTAddOp *> &ind_list) {
+        ind_list.push_back(new ASTAddOp(node->children[1]->children[0]));
         if (node->children.size() == 4) {
             index_walker(node->children[3], ind_list);
+        }
+    }
+
+    static void initial_walker(TreeNode *node, std::vector<ASTArrayList *> &init_list) {
+        if (node->node_type == AST_const_init_vals || node->node_type == AST_init_vals) {
+            if (node->children.size() == 1) {
+                initial_walker(node->children[0], init_list);
+            } else {
+                initial_walker(node->children[0], init_list);
+                initial_walker(node->children[2], init_list);
+            }
+        } else if (node->node_type == AST_init_val || node->node_type == AST_const_init_val) {
+            if (node->children.size() == 1) {
+                init_list.push_back(new ASTArrayList(new ASTAddOp(node->children[0]->children[0])));
+            } else if (node->children.size() == 2) {
+                init_list.push_back(new ASTArrayList());
+            } else {
+                std::vector<ASTArrayList *> nList;
+                initial_walker(node->children[1], nList);
+                init_list.push_back(new ASTArrayList(nList));
+            }
         }
     }
 
@@ -660,7 +880,7 @@ private:
                 _var_list.push_back(new ASTVarDeclInst(node->children[0]->node_name, this->_var_type));
             } else if (node->children.size() == 2) {
                 // int a[1][...];
-                std::vector<TreeNode *> ind;
+                std::vector<ASTAddOp *> ind;
                 index_walker(node->children[1], ind);
                 _var_list.push_back(new ASTVarDeclInst(node->children[0]->node_name, this->_var_type, ind));
             } else if (node->children.size() == 3) {
@@ -668,11 +888,30 @@ private:
                 _var_list.push_back(
                         new ASTVarDeclInst(node->children[0]->node_name, this->_var_type, node->children[2]));
             } else {
-                std::vector<TreeNode *> ind;
+                std::vector<ASTAddOp *> ind;
                 index_walker(node->children[1], ind);
                 _var_list.push_back(
                         new ASTVarDeclInst(node->children[0]->node_name, this->_var_type, ind, node->children[3]));
             }
+        }
+    }
+
+    void _print_iter(int depth, ASTArrayList *value) {
+        if (value->isArray) {
+            if (value->isEmpty) {
+                ASTInstruction::print(depth);
+                std::cout << "{}" << std::endl;
+            } else {
+                ASTInstruction::print(depth);
+                std::cout << '{' << std::endl;
+                for (auto val: value->list) {
+                    _print_iter(depth + 1, val);
+                }
+                ASTInstruction::print(depth);
+                std::cout << '}' << std::endl;
+            }
+        } else {
+            value->value->print(depth + 1);
         }
     }
 
@@ -699,6 +938,28 @@ public:
     bool isConst() const {
         return _is_const;
     }
+
+    void print(int depth) override {
+        for (auto var: getVarDeclList()) {
+            ASTInstruction::print(depth);
+            if (isConst()) {
+                std::cout << "const ";
+            }
+            std::cout << "int " << var->var_name << std::endl;
+            if (var->array) {
+                ASTInstruction::print(depth + 1);
+                std::cout << "Array Dimension:" << std::endl;
+                for (auto dim: var->_array_list) {
+                    dim->print(depth + 2);
+                }
+            }
+            if (var->has_initial) {
+                ASTInstruction::print(depth + 1);
+                std::cout << "Variable Initial:" << std::endl;
+                _print_iter(depth + 1, var->initial_value[0]);
+            }
+        }
+    }
 };
 
 class ASTAssignStmt : public ASTStatement {
@@ -719,6 +980,17 @@ public:
     ASTAddOp *getExpression() {
         return _r_val;
     }
+
+    void print(int depth) override {
+        ASTInstruction::print(depth);
+        std::cout << "Assign Statement" << std::endl;
+        ASTInstruction::print(depth);
+        std::cout << " Left Value:" << std::endl;
+        getLeftValue()->print(depth + 1);
+        ASTInstruction::print(depth);
+        std::cout << " Right Value:" << std::endl;
+        getExpression()->print(depth + 1);
+    }
 };
 
 class ASTExpressionStmt : public ASTStatement {
@@ -733,16 +1005,30 @@ public:
             _exp = nullptr;
         } else {
             _valid = true;
-            _exp = new ASTAddOp(t->children[0]);
+            _exp = new ASTAddOp(t->children[0]->children[0]);
         }
     }
 
+    /**
+     * 是否为空表达式
+     * 如 ;;
+     * 若此方法为false则getExpression返回的是空指针
+     * @return
+     */
     bool isValidExpression() const {
         return _valid;
     }
 
     ASTAddOp *getExpression() {
         return _exp;
+    }
+
+    void print(int depth) override {
+        ASTInstruction::print(depth);
+        std::cout << "Expression Statement" << std::endl;
+        if (isValidExpression()) {
+            getExpression()->print(depth + 1);
+        }
     }
 };
 
@@ -781,6 +1067,22 @@ public:
     ASTStatement *getFalseStatement() {
         return _false_stmt;
     }
+
+    void print(int depth) override {
+        ASTInstruction::print(depth);
+        std::cout << "If-Else Statement" << std::endl;
+        ASTInstruction::print(depth);
+        std::cout << " If Condition:" << std::endl;
+        getCondition()->print(depth + 1);
+        ASTInstruction::print(depth);
+        std::cout << " If Body:" << std::endl;
+        getTrueStatement()->print(depth + 1);
+        if (hasElseStatement()) {
+            ASTInstruction::print(depth);
+            std::cout << " Else Body:" << std::endl;
+            getFalseStatement()->print(depth + 1);
+        }
+    }
 };
 
 class ASTWhileStmt : public ASTStatement {
@@ -792,7 +1094,7 @@ public:
     explicit ASTWhileStmt(TreeNode *t) : ASTStatement(AST_WHILE_STMT) {
         assert(t != nullptr && t->node_type == AST_iter_stmt && "ASTWhileStatement got invalid TreeNode.");
         _cond = new ASTOrOp(t->children[2]->children[0]);
-        _while_stmt = ASTStatement::getASTStatement(t->children[3]);
+        _while_stmt = ASTStatement::getASTStatement(t->children[4]);
     }
 
     ASTOrOp *getCondition() {
@@ -802,6 +1104,17 @@ public:
     ASTStatement *getWhileBodyStatement() {
         return _while_stmt;
     }
+
+    void print(int depth) override {
+        ASTInstruction::print(depth);
+        std::cout << "While Statement" << std::endl;
+        ASTInstruction::print(depth);
+        std::cout << " While Condition:" << std::endl;
+        getCondition()->print(depth + 1);
+        ASTInstruction::print(depth);
+        std::cout << " While Body:" << std::endl;
+        getWhileBodyStatement()->print(depth + 1);
+    }
 };
 
 class ASTBreakStmt : public ASTStatement {
@@ -809,12 +1122,22 @@ public:
     explicit ASTBreakStmt(TreeNode *t) : ASTStatement(AST_BREAK_STMT) {
         assert(t != nullptr && t->node_type == AST_break_stmt && "ASTBreak got invalid TreeNode.");
     }
+
+    void print(int depth) override {
+        ASTInstruction::print(depth);
+        std::cout << "Break-Statement" << std::endl;
+    }
 };
 
 class ASTContinueStmt : public ASTStatement {
 public:
     explicit ASTContinueStmt(TreeNode *t) : ASTStatement(AST_CONTINUE_STMT) {
         assert(t != nullptr && t->node_type == AST_continue_stmt && "ASTContinue got invalid TreeNode.");
+    }
+
+    void print(int depth) override {
+        ASTInstruction::print(depth);
+        std::cout << "Continue-Statement" << std::endl;
     }
 };
 
@@ -840,6 +1163,16 @@ public:
     ASTAddOp *getRetExpression() {
         return _ret_expression;
     }
+
+    void print(int depth) override {
+        ASTInstruction::print(depth);
+        std::cout << "Return Statement" << std::endl;
+        if (hasReturnValue()) {
+            ASTInstruction::print(depth);
+            std::cout << " Return Expression" << std::endl;
+            getRetExpression()->print(depth + 1);
+        }
+    }
 };
 
 class ASTParam {
@@ -852,7 +1185,7 @@ private:
     ASTFuncParamType _type;
     bool _array;
     int _dimension;
-    std::vector<TreeNode *> _array_list;
+    std::vector<ASTAddOp *> _array_list;
 public:
     explicit ASTParam(TreeNode *t) {
         assert(t != nullptr && t->node_type == AST_funcf_param && "ASTParam got invalid TreeNode pointer.");
@@ -871,11 +1204,23 @@ public:
             _array = true;
             TreeNode *pointer = t->children[3];
             while (pointer->node_type == AST_pointer) {
-                _array_list.push_back(pointer->children[1]);
+                _array_list.push_back(new ASTAddOp(pointer->children[1]));
                 pointer = pointer->children[3];
                 _dimension += 1;
             }
         }
+    }
+
+    std::string getParamName() const {
+        return _var_name;
+    }
+
+    bool isArray() const {
+        return _array;
+    }
+
+    std::vector<ASTAddOp *> getArrayList() {
+        return _array_list;
     }
 };
 
@@ -900,6 +1245,16 @@ public:
 
     std::vector<ASTStatement *> getStatements() {
         return _stmt_list;
+    }
+
+    void print(int depth) override {
+        ASTInstruction::print(depth);
+        std::cout << "Block{" << std::endl;
+        for (auto inst : getStatements()) {
+            inst->print(depth + 1);
+        }
+        ASTInstruction::print(depth);
+        std::cout << "} end block" << std::endl;
     }
 };
 
@@ -979,6 +1334,35 @@ public:
     std::vector<ASTParam *> getParams() {
         return _params;
     }
+
+    void print(int depth) override {
+        std::cout << "Function[Name: " << getFunctionName() << " RetType: ";
+        switch (getFunctionType()) {
+            case AST_RET_VOID:
+                std::cout << "void";
+                break;
+            case AST_RET_INT:
+                std::cout << "int";
+                break;
+        }
+        std::cout << "]" << std::endl;
+        if (hasParam()) {
+            auto params = getParams();
+            for (int i = 0; i < params.size(); ++i) {
+                std::cout << "Param " << i << ": " << params[i]->getParamName() << ' ';
+                if (params[i]->isArray()) {
+                    std::cout << "[Array]" << std::endl;
+                } else {
+                    std::cout << std::endl;
+                }
+                for (auto inst: params[i]->getArrayList()) {
+                    inst->print(depth + 1);
+                }
+            }
+        }
+        std::cout << "Statement Block:" << std::endl;
+        getStmtBlock()->print(depth + 1);
+    }
 };
 
 class ASTProgram {
@@ -1030,6 +1414,12 @@ public:
      */
     std::vector<ASTDecl *> getDeclareList() {
         return declList;
+    }
+
+    void print() {
+        for (ASTDecl *decl: getDeclareList()) {
+            decl->print(0);
+        }
     }
 };
 

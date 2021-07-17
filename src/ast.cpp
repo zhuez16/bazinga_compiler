@@ -5,6 +5,9 @@
 #include "ast.h"
 #include "syntax_tree.h"
 
+// ============  BEGIN OF METHODS IMPLEMENT =================
+
+
 ASTUnaryOp::ASTUnaryOp(TreeNode *t) : ASTInstruction(AST_UNARY_EXP) {
     assert(t != nullptr && t->node_type == AST_unary_exp && t->children.size() == 2 &&
            "ASTUnaryOp got invalid TreeNode pointer");
@@ -43,6 +46,8 @@ ASTInstruction *ASTUnaryOp::getUnaryOp(TreeNode *t) {
                     return new ASTLVal(node->children[0]);
                 case AST_number:
                     return new ASTConstant(node->children[0]->children[0]);
+                case AST_IDENT:
+                    return new ASTFuncCall(node);
                 default:
                     assert(0 && "ASTPrimaryExp got unknown child node type");
             }
@@ -86,3 +91,9 @@ ASTStatement *ASTStatement::getASTStatement(TreeNode *t) {
             assert(0 && "AST Statement got unrecognizable node type.");
     }
 }
+
+// ============  END OF METHODS IMPLEMENT =================
+
+
+
+// ============  BEGIN OF VISITOR PATTERN =================

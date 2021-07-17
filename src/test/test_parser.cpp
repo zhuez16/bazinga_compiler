@@ -8,11 +8,11 @@
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
-        printf("Usage: parser /path/to/.sysy/file\n");
+        printf("Usage: parser /path/to/*.sysy\n");
         return 0;
     }
 
     SyntaxTree *tree = parse(argv[1]);
-    tree->print_tree();
-    new ASTProgram(tree);
+    // tree->print_tree();
+    (new ASTProgram(tree)); // ->print();
 }

@@ -81,6 +81,7 @@ break    {send_to_parser(yytext, AST_BREAK);return BREAK;}
  /*其他*/
 \n		{}
 (\/\*([^\*]|(\*)*[^\*/])*(\*)*\*\/)|(\/\/.) 	{}
+"//".* { }
 [ \t]		{}
 
 . {}

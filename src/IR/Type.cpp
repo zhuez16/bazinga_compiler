@@ -1,19 +1,19 @@
-#include "Type.h"
-#include "Module.h"
-#include "ReturnVal.h"
+#include <Type.h>
+#include <Module.h>
 #include <cassert>
+//#include "ReturnVal.h"
 
 Type::Type(TypeID tid) { type_id = tid; }
 
-bool Type::isInt1() {
-  if (getTypeID() == IntegerTyID)
+bool Type::is_Int1() {
+  if (get_TypeID() == Integer_type)
     if (static_cast<IntegerType *>(this)->get_num_bits_() == 1)
       return true;
   return false;
 }
 
-bool Type::isInt32() {
-  if (getTypeID() == IntegerTyID)
+bool Type::is_Int32() {
+  if (get_TypeID() == Integer_type)
     if (static_cast<IntegerType *>(this)->get_num_bits_() == 32) 
       return true;
   return false;
@@ -50,8 +50,8 @@ int Type::get_size(bool extended) {
     return size * num;
   }
   if (this->is_Pointer_type()) {
-    if (extended && this->get_element_type()->is_Array_type()) {
-      return this->get_element_type()->get_size();
+    if (extended && this->get_PtrElement_type()->is_Array_type()) {
+      return this->get_PtrElement_type()->get_size();
     } else {
       return 4;
     }
@@ -139,14 +139,11 @@ unsigned IntegerType::get_num_bits_() { return num_bits_; }
 FunctionType::FunctionType(Type *ret, std::vector<Type *> args)
     : Type(Type::Function_type) {
 //exit_ifnot ?
-  exit_ifnot(_InvalidRetVal_Constructor_FunctionType,
-             check_return_type(ret) && "Invalid return type for function!");
+  //exit_ifnot(_InvalidRetVal_Constructor_FunctionType,check_return_type(ret) && "Invalid return type for function!");
   ret_ = ret;
 
   for (auto p : args) {
-    exit_ifnot(_InvalidArgType_Constructor_FunctionType,
-               check_arguement_type(p) &&
-                   "Not a valid type for function argument!");
+    //exit_ifnot(_InvalidArgType_Constructor_FunctionType,check_arguement_type(p) &&"Not a valid type for function argument!");
     args_.push_back(p);
   }
 }
@@ -171,14 +168,12 @@ Type *FunctionType::get_return_type() const { return ret_; }
 
 ArrayType::ArrayType(Type *contained, unsigned num_elements)
     : Type(Type::Array_type), num_elements_(num_elements) {
-  exit_ifnot(_InvalidElemType_Constructor_ArrayType,
-             isValidElementType(contained) &&
-                 "Not a valid type for array element!");
+  //exit_ifnot(_InvalidElemType_Constructor_ArrayType,isValidElementType(contained) &&"Not a valid type for array element!");
   contained_ = contained;
 }
 
 bool ArrayType::check_element_type(Type *type) {
-  return type->is_Integer_type || type->is_Array_type;
+  return type->is_Integer_type() || type->is_Array_type();
 }
 
 ArrayType *ArrayType::get(Type *contained, unsigned num_elements) {
@@ -189,7 +184,7 @@ std::vector<unsigned> ArrayType::get_Dims() const {
   std::vector<unsigned> rets;
   auto elem_ty = contained_;
   rets.push_back(num_elements_);
-  while (elem_ty->is_Array_type) {
+  while (elem_ty->is_Array_type()) {
     auto arr = static_cast<ArrayType *>(elem_ty);
     rets.push_back(arr->get_elements_num());
     elem_ty = arr->get_element_type();

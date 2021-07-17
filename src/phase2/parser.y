@@ -345,7 +345,7 @@ addexp:     mulexp{
             addexp ADD mulexp{
                 $$=node("addexp",AST_addexp,3,$1,$2,$3);
             }|
-            addexp SUB unary_exp{
+            addexp SUB mulexp{
                 $$=node("addexp",AST_addexp,3,$1,$2,$3);
             }
 
@@ -369,7 +369,7 @@ eqexp:      relexp{
                 $$=node("eqexp",AST_eqexp,1,$1);
             }|
             eqexp EQ relexp{
-                $$=node("eqexp",AST_eqexp,2,$1,$2);
+                $$=node("eqexp",AST_eqexp,3,$1,$2,$3);
             }|
             eqexp NEQ relexp{
                 $$=node("eqexp",AST_eqexp,3,$1,$2,$3);
@@ -386,7 +386,7 @@ lorexp:     landexp{
                 $$=node("lorexp",AST_lorexp,1,$1);
             }|
             lorexp OR landexp{
-                $$=node("lorexp",AST_lorexp,1,$1);
+                $$=node("lorexp",AST_lorexp,3,$1,$2,$3);
             }
 
 const_exp:  addexp{
@@ -405,7 +405,7 @@ void yyerror(const char *s)
 /// This function initializes essential states before running yyparse().
 SyntaxTree *parse(const char *input_path)
 {
-    yydebug = 1;
+    yydebug = 0;
     if (input_path != NULL) {
         if (!(yyin = fopen(input_path, "r"))) {
             fprintf(stderr, "[ERR] Open input file %s failed.\n", input_path);

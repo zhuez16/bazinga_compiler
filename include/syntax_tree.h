@@ -71,7 +71,7 @@ public:
     }
 
     void print_tree(int depth) {
-        std::string result = "";
+        std::string result;
         for (int i = 0; i < depth; ++i){
             result += '|';
         }
