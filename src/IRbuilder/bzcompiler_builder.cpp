@@ -17,9 +17,13 @@ void ASTvisitor::visit(ASTAndOp &node) {}
 void ASTvisitor::visit(ASTOrOp &node) {}
 void ASTvisitor::visit(ASTLVal &node) {}
 void ASTvisitor::visit(ASTFuncCall &node) {}
-//void ASTvisitor::visit(ASTStatement &) {}
-void ASTvisitor::visit(ASTDecl &node) {}
-void ASTvisitor::visit(ASTVarDecl &node) {}
+void compute_ast_constant(){};
+void ASTvisitor::visit(ASTVarDecl &node) {
+    for (ASTVarDecl::ASTVarDeclInst *it: node.getVarDeclList()) {
+
+    }
+
+}
 void ASTvisitor::visit(ASTFuncDecl &node) {}
 void ASTvisitor::visit(ASTAssignStmt &node) {
     node->_l_val->accept(*this);
