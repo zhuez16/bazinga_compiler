@@ -35,6 +35,11 @@ public:
         return result.second;
     }
 
+    bool push_params(std::string name, Value *val, std::vector<Value *> params) {
+        auto result = array_param[array_param.size() - 1].insert({name, params});
+        return result.second;
+    }
+    
     Value* find(std::string name) {
         for (auto s = inner.rbegin(); s!= inner.rend();s++) {
             auto iter = s->find(name);
