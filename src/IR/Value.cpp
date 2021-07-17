@@ -1,7 +1,7 @@
 #include "Value.h"
 //#include "ReturnVal.h"
 #include "Type.h"
-//#include "User.h"
+#include "User.h"
 #include <algorithm>
 #include <cassert>
 
@@ -17,7 +17,7 @@ void Value::replace_use_list(Value *new_val) {
   for (auto use : use_list_) {
     auto val = dynamic_cast<User *>(use.val_);
     //exit_ifnot(_EmptyUse_replaceAllUseWith_Value, val);
-    val->setOperand(use.arg_no_, new_val);
+    val->set_operand(use.arg_no_, new_val);
   }
 }
 
