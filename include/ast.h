@@ -17,6 +17,8 @@
  * 该类提供AST的入口，每个语法分析树对应一个Program
  */
 
+class ASTvisitor;
+
 enum AST_INST_TYPE {
     AST_CONSTANT,
     AST_MUL_EXP,
@@ -45,6 +47,7 @@ class ASTInstruction {
 private:
     AST_INST_TYPE _inst_type;
 public:
+    virtual void accept(ASTvisitor &);
     explicit ASTInstruction(AST_INST_TYPE type) {
         _inst_type = type;
     }
@@ -64,6 +67,7 @@ class ASTConstant : public ASTInstruction {
 private:
     int _value;
 public:
+    virtual void accept(ASTvisitor &) override final;
     explicit ASTConstant(TreeNode *t) : ASTInstruction(AST_CONSTANT) {
         assert(t != nullptr && t->node_type == AST_INT_CONST && "ASTConstant got invalid TreeNode pointer");
         _value = std::atoi(t->node_name.c_str());
@@ -89,6 +93,7 @@ public:
  */
 class ASTUnaryOp : public ASTInstruction {
 public:
+    virtual void accept(ASTvisitor &) override final;
     enum AST_UNARY_OP_TYPE {
         AST_OP_POSITIVE,    // +
         AST_OP_NEGATIVE,    // -
@@ -144,6 +149,7 @@ private:
     AST_MUL_OP_TYPE _tp;
 
 public:
+    virtual void accept(ASTvisitor &) override final;
     explicit ASTMulOp(TreeNode *t) : ASTInstruction(AST_MUL_EXP) {
         assert(t != nullptr && t->node_type == AST_mulexp && "ASTMulExpression got invalid TreeNode.");
         _is_unary = t->children.size() == 1;
@@ -229,6 +235,7 @@ public:
 
 class ASTAddOp : public ASTInstruction {
 public:
+    virtual void accept(ASTvisitor &) override final;
     enum AST_ADD_OP_TYPE {
         AST_OP_ADD,
         AST_OP_MINUS
@@ -346,6 +353,7 @@ private:
     AST_REL_OP_TYPE _tp;
 
 public:
+    virtual void accept(ASTvisitor &) override final;
     explicit ASTRelOp(TreeNode *t) : ASTInstruction(AST_REL_EXP) {
         assert(t != nullptr && t->node_type == AST_relexp && "ASTMulExpression got invalid TreeNode.");
         _is_unary = t->children.size() == 1;
@@ -448,6 +456,7 @@ private:
     AST_EQ_OP_TYPE _tp;
 
 public:
+    virtual void accept(ASTvisitor &) override final;
     explicit ASTEqOp(TreeNode *t) : ASTInstruction(AST_EQ_EXP) {
         assert(t != nullptr && t->node_type == AST_eqexp && "ASTMulExpression got invalid TreeNode.");
         _is_unary = t->children.size() == 1;
@@ -532,6 +541,7 @@ private:
     ASTInstruction *r_op;
 
 public:
+    virtual void accept(ASTvisitor &) override final;
     explicit ASTAndOp(TreeNode *t) : ASTInstruction(AST_AND_EXP) {
         assert(t != nullptr && t->node_type == AST_landexp && "ASTAndExpression got invalid TreeNode.");
         _is_unary = t->children.size() == 1;
@@ -589,6 +599,7 @@ private:
     ASTInstruction *r_op;
 
 public:
+    virtual void accept(ASTvisitor &) override final;
     explicit ASTOrOp(TreeNode *t) : ASTInstruction(AST_OR_EXP) {
         assert(t != nullptr && t->node_type == AST_lorexp && "ASTOrExpression got invalid TreeNode.");
         _is_unary = t->children.size() == 1;
@@ -652,6 +663,7 @@ private:
     }
 
 public:
+    virtual void accept(ASTvisitor &) override final;
     explicit ASTLVal(TreeNode *t) : ASTInstruction(AST_LVAL) {
         assert(t != nullptr && t->node_type == AST_lval && "ASTLval got unknown TreeNode");
         _var_name = t->children[0]->node_name;
@@ -700,6 +712,7 @@ private:
     }
 
 public:
+    virtual void accept(ASTvisitor &) override final;
     explicit ASTFuncCall(TreeNode *t) : ASTInstruction(AST_FUNC_CALL) {
         assert(t != nullptr && t->node_type == AST_func_call && "ASTFuncCall got nullptr");
         _func_name = t->children[0]->node_name;
@@ -735,6 +748,7 @@ public:
 
 class ASTStatement : public ASTInstruction {
 public:
+    virtual void accept(ASTvisitor &) override;
     explicit ASTStatement(AST_INST_TYPE t) : ASTInstruction(t) {}
 
     static ASTStatement *getASTStatement(TreeNode *t);
@@ -742,6 +756,7 @@ public:
 
 class ASTDecl : public ASTStatement {
 public:
+    virtual void accept(ASTvisitor &) override;
     enum ASTDeclType {
         FUNC_DECL,
         VAR_DECL
@@ -761,6 +776,7 @@ public:
 class ASTVarDecl : public ASTDecl {
 
 public:
+    virtual void accept(ASTvisitor &) override final;
     enum ASTVarType {
         AST_VAR_INT,
     };
@@ -967,6 +983,7 @@ private:
     ASTLVal *_l_val;
     ASTAddOp *_r_val;
 public:
+    virtual void accept(ASTvisitor &) override final;
     explicit ASTAssignStmt(TreeNode *t) : ASTStatement(AST_ASSIGN_STMT) {
         assert(t != nullptr && t->node_type == AST_assign_stmt && "ASTAssignStatement got invalid TreeNode.");
         _l_val = new ASTLVal(t->children[0]);
@@ -998,6 +1015,7 @@ private:
     ASTAddOp *_exp;
     bool _valid;
 public:
+    virtual void accept(ASTvisitor &) override final;
     explicit ASTExpressionStmt(TreeNode *t) : ASTStatement(AST_EXPRESSION_STMT) {
         assert(t != nullptr && t->node_type == AST_exp_stmt && "ASTExpressionStatement got invalid TreeNode.");
         if (t->children.size() == 1) {
@@ -1039,6 +1057,7 @@ private:
     ASTStatement *_true_stmt;
     ASTStatement *_false_stmt;
 public:
+    virtual void accept(ASTvisitor &) override final;
     explicit ASTIfStmt(TreeNode *t) : ASTStatement(AST_IF_STMT) {
         assert(t != nullptr && t->node_type == AST_if_stmt && "ASTIfStatement got invalid TreeNode.");
         _has_else_stmt = t->children.size() == 7;
@@ -1091,6 +1110,7 @@ private:
     ASTStatement *_while_stmt;
 
 public:
+    virtual void accept(ASTvisitor &) override final;
     explicit ASTWhileStmt(TreeNode *t) : ASTStatement(AST_WHILE_STMT) {
         assert(t != nullptr && t->node_type == AST_iter_stmt && "ASTWhileStatement got invalid TreeNode.");
         _cond = new ASTOrOp(t->children[2]->children[0]);
@@ -1119,6 +1139,7 @@ public:
 
 class ASTBreakStmt : public ASTStatement {
 public:
+    virtual void accept(ASTvisitor &) override final;
     explicit ASTBreakStmt(TreeNode *t) : ASTStatement(AST_BREAK_STMT) {
         assert(t != nullptr && t->node_type == AST_break_stmt && "ASTBreak got invalid TreeNode.");
     }
@@ -1131,6 +1152,7 @@ public:
 
 class ASTContinueStmt : public ASTStatement {
 public:
+    virtual void accept(ASTvisitor &) override final;
     explicit ASTContinueStmt(TreeNode *t) : ASTStatement(AST_CONTINUE_STMT) {
         assert(t != nullptr && t->node_type == AST_continue_stmt && "ASTContinue got invalid TreeNode.");
     }
@@ -1146,6 +1168,7 @@ private:
     bool _has_ret_value;
     ASTAddOp *_ret_expression;
 public:
+    virtual void accept(ASTvisitor &) override final;
     explicit ASTReturnStmt(TreeNode *t) : ASTStatement(AST_RETURN_STMT) {
         assert(t != nullptr && t->node_type == AST_return_stmt && "ASTContinue got invalid TreeNode.");
         _has_ret_value = t->children.size() == 3;
@@ -1177,6 +1200,7 @@ public:
 
 class ASTParam {
 public:
+    virtual void accept(ASTvisitor &);
     enum ASTFuncParamType {
         AST_PARAM_INT,
     };
@@ -1238,6 +1262,7 @@ private:
     }
 
 public:
+    virtual void accept(ASTvisitor &) override final;
     explicit ASTBlock(TreeNode *t) : ASTStatement(AST_BLOCK_STMT) {
         assert(t != nullptr && t->node_type == AST_block && "ASTBlock got invalid TreeNode.");
         block_item_walker(t->children[1]);
@@ -1309,6 +1334,7 @@ private:
     }
 
 public:
+    virtual void accept(ASTvisitor &) override final;
     explicit ASTFuncDecl(TreeNode *node) : ASTDecl(FUNC_DECL) {
         _root = node;
         assert(node->node_type == AST_func_def && "Node passed to ASTFuncDecl is not a function decl node.");
@@ -1395,6 +1421,7 @@ private:
     }
 
 public:
+    virtual void accept(ASTvisitor &);
     /**
      * @brief 生成抽象语法树
      * @param tree Bison输出的低层语法树
