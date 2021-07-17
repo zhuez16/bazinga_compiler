@@ -6,7 +6,7 @@
 
 BasicBlock::BasicBlock(Module *m, const std::string &name = "",
                       Function *parent = nullptr)
-    : Value(Type::get_label_type(m), name), parent(parent)
+    : Value(Type::get_Label_type(m), name), parent(parent)
 {
     assert(parent && "currently parent should not be nullptr");
     parent->add_basic_block(this);

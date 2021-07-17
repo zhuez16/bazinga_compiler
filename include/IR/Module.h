@@ -8,9 +8,13 @@
 class Module{
     public:
         Module();
-        Type* get_void_type();
-        Type* get_int_type();
-        Type* get_bool_type();
+        Type* get_Void_type();
+        Type* get_Int_type();
+        IntegerType* get_Int1_type();
+        IntegerType* get_Int32_type();
+        Type* get_Label_type();
+        PointerType* get_Int32Ptr_type();
+        
         void add_function(Function* func);
         void add_global_var(GlobalVariable* var);
         std::list<GlobalVariable *>get_global_variable();
