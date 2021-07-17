@@ -7,12 +7,6 @@
 #include <map>
 #include <cassert>
 
-class Module;
-class Argument;
-class BasicBlock;
-class Type;
-class FunctionType;
-
 class Function: public Value{
 public:
     Function (FunctionType* type, const std::string &name, Module *parent);
@@ -24,8 +18,8 @@ public:
     unsigned get_num_of_args() const;
     unsigned get_num_basic_blocks() const;
     Module *get_parents() const;
-    std::list<Argument *>::iterator arg_begin();
-    std::list<Argument *>::iterator arg_end();
+    std::list<arguments *>::iterator arg_begin();
+    std::list<arguments *>::iterator arg_end();
     void remove(BasicBlock *bb);
     std::list<BasicBlock *> &get_basic_blocks();
     std::list<Argument *> &get_args();

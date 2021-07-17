@@ -84,8 +84,8 @@ int main(int argc, char **argv) {
 
     auto s = parse(input_path.c_str());
     auto a = AST(s);
-    CminusfBuilder builder;
-    a.run_visitor(builder);
+    bzBuilder builder;
+    a.runVisitor(builder);
 
     auto m = builder.getModule();
     PassManager PM(m.get());

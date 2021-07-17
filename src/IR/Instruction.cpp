@@ -68,25 +68,11 @@ BinaryInst *BinaryInst::create_sdiv(Value *v1, Value *v2, BasicBlock *bb, Module
     return new BinaryInst(Type::get_int32_type(m), Instruction::sdiv, v1, v2, bb);
 }
 
-BinaryInst *BinaryInst::create_fadd(Value *v1, Value *v2, BasicBlock *bb, Module *m)
+BinaryInst *BinaryInst::create_mod(Value *v1, Value *v2, BasicBlock *bb, Module *m)
 {
-    return new BinaryInst(Type::get_float_type(m), Instruction::fadd, v1, v2, bb);
+    return new BinaryInst(Type::get_int32_type(m), Instruction::mod, v1, v2, bb);
 }
 
-BinaryInst *BinaryInst::create_fsub(Value *v1, Value *v2, BasicBlock *bb, Module *m)
-{
-    return new BinaryInst(Type::get_float_type(m), Instruction::fsub, v1, v2, bb);
-}
-
-BinaryInst *BinaryInst::create_fmul(Value *v1, Value *v2, BasicBlock *bb, Module *m)
-{
-    return new BinaryInst(Type::get_float_type(m), Instruction::fmul, v1, v2, bb);
-}
-
-BinaryInst *BinaryInst::create_fdiv(Value *v1, Value *v2, BasicBlock *bb, Module *m)
-{
-    return new BinaryInst(Type::get_float_type(m), Instruction::fdiv, v1, v2, bb);
-}
 
 std::string BinaryInst::print()
 {
