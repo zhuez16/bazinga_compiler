@@ -97,3 +97,44 @@ ASTStatement *ASTStatement::getASTStatement(TreeNode *t) {
 
 
 // ============  BEGIN OF VISITOR PATTERN =================
+#include <Type.h>
+#include <Value.h>
+void ASTvisitor::visit(ASTProgram &node) {
+    for(auto delc: node.getDeclareList()){
+        delc->accept(this);
+    }
+}
+
+void ASTvisitor::visit(ASTDecl &node){
+
+}
+
+void ASTvisitor::visit(ASTFuncDecl &node){
+    auto ret_type = node.getFunctionType();
+    Type* fun_ret_type;
+    if(ret_type == node.AST_RET_INT){
+        func_type = Type::get_Int32_type();
+    }
+    else{
+        func_type = Type::get_Void_type();
+    }
+    auto params = node.getParams();
+    std::vector<Type *> args;
+    std::vector<Value *> fun_args;
+    for(auto param : params){
+        if(param->isArray()){
+            args.push_back(Type::get_Int32Ptr_type());
+            
+        }
+        else{
+            args.push_back(Type::get_Int32_type());
+            
+        }
+    }
+    auto fun_type = FunctionType::get(fun_ret_type, args);
+    
+}
+
+void ASTvisitor::visit(ASTParam &node){
+
+}

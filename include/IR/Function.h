@@ -7,11 +7,11 @@
 #include <map>
 #include <cassert>
 
-class Module;
-class Argument;
-class BasicBlock;
-class Type;
-class FunctionType;
+// class Module;
+// class Argument;
+// class BasicBlock;
+// class Type;
+// class FunctionType;
 
 class Function: public Value{
 public:

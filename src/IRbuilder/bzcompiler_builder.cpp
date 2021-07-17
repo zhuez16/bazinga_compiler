@@ -3,7 +3,9 @@
 //
 
 #include "bzcompiler_builder.hpp"
-void ASTvisitor::visit(ASTProgram &) {}
+void ASTvisitor::visit(ASTProgram &node) {
+    
+}
 void ASTvisitor::visit(ASTConstant &) {}
 void ASTvisitor::visit(ASTUnaryOp &) {}
 void ASTvisitor::visit(ASTMulOp &) {}
@@ -16,6 +18,7 @@ void ASTvisitor::visit(ASTLVal &) {}
 void ASTvisitor::visit(ASTFuncCall &) {}
 void ASTvisitor::visit(ASTStatement &) {}
 void ASTvisitor::visit(ASTDecl &) {}
+void ASTvisitor::visit(ASTFuncDecl &) {}
 void ASTvisitor::visit(ASTVarDecl &) {}
 void ASTvisitor::visit(ASTAssignStmt &) {}
 void ASTvisitor::visit(ASTExpressionStmt &) {}
