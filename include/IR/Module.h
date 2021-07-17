@@ -1,9 +1,9 @@
-#include <Type.h>
-#include <Instruction.h>
+#include "Type.h"
+#include "Instruction.h"
 #include <vector>
 #include <map>
 #include <list>
-#include <Function.h>
+#include "Function.h"
 #include <string>
 class Module{
     public:

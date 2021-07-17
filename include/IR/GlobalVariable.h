@@ -1,7 +1,7 @@
-#include <Type.h>
+#include "Type.h"
 #include <string>
-#include <Module.h>
-#include <Constant.h>
+#include "Module.h"
+#include "Constant.h"
 class GlobalVariable{
     public:
         GlobalVariable(std::string name, Module *m, Type *ty, bool is_const, Constant *init = nullptr);
