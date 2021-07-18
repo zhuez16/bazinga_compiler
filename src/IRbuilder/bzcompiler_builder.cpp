@@ -43,20 +43,20 @@ void BZBuilder::visit(ASTUnaryOp &node)
 {
     if (use_int) {
         int val;
-        if (sub_exp) {
+        if (node.getExpression()) {
             node.getExpression()->accept(*this);
             val = tmp_int;
         } else {
             //_IRBUILDER_ERROR_("Function call in ConstExp!");
         }
         switch (node.getUnaryOpType()) {
-            case AST_OP_POSITIVE:
+            case ASTUnaryOp::AST_OP_POSITIVE:
                 tmp_int = 0 + val;
                 break;
-            case AST_OP_NEGATIVE:
+            case ASTUnaryOp::AST_OP_NEGATIVE:
                 tmp_int = 0 - val;
                 break;
-            case AST_OP_INVERSE:
+            case ASTUnaryOp::AST_OP_INVERSE:
                 tmp_int = (val != 0);
                 //_IRBUILDER_ERROR_("NOT operation in ConstExp!")
             break;
@@ -69,13 +69,13 @@ void BZBuilder::visit(ASTUnaryOp &node)
     val = tmp_val;
 
     switch (node.getUnaryOpType()) {
-    case AST_OP_POSITIVE:
+    case ASTUnaryOp::AST_OP_POSITIVE:
         val = builder->create_iadd(CONST(0), val);
         break;
-    case AST_OP_NEGATIVE:
+    case ASTUnaryOp::AST_OP_NEGATIVE:
         val = builder->create_isub(CONST(0), val);
         break;
-    case AST_OP_INVERSE:
+    case ASTUnaryOp::AST_OP_INVERSE:
         val = builder->create_icmp_eq(val, CONST(0);
         break;
     }
@@ -93,13 +93,13 @@ void BZBuilder::visit(ASTMulOp &node)
         auto r_val = tmp_int;
         if(use_int){
             switch (node.getOpType()) {
-                case AST_OP_MUL:
+                case ASTMulOp::AST_OP_MUL:
                     tmp_int = l_val * r_val;
                     break;
-                case AST_OP_DIV:
+                case ASTMulOp::AST_OP_DIV:
                     tmp_int = l_val / r_val;
                     break;
-                case AST_OP_MOD:
+                case ASTMulOp::AST_OP_MOD:
                     tmp_int = l_val % r_val;
                     break;
             }
@@ -113,13 +113,13 @@ void BZBuilder::visit(ASTMulOp &node)
             r_val = builder->create_zext(r_val, TyInt32);
         }
         switch (node.getOpType()) {
-            case OP_MUL:
+            case ASTMulOp::AST_OP_MUL:
                 tmp_val = builder->create_imul(l_val, r_val);
             break;
-            case OP_DIV:
+            case ASTMulOp::AST_OP_DIV:
                 tmp_val = builder->create_isdiv(l_val, r_val);
             break;
-            case OP_MOD:
+            case ASTMulOp::AST_OP_MOD:
                 tmp_val = builder->create_irem(l_val, r_val);
             break;
         }
@@ -137,10 +137,10 @@ void BZBuilder::visit(ASTAddOp &node)
         auto r_val = tmp_int;
         if(use_int){
             switch (node.getOpType()) {
-                case AST_OP_ADD:
+                case ASTAddOp::AST_OP_ADD:
                     tmp_int = l_val + r_val;
                     break;
-                case AST_OP_MINUS:
+                case ASTAddOp::AST_OP_MINUS:
                     tmp_int = l_val - r_val;
                     break;
             }
@@ -154,10 +154,10 @@ void BZBuilder::visit(ASTAddOp &node)
             r_val = builder->create_zext(r_val, TyInt32);
         }
         switch (node.getOpType()) {
-            case AST_OP_ADD:
+            case ASTAddOp::AST_OP_ADD:
                 tmp_val = builder->create_iadd(l_val, r_val);
             break;
-            case AST_OP_MINUS:
+            case ASTAddOp::AST_OP_MINUS:
                 tmp_val = builder->create_isub(l_val, r_val);
             break;
         }
@@ -181,16 +181,16 @@ void BZBuilder::visit(ASTRelOp &node)
         }
 
         switch (node.getOpType()) {
-            case AST_OP_LTE:
+            case ASTRelOp::AST_OP_LTE:
                 tmp_val = builder->create_icmp_le(l_val, r_val);
                 break;
-            case AST_OP_LT:
+            case ASTRelOp::AST_OP_LT:
                 tmp_val = builder->create_icmp_lt(l_val, r_val);
                 break;
-            case AST_OP_GT:
+            case ASTRelOp::AST_OP_GT:
                 tmp_val = builder->create_icmp_gt(l_val, r_val);
                 break;
-            case AST_OP_GTE:
+            case ASTRelOp::AST_OP_GTE:
                 tmp_val = builder->create_icmp_ge(l_val, r_val);
                 break;
         }
@@ -214,10 +214,10 @@ void BZBuilder::visit(ASTEqOp &node)
         }
 
         switch (node.getOpType()) {
-            case AST_OP_EQ:
+            case ASTEqOp::AST_OP_EQ:
                 tmp_val = builder->create_icmp_eq(l_val, r_val);
                 break;
-            case AST_OP_NEQ:
+            case ASTEqOp::AST_OP_NEQ:
                 tmp_val = builder->create_icmp_ne(l_val, r_val);
                 break;
         }
