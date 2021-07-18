@@ -5,6 +5,14 @@
 #include "bzcompiler_builder.hpp"
 #include <stack>
 
+#define CONST(num) ConstantInt::get(num, &*module)
+
+#define _IRBUILDER_ERROR_(str)                                                  \
+{                                                                               \
+    std::cerr << "Error in IRbuilder-> " << str << std::endl;                   \
+    std::abort();                                                               \
+}
+
 // type
 Type *TyInt32;
 Type *TyVoid;
@@ -78,7 +86,6 @@ void BZBuilder::visit(ASTUnaryOp &node)
 
     switch (node.getUnaryOpType()) {
     case ASTUnaryOp::AST_OP_POSITIVE:
-        // FIXME: CONST MACRO ?
         val = builder->create_iadd(CONST(0), val);
         break;
     case ASTUnaryOp::AST_OP_NEGATIVE:
@@ -91,18 +98,17 @@ void BZBuilder::visit(ASTUnaryOp &node)
     tmp_val = val;
 }
 
-// FIXME: l_val 和 r_val 是int，使用getType是否错误?
 void BZBuilder::visit(ASTMulOp &node)
 {
     if(node.getOperand1()==nullptr)
         node.getOperand2()->accept(*this);
     else
     {
-        node.getOperand1()->accept(*this);
-        auto l_val = tmp_int;
-        node.getOperand2()->accept(*this);
-        auto r_val = tmp_int;
         if(use_int){
+            node.getOperand1()->accept(*this);
+            auto l_val = tmp_int;
+            node.getOperand2()->accept(*this);
+            auto r_val = tmp_int;
             switch (node.getOpType()) {
                 case ASTMulOp::AST_OP_MUL:
                     tmp_int = l_val * r_val;
@@ -116,11 +122,17 @@ void BZBuilder::visit(ASTMulOp &node)
             }
             return;
         }
+
+        node.getOperand1()->accept(*this);
+        auto l_val = tmp_val;
+        node.getOperand2()->accept(*this);
+        auto r_val = tmp_val;
+
         if (l_val->get_type()->is_int1_type()) {
             l_val = builder->create_zext(l_val, TyInt32);
         }
 
-            if (r_val->get_type()->is_int1_type()) {
+        if (r_val->get_type()->is_int1_type()) {
             r_val = builder->create_zext(r_val, TyInt32);
         }
         switch (node.getOpType()) {
