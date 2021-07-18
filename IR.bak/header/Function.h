@@ -1,3 +1,5 @@
+#ifndef BZCOMPILER_FUNCTION
+#define BZCOMPILER_FUNCTION
 #include "Module.h"
 #include "Type.h"
 #include "BasicBlock.h"
@@ -30,4 +32,5 @@ private:
     std::vector<Value*> arguments;
     std::list<BasicBlock *> basic_block;
     std::string *id;
-}
+};
+#endif

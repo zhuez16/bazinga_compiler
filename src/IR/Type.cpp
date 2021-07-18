@@ -1,201 +1,248 @@
-#include <Type.h>
-#include <Module.h>
+#include "IR/Type.h"
+#include "IR/Module.h"
+
 #include <cassert>
-//#include "ReturnVal.h"
 
-Type::Type(TypeID tid) { type_id = tid; }
-
-bool Type::is_Int1() {
-  if (get_TypeID() == Integer_type)
-    if (static_cast<IntegerType *>(this)->get_num_bits_() == 1)
-      return true;
-  return false;
+Type::Type(TypeID tid, Module *m)
+{
+    tid_ = tid;
+    m_ = m;
 }
 
-bool Type::is_Int32() {
-  if (get_TypeID() == Integer_type)
-    if (static_cast<IntegerType *>(this)->get_num_bits_() == 32) 
-      return true;
-  return false;
+Module *Type::get_module()
+{
+    return m_;
 }
 
-Type *Type::get_Void_type(Module *m) { return m->get_Void_type(); }
-
-Type *Type::get_Label_type(Module *m) { return m->get_Label_type(); }
-
-IntegerType *Type::get_Int1_type(Module *m) { return m->get_Int1_type(); }
-
-IntegerType *Type::get_Int32_type(Module *m) { return m->get_Int32_type(); }
-
-PointerType *Type::get_Int32Ptr_type(Module *m) { return m->get_Int32Ptr_type(); }
-
-Type *Type::get_PtrElement_type() {
-  if (this->is_Pointer_type())
-    return static_cast<PointerType *>(this)->get_element_type();
-  else
-    return nullptr;
+bool Type::is_eq_type(Type *ty1, Type *ty2)
+{
+    return ty1 == ty2;
 }
 
-int Type::get_size(bool extended) {
-  if (this->is_Integer_type()) {
-    auto bits = static_cast<IntegerType *>(this)->get_num_bits_();
-    if(bits==1)
-        return 1;
+Type *Type::get_void_type(Module *m)
+{
+    return m->get_void_type();
+}
+
+Type *Type::get_label_type(Module *m)
+{
+    return m->get_label_type();
+}
+
+IntegerType *Type::get_int1_type(Module *m)
+{
+    return m->get_int1_type();
+}
+
+IntegerType *Type::get_int32_type(Module *m)
+{
+    return m->get_int32_type();
+}
+
+PointerType *Type::get_pointer_type(Type *contained)
+{
+    return PointerType::get(contained);
+}
+
+ArrayType *Type::get_array_type(Type *contained, unsigned num_elements)
+{
+    return ArrayType::get(contained, num_elements);
+}
+
+PointerType *Type::get_int32_ptr_type(Module *m)
+{
+    return m->get_int32_ptr_type();
+}
+
+FloatType *Type::get_float_type(Module *m) 
+{
+    return m->get_float_type();
+}
+
+PointerType *Type::get_float_ptr_type(Module *m) 
+{
+    return m->get_float_ptr_type();
+}
+
+Type *Type::get_pointer_element_type(){ 
+    if( this->is_pointer_type() )
+        return static_cast<PointerType *>(this)->get_element_type();
     else
+        return nullptr;
+}
+
+Type *Type::get_array_element_type(){
+    if( this->is_array_type() )
+        return static_cast<ArrayType *>(this)->get_element_type();
+    else
+        return nullptr;
+}
+
+int Type::get_size() 
+{
+    if (this->is_integer_type()) 
+    {
+        auto bits = static_cast<IntegerType *>(this)->get_num_bits() / 8;
+        return bits > 0 ? bits : 1;        
+    }
+    if (this->is_array_type()) 
+    {
+        auto element_size = static_cast<ArrayType *>(this)->get_element_type()->get_size();
+        auto num_elements = static_cast<ArrayType *>(this)->get_num_of_elements();
+        return element_size * num_elements;
+    }
+    if (this->is_pointer_type()) 
+    {
+        if (this->get_pointer_element_type()->is_array_type()) 
+        {
+            return this->get_pointer_element_type()->get_size();
+        } 
+        else 
+        {
+            return 4;
+        }
+    }
+    if(this->is_float_type())
+    {
         return 4;
-  }
-  if (this->is_Array_type()) {
-    auto size = static_cast<ArrayType *>(this)->get_element_type()->get_size();
-    auto num = static_cast<ArrayType *>(this)->get_elements_num();
-    return size * num;
-  }
-  if (this->is_Pointer_type()) {
-    if (extended && this->get_PtrElement_type()->is_Array_type()) {
-      return this->get_PtrElement_type()->get_size();
-    } else {
-      return 4;
     }
-  }
-  return 0;
+    return 0;
 }
 
-void Type::print() {
-  switch (type_id) {
-  case Label_type:
-    std::cerr << "<label>";
-    break;
-
-  case Integer_type:
-    if (static_cast<IntegerType *>(this)->get_num_bits_() == 1) {
-      std::cerr << "i1";
-    } else {
-      std::cerr << "i32";
+std::string Type::print(){
+    std::string type_ir;
+    switch (this->get_type_id())
+    {
+    case VoidTyID:
+        type_ir += "void";
+        break;
+    case LabelTyID:
+        type_ir += "label";
+        break;
+    case IntegerTyID:
+        type_ir += "i";
+        type_ir += std::to_string( static_cast<IntegerType *>(this)->get_num_bits());
+        break;
+    case FunctionTyID:
+        type_ir += static_cast<FunctionType *>(this)->get_return_type()->print();
+        type_ir += " (";
+        for( int i = 0 ; i < static_cast<FunctionType *>(this)->get_num_of_args() ; i++)
+        {
+            if(i)
+                type_ir += ", ";
+            type_ir += static_cast<FunctionType *>(this)->get_param_type(i)->print();
+        }
+        type_ir += ")";
+        break;
+    case PointerTyID:
+        type_ir += this->get_pointer_element_type()->print();
+        type_ir += "*";
+        break;
+    case ArrayTyID:
+        type_ir += "[";
+        type_ir += std::to_string( static_cast<ArrayType *>(this)->get_num_of_elements());
+        type_ir += " x ";
+        type_ir += static_cast<ArrayType *>(this)->get_element_type()->print();
+        type_ir += "]";
+        break;
+    case FloatTyID:
+        type_ir += "float";
+        break;
+    default:
+        break;
     }
-    break;
-
-  case Array_type:
-    std::cerr << "[ " << static_cast<ArrayType *>(this)->get_elements_num()
-              << " x ";
-    static_cast<ArrayType *>(this)->get_element_type()->print();
-    std::cerr << "]";
-    break;
-
-  case Pointer_type:
-    get_PtrElement_type()->print();
-    std::cerr << "*";
-    break;
-
-  default:
-    break;
-  }
-  return;
+    return type_ir;
 }
 
-std::string Type::CommentPrint() {
-  std::string typeString;
-  switch (type_id) {
-  case Label_type:
-    typeString += "<label>";
-    break;
+IntegerType::IntegerType(unsigned num_bits , Module *m)
+    : Type(Type::IntegerTyID, m), num_bits_(num_bits)
+{
+}
 
-  case Integer_type:
-    if (static_cast<IntegerType *>(this)->get_num_bits_() == 1) {
-      typeString += "i1";
-    } else {
-      typeString += "i32";
+IntegerType *IntegerType::get(unsigned num_bits, Module *m )
+{
+    return new IntegerType(num_bits, m);
+}
+
+unsigned IntegerType::get_num_bits()
+{
+    return num_bits_;
+}
+
+FunctionType::FunctionType(Type *result, std::vector<Type *> params)
+    : Type(Type::FunctionTyID, nullptr)
+{
+    assert(is_valid_return_type(result) && "Invalid return type for function!");
+    result_ = result;
+
+    for (auto p : params) {
+        assert(is_valid_argument_type(p) &&
+            "Not a valid type for function argument!");
+        args_.push_back(p);
     }
-    break;
-
-  case Array_type:
-    typeString += "[ ";
-    typeString +=
-        std::to_string(static_cast<ArrayType *>(this)->get_elements_num()) +
-        " x ";
-    typeString +=
-        static_cast<ArrayType *>(this)->get_element_type()->CommentPrint();
-    typeString += "]";
-    break;
-
-  case Pointer_type:
-    typeString += get_PtrElement_type()->CommentPrint();
-    typeString += "*";
-    break;
-
-  default:
-    break;
-  }
-  return typeString;
 }
 
-IntegerType::IntegerType(unsigned num_bits)
-    : Type(Type::Integer_type), num_bits_(num_bits) {}
-
-IntegerType *IntegerType::get(unsigned num_bits) {
-  return new IntegerType(num_bits);
+bool FunctionType::is_valid_return_type(Type *ty)
+{
+    return ty->is_integer_type() || ty->is_void_type() || ty->is_float_type();
 }
 
-unsigned IntegerType::get_num_bits_() { return num_bits_; }
-
-FunctionType::FunctionType(Type *ret, std::vector<Type *> args)
-    : Type(Type::Function_type) {
-//exit_ifnot ?
-  //exit_ifnot(_InvalidRetVal_Constructor_FunctionType,check_return_type(ret) && "Invalid return type for function!");
-  ret_ = ret;
-
-  for (auto p : args) {
-    //exit_ifnot(_InvalidArgType_Constructor_FunctionType,check_arguement_type(p) &&"Not a valid type for function argument!");
-    args_.push_back(p);
-  }
+bool FunctionType::is_valid_argument_type(Type *ty)
+{
+    return ty->is_integer_type() || ty->is_pointer_type() || ty->is_float_type();
 }
 
-bool FunctionType::check_return_type(Type *type) {
-  return type->is_Integer_type() || type->is_Void_type();
+FunctionType *FunctionType::get(Type *result,
+                            std::vector<Type*> params)
+{
+    return new FunctionType(result, params);
 }
 
-bool FunctionType::check_arguement_type(Type *type) {
-  return type->is_Integer_type() || type->is_Pointer_type();
+unsigned FunctionType::get_num_of_args() const
+{
+    return args_.size();
 }
 
-FunctionType *FunctionType::get(Type *ret, std::vector<Type *> args) {
-  return new FunctionType(ret, args);
+Type *FunctionType::get_param_type(unsigned i) const
+{
+    return args_[i];
 }
 
-unsigned FunctionType::get_args_num() const { return args_.size(); }
-
-Type *FunctionType::get_args_type(unsigned i) const { return args_[i]; }
-
-Type *FunctionType::get_return_type() const { return ret_; }
+Type *FunctionType::get_return_type() const
+{
+    return result_;
+}
 
 ArrayType::ArrayType(Type *contained, unsigned num_elements)
-    : Type(Type::Array_type), num_elements_(num_elements) {
-  //exit_ifnot(_InvalidElemType_Constructor_ArrayType,isValidElementType(contained) &&"Not a valid type for array element!");
-  contained_ = contained;
+    : Type(Type::ArrayTyID, contained->get_module()), num_elements_(num_elements)
+{
+    assert(is_valid_element_type(contained) && "Not a valid type for array element!");
+    contained_ = contained;
 }
 
-bool ArrayType::check_element_type(Type *type) {
-  return type->is_Integer_type() || type->is_Array_type();
+bool ArrayType::is_valid_element_type(Type *ty)
+{
+    return ty->is_integer_type()||ty->is_array_type()||ty->is_float_type();
 }
 
-ArrayType *ArrayType::get(Type *contained, unsigned num_elements) {
-  return new ArrayType(contained, num_elements);
-}
-
-std::vector<unsigned> ArrayType::get_Dims() const {
-  std::vector<unsigned> rets;
-  auto elem_ty = contained_;
-  rets.push_back(num_elements_);
-  while (elem_ty->is_Array_type()) {
-    auto arr = static_cast<ArrayType *>(elem_ty);
-    rets.push_back(arr->get_elements_num());
-    elem_ty = arr->get_element_type();
-  }
-  return rets;
+ArrayType *ArrayType::get(Type *contained, unsigned num_elements)
+{
+    return contained->get_module()->get_array_type(contained, num_elements);
 }
 
 PointerType::PointerType(Type *contained)
-    : Type(Type::Pointer_type), contained_(contained) {}
-
-PointerType *PointerType::get(Type *contained) {
-  return new PointerType(contained);
+    : Type(Type::PointerTyID, contained->get_module()), contained_(contained)
+{
+    
 }
 
+PointerType *PointerType::get(Type *contained)
+{
+    return contained->get_module()->get_pointer_type(contained);
+}
+
+FloatType::FloatType (Module *m) 
+    : Type(Type::FloatTyID, m) 
+{
+
+}

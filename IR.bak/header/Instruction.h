@@ -32,6 +32,9 @@ public:
         getelementptr, 
         zext, // zero extend
 
+        // For memory op
+        bitcast
+
     };
     // create instruction, auto insert to bb
     // ty here is result type
@@ -71,7 +74,7 @@ public:
 
 
 
-    bool is_void() { return ((op_id_ == ret) || (op_id_ == br) || (op_id_ == store) || (op_id_ == call && this->get_type()->is_void_type())); }
+    bool is_void() { return ((op_id_ == ret) || (op_id_ == br) || (op_id_ == store) || (op_id_ == call && this->get_Type()->is_Void_type())); }
 
     bool is_phi() { return op_id_ == phi; }
     bool is_store() { return op_id_ == store; }
@@ -285,7 +288,17 @@ private:
     Type *dest_ty_;
 };
 
+class BitCastInst : public Instruction {
 
+    static BitCastInst *create_bit_cast(Value *_old, Type *_new) {
+
+    }
+
+private:
+    BitCastInst(Value * old, Type *targetTp) : Instruction(targetTp, bitcast, 1) {
+
+    }
+};
 
 class PhiInst : public Instruction
 {

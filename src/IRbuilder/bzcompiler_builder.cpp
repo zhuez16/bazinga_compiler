@@ -522,11 +522,65 @@ void ASTvisitor::visit(ASTVarDecl &node) {
             }
         }
 
-        Type *var_ty = Type::get_Int32_type(getModule().get());
+        Type *var_ty = Type::get_int32_type(getModule().get());
         for (int i = (int)dimension.size() - 1; i >= 0; --i) {
             var_ty = new ArrayType(var_ty, dimension[i]);
         }
 
+        if (scope.in_global()) {
+            if (node.isConst()) {
+                if (it->array) {
+                    Constant *initializer = (Constant *) new ConstantArrayInitializer(it->var_name, dimension, init);
+                    auto var = GlobalVariable::create(
+                            it->var_name,
+                            getModule().get(),
+                            var_ty,
+                            true,
+                            initializer
+                    );
+                    scope.push(it->var_name, var, true, dimension, init);
+                } else {
+                    auto *initializer = (Constant *) new ConstantInt(init[0]);
+                    auto var = GlobalVariable::create(
+                            it->var_name,
+                            getModule().get(),
+                            var_ty,
+                            true,
+                            initializer
+                    );
+                    scope.push(it->var_name, var, true);
+                }
+            }
+            else {
+                if (it->array) {
+                    Constant *initializer = (Constant *) new ConstantArrayInitializer(it->var_name, dimension, init);
+                    auto var = GlobalVariable::create(
+                            it->var_name,
+                            getModule().get(),
+                            var_ty,
+                            false,
+                            initializer
+                    );
+                    scope.push(it->var_name, var, true, dimension, init);
+                } else {
+                    auto *initializer = (Constant *) new ConstantInt(init[0]);
+                    auto var = GlobalVariable::create(
+                            it->var_name,
+                            getModule().get(),
+                            var_ty,
+                            false,
+                            initializer
+                    );
+                    scope.push(it->var_name, var, true);
+                }
+            }
+        } else {
+            auto var = builder->create_alloca(var_ty);
+            scope.push(it->var_name, var, node.isConst(), dimension, init);
+            if (it->array && it->has_initial) {
+
+            }
+        }
 
 
         /** TODO: Finish initializer
