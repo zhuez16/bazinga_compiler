@@ -37,7 +37,7 @@ void BZBuilder::visit(ASTProgram &node) {
 }
 void BZBuilder::visit(ASTConstant &node)
 {
-    BZBuilder = node.getValue();
+    tmp_int = node.getValue();
 }
 void BZBuilder::visit(ASTUnaryOp &node)
 {
@@ -274,17 +274,18 @@ void BZBuilder::visit(ASTOrOp &node)
 }
 void BZBuilder::visit(ASTLVal &node)
 {
-    /*
-    auto var = scope.find(node.getVarName);
-    if (var->getType()->is_Integer_type()) { // constant
+    std::string var_name = node.getVarName();
+    std::vector<ASTAddOp *> pointer_exp= node.getPointerExpression();
+    auto var = scope.find(var_name);
+    if (var->getType()->is_Integer_type()) {
         tmp_val = var;
         return;
     }
     auto is_int = var->getType()->get_PtrElement_type()->is_Integer_type();
     auto is_ptr = var->getType()->get_PtrElement_type()->is_Pointer_type();
-    if (node.getPointerExpression.size() == 0) {
+    if (pointer_exp.size() == 0) {
         if (is_int)
-            tmp_val = scope.find(node.getVarName);
+            tmp_val = scope.find(var_name);
         else if (is_ptr)
             tmp_val = builder->create_load(var);
         else
@@ -293,23 +294,14 @@ void BZBuilder::visit(ASTLVal &node)
     else
     {
         Value *tmp_ptr;
-        if (is_int) {
-            tmp_ptr = var;
-            for (auto exp : node.getPointerExpression)
-            {
-                exp->accept(*this);
-                tmp_ptr = builder->create_gep(tmp_ptr, {tmp_val});
-            }
-        }
-        else if (is_ptr)
+        if (is_ptr)
         {
-            //to_do
             std::vector<Value *> array_params;
             scope.find_params(node.getVarName, array_params);
-            tmp_ptr = builder->create_load(var); // array_load
-            for (int i = 0; i < node.getPointerExpression.size(); i++)
+            tmp_ptr = builder->create_load(var);
+            for (int i = 0; i < pointer_exp.size(); i++)
             {
-                node.getPointerExpression[i]->accept(*this);
+                pointer_exp[i]->accept(*this);
                 auto val = tmp_val;
                 for (int j = i + 1; j < array_params.size(); j++)
                 {
@@ -321,7 +313,7 @@ void BZBuilder::visit(ASTLVal &node)
         else
         {
             tmp_ptr = var;
-            for (auto exp : node._pointer_exp)
+            for (auto exp : pointer_exp)
             {
                 exp->accept(*this);
                 tmp_ptr = builder->create_gep(tmp_ptr, {tmp_val});
@@ -329,7 +321,6 @@ void BZBuilder::visit(ASTLVal &node)
         }
         tmp_val = tmp_ptr;
     }
-    */
 }
 void BZBuilder::visit(ASTFuncCall &node)
 {

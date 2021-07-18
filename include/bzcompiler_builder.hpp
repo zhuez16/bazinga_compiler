@@ -76,6 +76,17 @@ public:
         return nullptr;
     }
 
+    Value *find_params(std::string name, std::vector<Value *> &params) {
+        for (auto s = array_param.rbegin(); s != array_param.rend(); s++) {
+                auto iter = s->find(name);
+            if (iter != s->end()) {
+                params.assign(iter->second.begin(), iter->second.end());
+                return iter->second[0];
+            }
+        }   
+        return nullptr;
+    }
+
     ValType *getRawType(std::string name) {
         for (auto s = inner.rbegin(); s != inner.rend(); s++) {
             auto iter = s->find(name);
