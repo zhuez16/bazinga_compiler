@@ -73,6 +73,16 @@ BinaryInst *BinaryInst::create_mod(Value *v1, Value *v2, BasicBlock *bb, Module 
     return new BinaryInst(Type::get_int32_type(m), Instruction::mod, v1, v2, bb);
 }
 
+BinaryInst *BinaryInst::create_iand(Value *v1, Value *v2, BasicBlock *bb, Module *m)
+{
+    return new BinaryInst(Type::get_int1_type(m), Instruction::land, v1, v2, bb);
+}
+
+BinaryInst *BinaryInst::create_ior(Value *v1, Value *v2, BasicBlock *bb, Module *m)
+{
+    return new BinaryInst(Type::get_int1_type(m), Instruction::lor, v1, v2, bb);
+}
+
 
 std::string BinaryInst::print()
 {

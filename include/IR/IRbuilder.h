@@ -19,6 +19,9 @@ public:
     BinaryInst *create_isub( Value *lhs, Value *rhs){ return BinaryInst::create_sub( lhs, rhs, this->BB_, m_);}
     BinaryInst *create_imul( Value *lhs, Value *rhs){ return BinaryInst::create_mul( lhs, rhs, this->BB_, m_);}
     BinaryInst *create_isdiv( Value *lhs, Value *rhs){ return BinaryInst::create_sdiv( lhs, rhs, this->BB_, m_);}
+    BinaryInst *create_irem( Value *lhs, Value *rhs){ return BinaryInst::create_mod( lhs, rhs, this->BB_, m_);}
+    BinaryInst *create_iand( Value *lhs, Value *rhs){ return BinaryInst::create_sdiv( lhs, rhs, this->BB_, m_);}
+    BinaryInst *create_ior( Value *lhs, Value *rhs){ return BinaryInst::create_sdiv( lhs, rhs, this->BB_, m_);}
     
     CmpInst *create_icmp_eq( Value *lhs, Value *rhs){ return CmpInst::create_cmp(CmpInst::EQ, lhs, rhs, this->BB_, m_); }
     CmpInst *create_icmp_ne( Value *lhs, Value *rhs){ return CmpInst::create_cmp(CmpInst::NE, lhs, rhs, this->BB_, m_); }

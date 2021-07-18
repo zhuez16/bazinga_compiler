@@ -22,6 +22,7 @@ public:
         sub,
         mul,
         sdiv,
+        mod,
         // float binary operators
         fadd,
         fsub,
@@ -39,9 +40,10 @@ public:
         getelementptr, 
         zext, // zero extend
         fptosi,
-        sitofp
+        sitofp,
         // float binary operators Logical operators
-
+        lor,
+        land
     };
     // create instruction, auto insert to bb
     // ty here is result type
@@ -185,6 +187,8 @@ public:
     // create Div instruction, auto insert to bb
     static BinaryInst *create_sdiv(Value *v1, Value *v2, BasicBlock *bb, Module *m);
 
+    static BinaryInst *create_mod(Value *v1, Value *v2, BasicBlock *bb, Module *m);
+
     // create fadd instruction, auto insert to bb
     static BinaryInst *create_fadd(Value *v1, Value *v2, BasicBlock *bb, Module *m);
 
@@ -196,6 +200,10 @@ public:
 
     // create fDiv instruction, auto insert to bb
     static BinaryInst *create_fdiv(Value *v1, Value *v2, BasicBlock *bb, Module *m);
+
+    static BinaryInst *create_iand(Value *v1, Value *v2, BasicBlock *bb, Module *m);
+
+    static BinaryInst *create_ior(Value *v1, Value *v2, BasicBlock *bb, Module *m);
 
     static BinaryInst *create_s_bin(Value *v1, Value *v2, OpID op, BasicBlock *bb, Module *m){
         return new BinaryInst(Type::get_int32_type(m), op, v1, v2, bb);
@@ -537,6 +545,38 @@ public:
     };
 };
 
+
+class LoadInst : public Instruction
+{
+private:
+    LoadInst(Type *ty, Value *ptr, BasicBlock *bb);
+    LoadInst(Type *ty, BasicBlock *bb): Instruction(ty, Instruction::load, 1, bb){};
+public:
+    static LoadInst *create_load(Type *ty, Value *ptr, BasicBlock *bb);
+    Value *get_lval() { return this->get_operand(0); }
+
+    Type *get_load_type() const;
+
+    virtual std::string print() override;
+
+    virtual LoadInst* deepcopy(BasicBlock* parent) override{
+        // 复制基本信息
+        LoadInst* newInst = new LoadInst(type_, parent);
+        // 复制UseList
+        newInst->use_list_.clear();
+        for(auto u: use_list_){
+            newInst->use_list_.push_back(u);
+        }
+        // 复制Operands
+        newInst->operands_.clear();
+        for(auto o: operands_){
+            newInst->operands_.push_back(o);
+        }
+        return newInst;
+    };
+};
+
+
 class AllocaInst : public Instruction
 {
 private:
@@ -724,5 +764,6 @@ public:
             l_val_ = ptMap[l_val_];
     };
 };
+
 
 #endif // SYSYC_INSTRUCTION_H

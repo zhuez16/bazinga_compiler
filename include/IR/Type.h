@@ -17,7 +17,8 @@ public:
     enum TypeID {
         VoidTyID,         // Void
         LabelTyID,        // Labels, e.g., BasicBlock
-        IntegerTyID,      // Integers, include 32 bits and 1 bit
+        IntegerTy1ID,      // Integers, include 32 bits and 1 bit
+        IntegerTy32ID,
         FunctionTyID,     // Functions
         ArrayTyID,        // Arrays
         PointerTyID,      // Pointer
@@ -33,7 +34,7 @@ public:
     
     bool is_label_type() const { return get_type_id() == LabelTyID; }
 
-    bool is_integer_type() const { return get_type_id() == IntegerTyID; }
+    bool is_integer_type() const { return get_type_id() == IntegerTy32ID || get_type_id() == IntegerTy1ID; }
         
     bool is_function_type() const { return get_type_id() == FunctionTyID; }
 
@@ -42,6 +43,10 @@ public:
     bool is_pointer_type() const { return get_type_id() == PointerTyID; }
 
     bool is_float_type() const { return get_type_id() == FloatTyID; }
+
+    bool is_int32_type() const { return get_type_id() == IntegerTy32ID; }
+
+    bool is_int1_type() const { return get_type_id() == IntegerTy1ID; }
 
     static bool is_eq_type(Type *ty1, Type *ty2);
 

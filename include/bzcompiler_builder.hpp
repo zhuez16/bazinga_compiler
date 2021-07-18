@@ -66,7 +66,7 @@ public:
         return result.second;
     }
 
-    Value* find(std::string name) {
+    Value* find(const std::string& name) {
         for (auto s = inner.rbegin(); s!= inner.rend();s++) {
             auto iter = s->find(name);
             if (iter != s->end()) {
@@ -141,35 +141,32 @@ public:
     BZBuilder() {
         module = std::unique_ptr<Module>(new Module("bzcomp code"));
         builder = new IRBuilder(nullptr, module.get());
-        auto TyVoid = Type::get_Void_type(module.get());
-        auto TyInt32 = Type::get_Int32_type(module.get());
+        auto TyVoid = Type::get_void_type(module.get());
+        auto TyInt32 = Type::get_int32_type(module.get());
     }
 
     std::unique_ptr<Module> getModule() {
         return std::move(module);
     }
 private:
-    virtual void visit(ASTInstruction &);
-    virtual void visit(ASTProgram &) override final;
-    virtual void visit(ASTConstant &) override final;
-    virtual void visit(ASTUnaryOp &) override final;
-    virtual void visit(ASTMulOp &) override final;
-    virtual void visit(ASTAddOp &) override final;
-    virtual void visit(ASTRelOp &) override final;
-    virtual void visit(ASTEqOp &) override final;
-    virtual void visit(ASTAndOp &) override final;
-    virtual void visit(ASTOrOp &) override final;
-    virtual void visit(ASTLVal &) override final;
-    virtual void visit(ASTFuncCall &) override final;
-    virtual void visit(ASTStatement &) override final;
-    virtual void visit(ASTDecl &) override final;
-    virtual void visit(ASTVarDecl &) override final;
-    virtual void visit(ASTAssignStmt &) override final;
-    virtual void visit(ASTExpressionStmt &) override final;
-    virtual void visit(ASTIfStmt &) override final;
-    virtual void visit(ASTWhileStmt &) override final;
-    virtual void visit(ASTBreakStmt &) override final;
-    virtual void visit(ASTContinueStmt &) override final;
+    void visit(ASTProgram &) final;
+    void visit(ASTConstant &) final;
+    void visit(ASTUnaryOp &) final;
+    void visit(ASTMulOp &)  final;
+    void visit(ASTAddOp &)  final;
+    void visit(ASTRelOp &) final;
+    void visit(ASTEqOp &)  final;
+    void visit(ASTAndOp &) final;
+    void visit(ASTOrOp &) final;
+    void visit(ASTLVal &) final;
+    void visit(ASTFuncCall &) final;
+    void visit(ASTVarDecl &)  final;
+    void visit(ASTAssignStmt &)  final;
+    void visit(ASTExpressionStmt &)  final;
+    void visit(ASTIfStmt &)  final;
+    void visit(ASTWhileStmt &)  final;
+    void visit(ASTBreakStmt &)  final;
+    void visit(ASTContinueStmt &)  final;
 
     IRBuilder *builder;
     Scope scope;
