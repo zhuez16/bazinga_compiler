@@ -1,9 +1,9 @@
-#include "Type.h"
-#include "Module.h"
-#include "Function.h"
-#include "BasicBlock.h"
-#include "Instruction.h"
-#include "IRprinter.h"
+#include "IR/Type.h"
+#include "IR/Module.h"
+#include "IR/Function.h"
+#include "IR/BasicBlock.h"
+#include "IR/Instruction.h"
+#include "IR/IRprinter.h"
 #include <cassert>
 #include <vector>
 #include <algorithm>

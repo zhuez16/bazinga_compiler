@@ -2,6 +2,7 @@
 // Created by Misakihanayo on 2021/7/17.
 //
 
+#include "ast.h"
 #include "bzcompiler_builder.hpp"
 // type
 Type *TyInt32;
@@ -29,16 +30,16 @@ int tmp_int = 0;
 bool use_int = false;
 bool in_global_init = false;
 Value *ret;
-void ASTvisitor::visit(ASTProgram &node) {
+void BZBuilder::visit(ASTProgram &node) {
     for(auto delc: node.getDeclareList()){
         delc->accept(*this);
     }
 }
-void ASTvisitor::visit(ASTConstant &node) 
+void BZBuilder::visit(ASTConstant &node)
 {
-    tmp_int = node.getValue();
+    BZBuilder = node.getValue();
 }
-void ASTvisitor::visit(ASTUnaryOp &node) 
+void BZBuilder::visit(ASTUnaryOp &node)
 {
     if (use_int) {
         int val;
@@ -80,7 +81,7 @@ void ASTvisitor::visit(ASTUnaryOp &node)
     }
     tmp_val = val;
 }
-void ASTvisitor::visit(ASTMulOp &node) 
+void BZBuilder::visit(ASTMulOp &node)
 {
     if(node.getOperand1()==nullptr)
         node.getOperand2()->accept(*this);
@@ -124,7 +125,7 @@ void ASTvisitor::visit(ASTMulOp &node)
         }
     }
 }
-void ASTvisitor::visit(ASTAddOp &node) 
+void BZBuilder::visit(ASTAddOp &node)
 {
     if(node.getOperand1()==nullptr)
         node.getOperand2()->accept(*this);
@@ -162,10 +163,10 @@ void ASTvisitor::visit(ASTAddOp &node)
         }
     }
 }
-void ASTvisitor::visit(ASTRelOp &node) 
+void BZBuilder::visit(ASTRelOp &node)
 {
     if (node.getOperand1() == nullptr)
-        node.getOperand2()->accept(*this); 
+        node.getOperand2()->accept(*this);
     else {
         node.getOperand1()->accept(*this);
         auto l_val = tmp_val;
@@ -195,10 +196,10 @@ void ASTvisitor::visit(ASTRelOp &node)
         }
     }
 }
-void ASTvisitor::visit(ASTEqOp &node) 
+void BZBuilder::visit(ASTEqOp &node)
 {
     if (node.getOperand1() == nullptr)
-        node.getOperand2()->accept(*this); 
+        node.getOperand2()->accept(*this);
     else {
         node.getOperand1()->accept(*this);
         auto l_val = tmp_val;
@@ -222,10 +223,10 @@ void ASTvisitor::visit(ASTEqOp &node)
         }
     }
 }
-void ASTvisitor::visit(ASTAndOp &node) 
+void BZBuilder::visit(ASTAndOp &node)
 {
     if (node.getOperand1() == nullptr)
-        node.getOperand2()->accept(*this); 
+        node.getOperand2()->accept(*this);
     else {
         node.getOperand1()->accept(*this);
         auto l_val = tmp_val;
@@ -242,15 +243,15 @@ void ASTvisitor::visit(ASTAndOp &node)
         tmp_val = builder->create_iand(l_val, r_val);
     }
 }
-void ASTvisitor::visit(ASTOrOp &node) 
+void BZBuilder::visit(ASTOrOp &node)
 {
     if (node.getOperand1() == nullptr)
     {
-        node.getOperand2()->accept(*this); 
+        node.getOperand2()->accept(*this);
         if (tmp_val->getType()->is_Int32()) {
             tmp_val = builder->create_icmp_ne(tmp_val, CONST(0));
         }
-    }    
+    }
     else {
         node.getOperand1()->accept(*this);
         auto l_val = tmp_val;
@@ -271,7 +272,7 @@ void ASTvisitor::visit(ASTOrOp &node)
 
     }
 }
-void ASTvisitor::visit(ASTLVal &node) 
+void BZBuilder::visit(ASTLVal &node)
 {
     /*
     auto var = scope.find(node.getVarName);
@@ -282,58 +283,58 @@ void ASTvisitor::visit(ASTLVal &node)
     auto is_int = var->getType()->get_PtrElement_type()->is_Integer_type();
     auto is_ptr = var->getType()->get_PtrElement_type()->is_Pointer_type();
     if (node.getPointerExpression.size() == 0) {
-        if (is_int) 
+        if (is_int)
             tmp_val = scope.find(node.getVarName);
-        else if (is_ptr) 
+        else if (is_ptr)
             tmp_val = builder->create_load(var);
-        else 
+        else
             tmp_val = builder->create_gep(var, {CONST(0)});
-    } 
-    else 
+    }
+    else
     {
         Value *tmp_ptr;
         if (is_int) {
             tmp_ptr = var;
-            for (auto exp : node.getPointerExpression) 
+            for (auto exp : node.getPointerExpression)
             {
                 exp->accept(*this);
                 tmp_ptr = builder->create_gep(tmp_ptr, {tmp_val});
             }
-        } 
-        else if (is_ptr) 
+        }
+        else if (is_ptr)
         {
             //to_do
             std::vector<Value *> array_params;
             scope.find_params(node.getVarName, array_params);
             tmp_ptr = builder->create_load(var); // array_load
-            for (int i = 0; i < node.getPointerExpression.size(); i++) 
+            for (int i = 0; i < node.getPointerExpression.size(); i++)
             {
                 node.getPointerExpression[i]->accept(*this);
                 auto val = tmp_val;
-                for (int j = i + 1; j < array_params.size(); j++) 
+                for (int j = i + 1; j < array_params.size(); j++)
                 {
                     val = builder->create_imul(val, array_params[j]);
                 }
                 tmp_ptr = builder->create_gep(tmp_ptr, {val});
             }
         }
-        else 
+        else
         {
             tmp_ptr = var;
-            for (auto exp : node._pointer_exp) 
+            for (auto exp : node._pointer_exp)
             {
                 exp->accept(*this);
                 tmp_ptr = builder->create_gep(tmp_ptr, {tmp_val});
-            }    
+            }
         }
         tmp_val = tmp_ptr;
     }
     */
 }
-void ASTvisitor::visit(ASTFuncCall &node) 
+void BZBuilder::visit(ASTFuncCall &node)
 {
     auto func_name = scope.find(node.getFunctionName());
-    if (func_name == nullptr) 
+    if (func_name == nullptr)
         exit(120);
     std::vector<Value *> args;
     std::vector<ASTAddOp *> params=node.getParamList();
@@ -343,7 +344,7 @@ void ASTvisitor::visit(ASTFuncCall &node)
             static_cast<Function *>(func_name)->get_function_type()->get_args_type(i);
         if (arg_type->is_Integer_type())
             require_address = false;
-        else 
+        else
             require_address = true;
         arg->accept(*this);
         require_address = false;
@@ -351,15 +352,231 @@ void ASTvisitor::visit(ASTFuncCall &node)
     }
     tmp_val = builder->create_call(static_cast<Function *>(func_name), args);
 }
+
+int BZBuilder::compute_ast_constant(ASTInstruction *inst) {
+    switch (inst->getType()) {
+        case AST_CONSTANT:
+            return dynamic_cast<ASTConstant *>(inst)->getValue();
+        case AST_ADD_EXP: {
+            auto *op = dynamic_cast<ASTAddOp *>(inst);
+            if (op->isUnaryExp()) {
+                return compute_ast_constant(op->getOperand1());
+            } else {
+                int lhs = compute_ast_constant(op->getOperand1());
+                int rhs = compute_ast_constant(op->getOperand2());
+                if (op->getOpType() == ASTAddOp::AST_OP_ADD) {
+                    return lhs + rhs;
+                } else {
+                    return lhs - rhs;
+                }
+            }
+        }
+        case AST_MUL_EXP: {
+            auto *op = dynamic_cast<ASTMulOp *>(inst);
+            if (op->isUnaryExp()) {
+                return compute_ast_constant(op->getOperand1());
+            } else {
+                int lhs = compute_ast_constant(op->getOperand1());
+                int rhs = compute_ast_constant(op->getOperand2());
+                switch (op->getOpType()) {
+                    case ASTMulOp::AST_OP_DIV:
+                        return lhs / rhs;
+                    case ASTMulOp::AST_OP_MUL:
+                        return lhs * rhs;
+                    case ASTMulOp::AST_OP_MOD:
+                        return lhs % rhs;
+                }
+            }
+        }
+        case AST_OR_EXP: {
+            auto *op = dynamic_cast<ASTOrOp *>(inst);
+            if (op->isUnaryExp()) {
+                return compute_ast_constant(op->getOperand1());
+            } else {
+                int lhs = compute_ast_constant(op->getOperand1());
+                int rhs = compute_ast_constant(op->getOperand2());
+                return lhs || rhs;
+            }
+        }
+        case AST_AND_EXP: {
+            auto *op = dynamic_cast<ASTAndOp *>(inst);
+            if (op->isUnaryExp()) {
+                return compute_ast_constant(op->getOperand1());
+            } else {
+                int lhs = compute_ast_constant(op->getOperand1());
+                int rhs = compute_ast_constant(op->getOperand2());
+                return lhs && rhs;
+            }
+        }
+        case AST_EQ_EXP: {
+            auto *op = dynamic_cast<ASTEqOp *>(inst);
+            if (op->isUnaryExp()) {
+                return compute_ast_constant(op->getOperand1());
+            } else {
+                int lhs = compute_ast_constant(op->getOperand1());
+                int rhs = compute_ast_constant(op->getOperand2());
+                switch (op->getOpType()) {
+                    case ASTEqOp::AST_OP_EQ:
+                        return lhs == rhs;
+                    case ASTEqOp::AST_OP_NEQ:
+                        return lhs != rhs;
+                }
+            }
+        }
+        case AST_REL_EXP: {
+            auto *op = dynamic_cast<ASTRelOp *>(inst);
+            if (op->isUnaryExp()) {
+                return compute_ast_constant(op->getOperand1());
+            } else {
+                int lhs = compute_ast_constant(op->getOperand1());
+                int rhs = compute_ast_constant(op->getOperand2());
+                switch (op->getOpType()) {
+                    case ASTRelOp::AST_OP_GT:
+                        return lhs > rhs;
+                    case ASTRelOp::AST_OP_GTE:
+                        return lhs >= rhs;
+                    case ASTRelOp::AST_OP_LT:
+                        return lhs < rhs;
+                    case ASTRelOp::AST_OP_LTE:
+                        return lhs <= rhs;
+                }
+            }
+        }
+        case AST_UNARY_EXP: {
+            auto *op = dynamic_cast<ASTUnaryOp *>(inst);
+            int lhs = compute_ast_constant(op->getExpression());
+            switch (op->getUnaryOpType()) {
+                case ASTUnaryOp::AST_OP_NEGATIVE:
+                    return -lhs;
+                case ASTUnaryOp::AST_OP_POSITIVE:
+                    return lhs;
+                case ASTUnaryOp::AST_OP_INVERSE:
+                    return !lhs;
+            }
+        }
+        case AST_LVAL: {
+            auto *op = dynamic_cast<ASTLVal *>(inst);
+            std::string var_name = op->getVarName();
+            if (op->hasAddress()) {
+                std::vector<int> pointer;
+                for (ASTAddOp *aop: op->getPointerExpression()) {
+                    pointer.push_back(compute_ast_constant(aop));
+                }
+                return scope.getValue(var_name, pointer);
+            }
+            return scope.getValue(var_name);
+        }
+    }
 }
-void compute_ast_constant(){};
+
+/**
+ * 递归数组初始化
+ * @param l
+ * @param offset
+ * @param depth
+ * @param init_values
+ * @return 当前块填充的数量
+ */
+std::tuple<int, int>
+BZBuilder::ConstInitialValueWalker(ASTVarDecl::ASTArrayList *l, const std::vector<int> &offset, int depth,
+                                   std::vector<int> &init_values) {
+    if (l->isEmpty) {
+        for (int i = 0; i < offset[offset.size() - 1]; ++i) {
+            init_values.push_back(0);
+        }
+        return std::make_tuple(depth + 1, offset[offset.size() - 1]);
+    }
+    if (l->isArray) {
+        int max_depth = 0;
+        int filled = 0;
+        for (auto arr: l->list) {
+            int _set, _depth;
+            std::tie(_depth, _set) = ConstInitialValueWalker(arr, offset, depth + 1, init_values);
+            max_depth = std::max(max_depth, _depth);
+            filled += _set;
+        }
+        int delta = max_depth - depth;
+        if (delta < 2) {
+            // Do Nothing
+        } else {
+            int tb_fill = offset[offset.size() + 1 - delta];
+            for (int i = 0; i < tb_fill - filled; ++i) {
+                init_values.push_back(0);
+            }
+            return {depth, tb_fill};
+        }
+    } else {
+        init_values.push_back(compute_ast_constant(l->value));
+        return std::make_tuple(depth, 1);
+    }
+}
+
 void ASTvisitor::visit(ASTVarDecl &node) {
     for (ASTVarDecl::ASTVarDeclInst *it: node.getVarDeclList()) {
+        std::vector<int> dimension;
+        std::vector<int> init;
+        if (it->array) {
+            for (ASTAddOp *op: it->_array_list) {
+                dimension.push_back(compute_ast_constant(op));
+            }
+            if (it->has_initial) {
+                ConstInitialValueWalker(it->initial_value[0], dimension, 0, init);
+            }
+        } else if (it->has_initial) {
+            auto val = it->initial_value[0];
+            if (val->isEmpty) {
+                init.push_back(0);
+            } else {
+                init.push_back(compute_ast_constant(val->value));
+            }
+        }
 
+        Type *var_ty = Type::get_Int32_type(getModule().get());
+        for (int i = (int)dimension.size() - 1; i >= 0; --i) {
+            var_ty = new ArrayType(var_ty, dimension[i]);
+        }
+
+
+
+        /** TODO: Finish initializer
+
+        if (node.num == nullptr) {
+            if (scope.in_global()) {
+                auto initializer = ConstantZero::get(var_type, module.get());
+                auto var = GlobalVariable::create
+                        (
+                                node.id,
+                                module.get(),
+                                var_type,
+                                false,
+                                initializer);
+                scope.push(node.id, var);
+            } else {
+                auto var = builder->create_alloca(var_type);
+                scope.push(node.id, var);
+            }
+        } else {
+            auto *array_type = ArrayType::get(var_type, node.num->i_val);
+            if (scope.in_global()) {
+                auto initializer = ConstantZero::get(array_type, module.get());
+                auto var = GlobalVariable::create
+                        (
+                                node.id,
+                                module.get(),
+                                array_type,
+                                false,
+                                initializer);
+                scope.push(node.id, var);
+            } else {
+                auto var = builder->create_alloca(array_type);
+                scope.push(node.id, var);
+            }
+        }
+         **/
     }
 
 }
-void ASTvisitor::visit(ASTFuncDecl &node){
+void BZBuilder::visit(ASTFuncDecl &node){
     auto ret_type = node.getFunctionType();
     Type* fun_ret_type;
     if(ret_type == node.AST_RET_INT){
@@ -393,7 +610,7 @@ void ASTvisitor::visit(ASTFuncDecl &node){
     scope.exit()
 }
 
-void ASTvisitor::visit(ASTParam &node){
+void BZBuilder::visit(ASTParam &node){
     if(node.isArray()){
         auto array_alloca = builder->create_alloca(Type::get_Int32Ptr_type());
         Value* arg = new Value(Type::get_Int32Ptr_type(), node.getParamName())
@@ -416,23 +633,23 @@ void ASTvisitor::visit(ASTParam &node){
     }
 }
 
-void ASTvisitor::visit(ASTAssignStmt &node) {
-    node->_l_val->accept(*this);
+void BZBuilder::visit(ASTAssignStmt &node) {
+    node.getLeftValue()->accept(*this);
     auto assign_addr=ret;
-    node->_r_val->accept(*this);
+    node.getExpression()->accept(*this);
     auto assign_value=ret;
-    if (assign_addr->get_type()->is_pointer_type())
-        assign_value=assign_addr->create_load(assign_value);
+    if (assign_addr->get_Type()->is_Pointer_type())
+        assign_value= assign_addr->create_load(assign_value);
 }
 
-void ASTvisitor::visit(ASTBlock &node) {
+void BZBuilder::visit(ASTBlock &node) {
     for(auto stmt: node.getStatements()){
         stmt->accept(*this);
     }
 }
 
-void ASTvisitor::visit(ASTExpressionStmt &node) {}
-void ASTvisitor::visit(ASTIfStmt &node) {}
-void ASTvisitor::visit(ASTWhileStmt &node) {}
-void ASTvisitor::visit(ASTBreakStmt &node) {}
-void ASTvisitor::visit(ASTContinueStmt &node) {}
+void BZBuilder::visit(ASTExpressionStmt &node) {}
+void BZBuilder::visit(ASTIfStmt &node) {}
+void BZBuilder::visit(ASTWhileStmt &node) {}
+void BZBuilder::visit(ASTBreakStmt &node) {}
+void BZBuilder::visit(ASTContinueStmt &node) {}
