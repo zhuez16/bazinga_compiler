@@ -19,6 +19,8 @@ public:
     BinaryInst *create_isub( Value *lhs, Value *rhs){ return BinaryInst::create_sub( lhs, rhs, this->BB_, m_);}
     BinaryInst *create_imul( Value *lhs, Value *rhs){ return BinaryInst::create_mul( lhs, rhs, this->BB_, m_);}
     BinaryInst *create_isdiv( Value *lhs, Value *rhs){ return BinaryInst::create_sdiv( lhs, rhs, this->BB_, m_);}
+    BinaryInst *create_imod(Value *lhs, Value *rhs) {return BinaryInst::create_mod(lhs, rhs, this->BB_, m_);}
+
     
     CmpInst *create_icmp_eq( Value *lhs, Value *rhs){ return CmpInst::create_cmp(CmpInst::EQ, lhs, rhs, this->BB_, m_); }
     CmpInst *create_icmp_ne( Value *lhs, Value *rhs){ return CmpInst::create_cmp(CmpInst::NE, lhs, rhs, this->BB_, m_); }
@@ -45,27 +47,13 @@ public:
     LoadInst * create_load(Type *ty, Value *ptr) { return LoadInst::create_load(ty, ptr, this->BB_); }
     LoadInst * create_load(Value *ptr) 
     { 
-        assert( ptr->get_type()->is_pointer_type() && "ptr must be pointer type" );
-        return LoadInst::create_load(ptr->get_type()->get_pointer_element_type(), ptr, this->BB_); 
+        assert( ptr->get_Type()->is_Pointer_type() && "ptr must be pointer type" );
+        return LoadInst::create_load(ptr->get_Type()->get_PtrElement_type(), ptr, this->BB_);
     }
 
     AllocaInst *create_alloca(Type *ty) { return AllocaInst::create_alloca(ty, this->BB_); }
     ZextInst *create_zext(Value *val, Type *ty) { return ZextInst::create_zext(val, ty, this->BB_); }
 
-    SiToFpInst *create_sitofp( Value *val, Type *ty) { return SiToFpInst::create_sitofp(val, ty, this->BB_); }
-    FpToSiInst *create_fptosi( Value *val, Type *ty) { return FpToSiInst::create_fptosi(val, ty, this->BB_); }
-    
-    FCmpInst *create_fcmp_ne( Value *lhs, Value *rhs) { return FCmpInst::create_fcmp(FCmpInst::NE, lhs, rhs, this->BB_, m_); } 
-    FCmpInst *create_fcmp_lt( Value *lhs, Value *rhs) { return FCmpInst::create_fcmp(FCmpInst::LT, lhs, rhs, this->BB_, m_); }
-    FCmpInst *create_fcmp_le( Value *lhs, Value *rhs) { return FCmpInst::create_fcmp(FCmpInst::LE, lhs, rhs, this->BB_, m_); }
-    FCmpInst *create_fcmp_ge( Value *lhs, Value *rhs) { return FCmpInst::create_fcmp(FCmpInst::GE, lhs, rhs, this->BB_, m_); }
-    FCmpInst *create_fcmp_gt( Value *lhs, Value *rhs) { return FCmpInst::create_fcmp(FCmpInst::GT, lhs, rhs, this->BB_, m_); }
-    FCmpInst *create_fcmp_eq( Value *lhs, Value *rhs) { return FCmpInst::create_fcmp(FCmpInst::EQ, lhs, rhs, this->BB_, m_); }
-
-    BinaryInst *create_fadd( Value *lhs, Value *rhs){ return BinaryInst::create_fadd( lhs, rhs, this->BB_, m_);}
-    BinaryInst *create_fsub( Value *lhs, Value *rhs){ return BinaryInst::create_fsub( lhs, rhs, this->BB_, m_);}
-    BinaryInst *create_fmul( Value *lhs, Value *rhs){ return BinaryInst::create_fmul( lhs, rhs, this->BB_, m_);}
-    BinaryInst *create_fdiv( Value *lhs, Value *rhs){ return BinaryInst::create_fdiv( lhs, rhs, this->BB_, m_);}
 };
 
 #endif // SYSYC_IRBUILDER_H

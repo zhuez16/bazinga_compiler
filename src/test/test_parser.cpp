@@ -15,5 +15,5 @@ int main(int argc, char *argv[]) {
 
     SyntaxTree *tree = parse(argv[1]);
     // tree->print_tree();
-    (new ASTProgram(tree)); // ->print();
+    (new ASTProgram(tree))->print();
 }

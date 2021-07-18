@@ -1453,7 +1453,7 @@ public:
 
 class ASTvisitor{
 public:
-    virtual void visit(ASTInstruction &);
+    virtual void visit(ASTInstruction &)=0;
     virtual void visit(ASTProgram &) =0;
     virtual void visit(ASTConstant &) =0;
     virtual void visit(ASTUnaryOp &) =0;
@@ -1474,6 +1474,7 @@ public:
     virtual void visit(ASTWhileStmt &) =0;
     virtual void visit(ASTBreakStmt &) =0;
     virtual void visit(ASTContinueStmt &) =0;
+    virtual void visit(ASTFuncDecl &) = 0;
 };
 
 

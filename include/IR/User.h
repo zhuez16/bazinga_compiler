@@ -4,49 +4,31 @@
 #include "Value.h"
 #include <vector>
 // #include <memory>
-// class Value;
-class User : public Value {
+
+class User : public Value
+{
 public:
-  User(Type *type, const std::string &name = "", unsigned num_ops = 0);
-  ~User() = default;
+    User(Type *ty, const std::string &name = "", unsigned num_ops = 0);
+    ~User() = default;
 
-  std::vector<Value *> &get_operand_list();
+    std::vector<Value *>& get_operands();
 
-  // start from 0
-  Value *get_operand(unsigned i) const;
+    // start from 0
+    Value *get_operand(unsigned i) const;
 
-  // start from 0, auto add use
-  void set_operand(unsigned i, Value *v);
+    // start from 0
+    void set_operand(unsigned i, Value *v);
+    void add_operand( Value *v);
 
-  void add_operand(Value *v);
-  void remove_operand(unsigned i);
-  void remove_operand(unsigned i, unsigned j);
+    unsigned get_num_operand() const;
 
-  unsigned get_operand_num() const;
+    void remove_use_of_ops();
+    void remove_operands(int index1,int index2);
 
-  // TODO(zyh) 待确认
-  //std::vector<Value *> &getOperands() { return operands_; }
-
-  //virtual void print() override {}
-
-  // remove the use of all operands
-  void remove_useof_operand();
-
-  void set_num(unsigned num) {
-    num_ops_ = num;
-    operands_.resize(num, nullptr);
-  }
-  void clear_operand() {
-    num_ops_ = 0;
-    remove_useof_operand();
-    operands_.clear();
-  }
-
-private:
-  // std::unique_ptr< std::list<Value *> > operands_;   // operands of this
-  // value
-  std::vector<Value *> operands_; // operands of this value
-  unsigned num_ops_;
+protected:
+    // std::unique_ptr< std::list<Value *> > operands_;   // operands of this value
+    std::vector<Value *> operands_;   // operands of this value
+    unsigned num_ops_;
 };
 
 #endif // SYSYC_USER_H

@@ -22,7 +22,9 @@ BISON_TARGET(parser ${CMAKE_SOURCE_DIR}/src/phase2/parser.y ${MID_LEVEL_DIR}/bs_
 
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR})
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/include)
+INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/IR)
 INCLUDE_DIRECTORIES(${MID_LEVEL_DIR}/include)
+ADD_SUBDIRECTORY(src/IR)
 ADD_EXECUTABLE(lexer
         src/test/test_lexer.cpp
         ${FLEX_lexer_OUTPUTS}
@@ -34,3 +36,7 @@ ADD_EXECUTABLE(parser
         src/IRbuilder
         ${FLEX_lexer2_OUTPUTS}
         ${BISON_parser_OUTPUTS})
+ADD_EXECUTABLE(builder
+        src/IRbuilder/bzcompiler.cpp
+        src/IR/
+        )

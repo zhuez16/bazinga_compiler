@@ -1,15 +1,20 @@
-#include "Module.h"
-#include "Function.h"
-#include "IRprinter.h"
+#include "IR/Module.h"
+#include "IR/Function.h"
+#include "IR/IRprinter.h"
 
-Function::Function (FunctionType* type, const std::string &name, Module *parent,vector args_){
+Function::Function(FunctionType *ty, const std::string &name, Module *parent)
+    : Value(ty, name), parent_(parent), seq_cnt_(0)
+{
+    // num_args_ = ty->getNumParams();
     parent->add_function(this);
-    arguments=args;
+    build_args();
 }
 
-static Function *Function::create_function(std::string &id, Module *m, Type *type, vector args_){
-    return new Function(type,id,m,args_);
+Function *Function::create(FunctionType *ty, const std::string &name, Module *parent)
+{
+    return new Function(ty, name, parent);
 }
+
 FunctionType *Function::get_function_type() const
 {
     return static_cast<FunctionType *>(get_type());
@@ -19,33 +24,49 @@ Type *Function::get_return_type() const
 {
     return get_function_type()->get_return_type();
 }
-void Function::add_basic_block(BasicBlock *bb){
-    basic_block.push_back(bb);
+
+unsigned Function::get_num_of_args() const
+{
+    return get_function_type()->get_num_of_args();
 }
-unsigned Function::get_num_of_args(){
-    return arguments.size();
+
+unsigned Function::get_num_basic_blocks() const
+{
+    return basic_blocks_.size();
 }
-unsigned Function::get_num_basic_blocks(){
-    return basic_block.size();
+
+Module *Function::get_parent() const
+{
+    return parent_;
 }
-Module *Function::get_parents(){
-    return parent;
+
+void Function::remove(BasicBlock* bb)
+{ 
+    basic_blocks_.remove(bb); 
+    for (auto pre : bb->get_pre_basic_blocks()) 
+    {
+        pre->remove_succ_basic_block(bb);
+    }
+    for (auto succ : bb->get_succ_basic_blocks()) 
+    {
+        succ->remove_pre_basic_block(bb);
+    }
 }
-std::list<Argument *>::iterator Function::arg_begin(){
-    return arguments.begin();
+
+void Function::build_args()
+{
+    auto *func_ty = get_function_type();
+    unsigned num_args = get_num_of_args();
+    for (int i = 0; i < num_args; i++) {
+        arguments_.push_back(new Argument(func_ty->get_param_type(i), "", this, i));
+    }
 }
-std::list<Argument *>::iterator Function::arg_end(){
-    return arguments.end();
+
+void Function::add_basic_block(BasicBlock *bb)
+{
+    basic_blocks_.push_back(bb);
 }
-void Function::remove(BasicBlock *bb){
-    basic_block.remove(bb);
-}
-std::list<BasicBlock *> &Function::get_basic_blocks(){
-    return *basic_block;
-}
-std::list<Argument *> &Function::get_args(){
-    return *arguments;
-}
+
 void Function::set_instr_name()
 {
     std::map<Value *, int> seq;
@@ -83,4 +104,72 @@ void Function::set_instr_name()
         }
     }
     seq_cnt_ += seq.size();
+}
+
+std::string Function::print()
+{
+    set_instr_name();
+    std::string func_ir;
+    if ( this->is_declaration() ) 
+    {
+        func_ir += "declare ";
+    }    
+    else
+    {
+        func_ir += "define ";
+    }
+    
+    func_ir += this->get_return_type()->print();
+    func_ir += " ";
+    func_ir += print_as_op(this, false);
+    func_ir += "(";
+
+    //print arg
+    if ( this->is_declaration() ) 
+    {
+        for ( int i = 0 ; i < this->get_num_of_args() ; i++)
+        {
+            if(i)
+                func_ir += ", ";
+            func_ir += static_cast<FunctionType *>(this->get_type())->get_param_type(i)->print();
+        }
+    }
+    else
+    {
+        for ( auto arg = this->arg_begin(); arg != arg_end() ; arg++ )
+        {
+            if( arg != this->arg_begin() )
+            {
+                func_ir += ", ";
+            }
+            func_ir += static_cast<Argument *>(*arg)->print();
+        }
+    }
+    func_ir += ")";
+
+    //print bb
+    if( this->is_declaration() ) {
+        func_ir += "\n";
+    }
+    else
+    {
+        func_ir += " {";
+        func_ir += "\n";
+        for ( auto bb : this->get_basic_blocks() )
+        {
+            func_ir += bb->print();
+        }
+        func_ir += "}";
+    }
+    
+    return func_ir;
+}
+
+std::string Argument::print()
+{
+    std::string arg_ir;
+    arg_ir += this->get_type()->print();
+    arg_ir += " %";
+    arg_ir += this->get_name();
+    return arg_ir;
 }
