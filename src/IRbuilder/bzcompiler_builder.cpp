@@ -157,11 +157,11 @@ void BZBuilder::visit(ASTAddOp &node)
         node.getOperand1()->accept(*this);
     else
     {
-        node.getOperand1()->accept(*this);
-        auto l_val = tmp_int;
-        node.getOperand2()->accept(*this);
-        auto r_val = tmp_int;
         if(use_int){
+            node.getOperand1()->accept(*this);
+            auto l_val = tmp_int;
+            node.getOperand2()->accept(*this);
+            auto r_val = tmp_int;
             switch (node.getOpType()) {
                 case ASTAddOp::AST_OP_ADD:
                     tmp_int = l_val + r_val;
@@ -172,6 +172,12 @@ void BZBuilder::visit(ASTAddOp &node)
             }
             return;
         }
+
+        node.getOperand1()->accept(*this);
+        auto l_val = tmp_val;
+        node.getOperand2()->accept(*this);
+        auto r_val = tmp_val;
+        
         if (l_val->get_type()->is_int1_type()) {
             l_val = builder->create_zext(l_val, TyInt32);
         }
