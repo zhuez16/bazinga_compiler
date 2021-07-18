@@ -531,6 +531,53 @@ BZBuilder::ConstInitialValueWalker(ASTVarDecl::ASTArrayList *l, const std::vecto
     }
 }
 
+
+std::tuple<int, int>
+BZBuilder::InitialValueWalker(ASTVarDecl::ASTArrayList *l, const std::vector<int> &offset, int depth,
+                                   std::vector<Value *> &init_values, Module *m) {
+    if (l->isEmpty) {
+        for (int i = 0; i < offset[offset.size() - 1]; ++i) {
+            init_values.push_back(ConstantZero::get(Type::get_int32_type(m), m));
+        }
+        return std::make_tuple(depth + 1, offset[offset.size() - 1]);
+    }
+    if (l->isArray) {
+        int max_depth = 0;
+        int filled = 0;
+        for (auto arr: l->list) {
+            int _set, _depth;
+            std::tie(_depth, _set) = InitialValueWalker(arr, offset, depth + 1, init_values);
+            max_depth = std::max(max_depth, _depth);
+            filled += _set;
+        }
+        int delta = max_depth - depth;
+        if (delta < 2) {
+            // Do Nothing
+        } else {
+            int tb_fill = offset[offset.size() + 1 - delta];
+            for (int i = 0; i < tb_fill - filled; ++i) {
+                init_values.push_back(ConstantZero::get(Type::get_int32_type(m), m));
+            }
+            return {depth, tb_fill};
+        }
+    } else {
+        l->value->accept(*this);
+        init_values.push_back(tmp_val);
+        return std::make_tuple(depth, 1);
+    }
+}
+
+void BZBuilder::InitialValueBuilder(const std::vector<int> &dim, const std::vector<Value *> &val, Instruction *gep, int &offset, int depth) {
+    for (int i = 0; i < dim[depth]; ++i) {
+        auto g_i = builder->create_gep(gep, {ConstantInt::get(i, getModule().get())});
+        if (depth != dim.size() - 1) {
+            InitialValueBuilder(dim, val, g_i, offset, depth + 1);
+        } else {
+            builder->create_store(g_i, val[offset++]);
+        }
+    }
+}
+
 void BZBuilder::visit(ASTVarDecl &node) {
     for (ASTVarDecl::ASTVarDeclInst *it: node.getVarDeclList()) {
         std::vector<int> dimension;
@@ -556,10 +603,12 @@ void BZBuilder::visit(ASTVarDecl &node) {
             var_ty = new ArrayType(var_ty, dimension[i]);
         }
 
+
         if (scope.in_global()) {
             if (node.isConst()) {
                 if (it->array) {
-                    Constant *initializer = (Constant *) new ConstantArrayInitializer(it->var_name, dimension, init);
+                    // 全局静态数组
+                    Constant *initializer = ConstantArray::get(dynamic_cast<ArrayType *>(var_ty), ConstantArray::IntegerList2Constant(dimension, init, getModule().get()));
                     auto var = GlobalVariable::create(
                             it->var_name,
                             getModule().get(),
@@ -569,6 +618,7 @@ void BZBuilder::visit(ASTVarDecl &node) {
                     );
                     scope.push(it->var_name, var, true, dimension, init);
                 } else {
+                    // 全局静态常量
                     auto *initializer = ConstantInt::get(init[0], getModule().get());
                     auto var = GlobalVariable::create(
                             it->var_name,
@@ -582,7 +632,8 @@ void BZBuilder::visit(ASTVarDecl &node) {
             }
             else {
                 if (it->array) {
-                    Constant *initializer = new ConstantArrayInitializer(it->var_name, dimension, init);
+                    // 全局动态数组
+                    Constant *initializer = ConstantArray::get(dynamic_cast<ArrayType *>(var_ty), ConstantArray::IntegerList2Constant(dimension, init, getModule().get()));
                     auto var = GlobalVariable::create(
                             it->var_name,
                             getModule().get(),
@@ -592,6 +643,7 @@ void BZBuilder::visit(ASTVarDecl &node) {
                     );
                     scope.push(it->var_name, var, true, dimension, init);
                 } else {
+                    // 全局动态变量
                     auto *initializer = ConstantInt::get(init[0], getModule().get());
                     auto var = GlobalVariable::create(
                             it->var_name,
@@ -606,9 +658,17 @@ void BZBuilder::visit(ASTVarDecl &node) {
         } else {
             auto var = builder->create_alloca(var_ty);
             scope.push(it->var_name, var, node.isConst(), dimension, init);
-            if (it->array && it->has_initial) {
-                // Bit cast & memcpy
-
+            if (it->has_initial) {
+                if(it->array) {
+                    std::vector<Value *> _init;
+                    InitialValueWalker(it->initial_value[0], dimension, 0, _init, getModule().get());
+                    int offset;
+                    InitialValueBuilder(dimension, _init, var, offset, 0);
+                } else {
+                    it->initial_value[0]->value->accept(*this);
+                    auto ld = builder->create_load(tmp_val);
+                    builder->create_store(ld, var);
+                }
             }
         }
 

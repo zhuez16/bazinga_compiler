@@ -78,9 +78,12 @@ public:
 
     std::string print();
 
+
+
 private:
     TypeID tid_;
     Module *m_;
+    virtual void _t(){};
 };
 
 class IntegerType : public Type {

@@ -176,6 +176,11 @@ private:
 
     std::tuple<int, int> ConstInitialValueWalker(ASTVarDecl::ASTArrayList *l, const std::vector<int> &offset, int depth,
                                 std::vector<int> &init_values);
+
+    std::tuple<int, int> InitialValueWalker(ASTVarDecl::ASTArrayList *l, const std::vector<int> &offset, int depth,
+                                            std::vector<Value *> &init_values, Module *m);
+
+    void InitialValueBuilder(const std::vector<int> &dim, const std::vector<Value *> &val, Instruction *gep, int &offset, int depth);
 };
 
 #endif
