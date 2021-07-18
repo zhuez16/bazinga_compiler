@@ -54,6 +54,7 @@ void BZBuilder::visit(ASTProgram &node) {
 void BZBuilder::visit(ASTConstant &node)
 {
     tmp_int = node.getValue();
+    use_int = true;
 }
 void BZBuilder::visit(ASTUnaryOp &node)
 {
@@ -100,8 +101,8 @@ void BZBuilder::visit(ASTUnaryOp &node)
 
 void BZBuilder::visit(ASTMulOp &node)
 {
-    if(node.getOperand1()==nullptr)
-        node.getOperand2()->accept(*this);
+    if(node.isUnaryExp())
+        node.getOperand1()->accept(*this);
     else
     {
         if(use_int){
@@ -150,8 +151,8 @@ void BZBuilder::visit(ASTMulOp &node)
 }
 void BZBuilder::visit(ASTAddOp &node)
 {
-    if(node.getOperand1()==nullptr)
-        node.getOperand2()->accept(*this);
+    if(node.isUnaryExp())
+        node.getOperand1()->accept(*this);
     else
     {
         node.getOperand1()->accept(*this);
@@ -188,8 +189,8 @@ void BZBuilder::visit(ASTAddOp &node)
 }
 void BZBuilder::visit(ASTRelOp &node)
 {
-    if (node.getOperand1() == nullptr)
-        node.getOperand2()->accept(*this);
+    if (node.isUnaryExp())
+        node.getOperand1()->accept(*this);
     else {
         node.getOperand1()->accept(*this);
         auto l_val = tmp_val;
@@ -221,8 +222,8 @@ void BZBuilder::visit(ASTRelOp &node)
 }
 void BZBuilder::visit(ASTEqOp &node)
 {
-    if (node.getOperand1() == nullptr)
-        node.getOperand2()->accept(*this);
+    if (node.isUnaryExp())
+        node.getOperand1()->accept(*this);
     else {
         node.getOperand1()->accept(*this);
         auto l_val = tmp_val;
@@ -250,8 +251,8 @@ void BZBuilder::visit(ASTEqOp &node)
 // FIXME: 短路运算符
 void BZBuilder::visit(ASTAndOp &node)
 {
-    if (node.getOperand1() == nullptr)
-        node.getOperand2()->accept(*this);
+    if (node.isUnaryExp())
+        node.getOperand1()->accept(*this);
     else {
         node.getOperand1()->accept(*this);
         auto l_val = tmp_val;
@@ -271,9 +272,9 @@ void BZBuilder::visit(ASTAndOp &node)
 // FIXME: 短路运算符
 void BZBuilder::visit(ASTOrOp &node)
 {
-    if (node.getOperand1() == nullptr)
+    if (node.isUnaryExp())
     {
-        node.getOperand2()->accept(*this);
+        node.getOperand1()->accept(*this);
         if (tmp_val->get_type()->is_int32_type()) {
             tmp_val = builder->create_icmp_ne(tmp_val, CONST(0));
         }
