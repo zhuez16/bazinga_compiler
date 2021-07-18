@@ -25,6 +25,8 @@ bool require_address = false;
 // function that is being built
 Function *cur_fun = nullptr;
 // detect scope pre-enter (for elegance only)
+std::vector<Argument *> cur_fun_param;
+int cur_fun_param_num = 0;
 bool pre_enter_scope = false;
 //
 std::vector<Value *> array_init;
@@ -738,8 +740,16 @@ void BZBuilder::visit(ASTFuncDecl &node){
     builder->set_insert_point(bb);
     scope.push(node.getFunctionName(), fun);
     scope.enter();
+    cur_fun_param.clear();
+    cur_fun = fun;
+    cur_fun_param_num = 0;
+    auto fun_param = fun->get_args();
+    for(auto it = fun_param.begin(); it != fun_param.end(); it++) {
+        cur_fun_param.push_back(*it);
+    }
     for(auto param: params){
         param->accept(*this);
+        cur_fun_param_num ++;
     }
     auto block = node.getStmtBlock();
     block->accept(*this);
@@ -750,8 +760,9 @@ void BZBuilder::visit(ASTParam &node){
     if(node.isArray()){
         auto array_alloca = builder->create_alloca(Type::get_int32_ptr_type(getModule().get()));
         // FIXME: Value是基类，不能这样进行创建
-        Value* arg = new Value(Type::get_int32_ptr_type(getModule().get()), node.getParamName())
-        builder->create_store(arg, array_alloc);
+        auto param = cur_fun_param[cur_fun_param_num];
+        // Value* arg = new Value(Type::get_int32_ptr_type(getModule().get()), node.getParamName())
+        builder->create_store(param, array_alloc);
         std::vector<Value *> array_params;
         array_params.push_back(ConstantInt::get(0, getModule().get()));
         for (auto array_param : node.getArrayList()) {
@@ -759,15 +770,15 @@ void BZBuilder::visit(ASTParam &node){
             array_params.push_back(ret);
         }
         // FIXME: 未知定义。注意Array可能是高维数组
-        scope.push(node.getParamName(), array_alloc);
-        scope.push_params(node.getParamName(), array_alloc, array_params);
+        scope.push(node.getParamName(), array_alloca);
+        scope.push_params(node.getParamName(), array_alloca, array_params);
     }
     else{
         auto alloca = builder->create_alloca(Type::get_int32_type(getModule().get()));
         auto params = node.getArrayList();
-        // FIXME: 同上
-        Value* arg = new Value(Type::get_int32_type(getModule().get()), node.getParamName())
-        builder.create_store(arg, alloca);
+        // // FIXME: 同上
+        // Value* arg = new Value(Type::get_int32_type(getModule().get()), node.getParamName())
+        builder.create_store(cur_fun_param[cur_fun_param_num], alloca);
         scope.push(node.getParamName(), alloca)
     }
 }
