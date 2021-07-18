@@ -3,3 +3,5 @@ tmp/
 build/
 .idea/
 cmake-build-debug/
+/.vscode/
+/cmake-build-default/

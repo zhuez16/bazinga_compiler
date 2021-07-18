@@ -1421,6 +1421,7 @@ private:
     }
 
 public:
+    void runVisitor(ASTvisitor &node);
     virtual void accept(ASTvisitor &);
     /**
      * @brief 生成抽象语法树

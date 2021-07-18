@@ -19,7 +19,7 @@ class Module;
 class BasicBlock : public Value {
 private:
     explicit BasicBlock(Module *m, const std::string &name, Function *parent);
-
+    std::string name_;
     std::list<BasicBlock *> prev_bbs;
     std::list<BasicBlock *> succ_bbs;
     std::list<Instruction *> instr_list;
@@ -55,9 +55,8 @@ public:
     const Instruction *get_terminator() const;
 
     Instruction *get_terminator() {
-        return const_cast<Instruction *>{
-                static_cast<const BasicBlock *>(this)->get_terminator();
-        }
+        return const_cast<Instruction *>(
+                static_cast<const BasicBlock *>(this)->get_terminator());
     }
 
     Module *get_module();
@@ -79,6 +78,6 @@ public:
     virtual std::string print() override;
 
 
-}
+};
 
 #endif 

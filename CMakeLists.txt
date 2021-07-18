@@ -30,5 +30,7 @@ ADD_EXECUTABLE(lexer
 ADD_EXECUTABLE(parser
         src/test/test_parser.cpp
         src/ast.cpp
+        src/IR
+        src/IRbuilder
         ${FLEX_lexer2_OUTPUTS}
         ${BISON_parser_OUTPUTS})

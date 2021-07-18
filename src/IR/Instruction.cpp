@@ -97,6 +97,30 @@ std::string BinaryInst::print()
     return instr_ir;
 }
 
+UnaryInst *UnaryInst::create_pos(Value *v1, BasicBlock *bb, Module *m){
+    return new UnaryInst(Type::get_int32_type(m),Instruction::pos,v1,bb);
+}
+UnaryInst *UnaryInst::create_neg(Value *v1, BasicBlock *bb, Module *m){
+    return new UnaryInst(Type::get_int32_type(m),Instruction::neg,v1,bb);
+}
+UnaryInst *UnaryInst::create_rev(Value *v1, BasicBlock *bb, Module *m){
+    return new UnaryInst(Type::get_int32_type(m),Instruction::rev,v1,bb);
+}
+
+std::string UnaryInst::print(){
+
+    std::string instr_ir;
+    instr_ir += "%";
+    instr_ir += this->get_name();
+    instr_ir += " = ";
+    instr_ir += this->get_module()->get_instr_op_name( this->get_instr_type() );
+    instr_ir += " ";
+    instr_ir += this->get_operand(0)->get_type()->print();
+    instr_ir += " ";
+    instr_ir += print_as_op(this->get_operand(0), false);
+    return instr_ir;
+}
+
 CmpInst::CmpInst(Type *ty, CmpOp op, Value *lhs, Value *rhs, 
             BasicBlock *bb)
     : Instruction(ty, Instruction::cmp, 2, bb), cmp_op_(op)
@@ -429,7 +453,6 @@ AllocaInst *AllocaInst::create_alloca(Type *ty, BasicBlock *bb)
 {
     return new AllocaInst(ty, bb);
 }
-
 Type *AllocaInst::get_alloca_type() const
 {
     return alloca_ty_;

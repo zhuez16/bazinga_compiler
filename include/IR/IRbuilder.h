@@ -45,8 +45,8 @@ public:
     LoadInst * create_load(Type *ty, Value *ptr) { return LoadInst::create_load(ty, ptr, this->BB_); }
     LoadInst * create_load(Value *ptr) 
     { 
-        assert( ptr->get_type()->is_pointer_type() && "ptr must be pointer type" );
-        return LoadInst::create_load(ptr->get_type()->get_pointer_element_type(), ptr, this->BB_); 
+        assert( ptr->get_Type()->is_Pointer_type() && "ptr must be pointer type" );
+        return LoadInst::create_load(ptr->get_Type()->get_PtrElement_type(), ptr, this->BB_);
     }
 
     AllocaInst *create_alloca(Type *ty) { return AllocaInst::create_alloca(ty, this->BB_); }

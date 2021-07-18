@@ -3,11 +3,12 @@
 #include "Type.h"
 #include "Value.h"
 #include "BasicBlock.h"
+#include "User.h"
 
 class BasicBlock;
 class Function;
 
-class Instruction : public Value
+class Instruction : public User
 {
 public:
     enum OpID
@@ -21,6 +22,10 @@ public:
         mul,
         sdiv,
         mod,
+        // Unary operators
+        pos,
+        neg,
+        rev,
         // Memory operators
         alloca,
         load,
@@ -62,6 +67,9 @@ public:
             case phi: return "phi"; break;
             case call: return "call"; break;
             case mod: return "mod"; break;
+            case pos: return "pos"; break;
+            case neg: return "neg"; break;
+            case rev: return "rev"; break;
             case getelementptr: return "getelementptr"; break;
             case zext: return "zext"; break;
         
@@ -71,7 +79,7 @@ public:
 
 
 
-    bool is_void() { return ((op_id_ == ret) || (op_id_ == br) || (op_id_ == store) || (op_id_ == call && this->get_type()->is_void_type())); }
+    bool is_void() { return ((op_id_ == ret) || (op_id_ == br) || (op_id_ == store) || (op_id_ == call && this->get_Type()->is_Void_type())); }
 
     bool is_phi() { return op_id_ == phi; }
     bool is_store() { return op_id_ == store; }
@@ -85,7 +93,10 @@ public:
     bool is_mul() { return op_id_ == mul; }
     bool is_div() { return op_id_ == sdiv; }
     bool is_mod() { return op_id_ == mod; }
-    
+
+    bool is_pos() { return op_id_ == pos; }
+    bool is_neg() { return op_id_ == neg; }
+    bool is_rev() { return op_id_ == rev; }
 
     bool is_cmp() { return op_id_ == cmp; }
 
@@ -97,13 +108,13 @@ public:
     bool isBinary()
     {
         return (is_add() || is_sub() || is_mul() || is_div() || is_mod()) &&
-               (get_num_operand() == 2);
+               (get_operand_num() == 2);
     }
 
     bool isTerminator() { return is_br() || is_ret(); }
 
 private:
-    BasicBlock *parent_;
+    BasicBlock *parent;
     OpID op_id_;
     unsigned num_ops_;
 };
@@ -133,6 +144,16 @@ public:
 private:
     void assertValid();
 };
+
+class UnaryInst: public Instruction{
+private:
+    UnaryInst(Type *ty, OpID id, Value *v1, BasicBlock *bb);
+public:
+    static UnaryInst *create_pos(Value *v1, BasicBlock *bb, Module *m);
+    static UnaryInst *create_neg(Value *v1, BasicBlock *bb, Module *m);
+    static UnaryInst *create_rev (Value *v1, BasicBlock *bb, Module *m);
+};
+
 
 class CmpInst : public Instruction
 {
