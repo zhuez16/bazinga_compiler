@@ -1016,9 +1016,16 @@ void BZBuilder::visit(ASTReturnStmt &node) {
     }
 }
 void BZBuilder::visit(ASTBlock &node) {
-    scope.enter();
+    bool need_exit_scope = !pre_enter_scope;
+    if (pre_enter_scope) {
+        pre_enter_scope = false;
+    } else {
+        scope.enter();
+    }
     for (auto exp: node.getStatements()) {
         exp->accept(*this);
     }
-    scope.exit();
+    if (need_exit_scope) {
+        scope.exit();
+    }
 }
