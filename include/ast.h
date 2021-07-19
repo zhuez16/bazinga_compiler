@@ -47,7 +47,7 @@ class ASTInstruction {
 private:
     AST_INST_TYPE _inst_type;
 public:
-    virtual void accept(ASTvisitor &);
+    virtual void accept(ASTvisitor &) {};
     explicit ASTInstruction(AST_INST_TYPE type) {
         _inst_type = type;
     }
@@ -67,7 +67,7 @@ class ASTConstant : public ASTInstruction {
 private:
     int _value;
 public:
-    virtual void accept(ASTvisitor &) override final;
+    void accept(ASTvisitor &) final;
     explicit ASTConstant(TreeNode *t) : ASTInstruction(AST_CONSTANT) {
         assert(t != nullptr && t->node_type == AST_INT_CONST && "ASTConstant got invalid TreeNode pointer");
         _value = std::atoi(t->node_name.c_str());
@@ -93,7 +93,7 @@ public:
  */
 class ASTUnaryOp : public ASTInstruction {
 public:
-    virtual void accept(ASTvisitor &) override final;
+    void accept(ASTvisitor &) final;
     enum AST_UNARY_OP_TYPE {
         AST_OP_POSITIVE,    // +
         AST_OP_NEGATIVE,    // -
@@ -748,7 +748,6 @@ public:
 
 class ASTStatement : public ASTInstruction {
 public:
-    virtual void accept(ASTvisitor &) override;
     explicit ASTStatement(AST_INST_TYPE t) : ASTInstruction(t) {}
 
     static ASTStatement *getASTStatement(TreeNode *t);
@@ -756,7 +755,6 @@ public:
 
 class ASTDecl : public ASTStatement {
 public:
-    virtual void accept(ASTvisitor &) override;
     enum ASTDeclType {
         FUNC_DECL,
         VAR_DECL
@@ -1453,7 +1451,6 @@ public:
 
 class ASTvisitor{
 public:
-    virtual void visit(ASTInstruction &)=0;
     virtual void visit(ASTProgram &) =0;
     virtual void visit(ASTConstant &) =0;
     virtual void visit(ASTUnaryOp &) =0;
@@ -1465,8 +1462,6 @@ public:
     virtual void visit(ASTOrOp &) =0;
     virtual void visit(ASTLVal &) =0;
     virtual void visit(ASTFuncCall &) =0;
-    virtual void visit(ASTStatement &) =0;
-    virtual void visit(ASTDecl &) =0;
     virtual void visit(ASTVarDecl &) =0;
     virtual void visit(ASTAssignStmt &) =0;
     virtual void visit(ASTExpressionStmt &) =0;
@@ -1474,7 +1469,10 @@ public:
     virtual void visit(ASTWhileStmt &) =0;
     virtual void visit(ASTBreakStmt &) =0;
     virtual void visit(ASTContinueStmt &) =0;
+    virtual void visit(ASTParam &) = 0;
     virtual void visit(ASTFuncDecl &) = 0;
+    virtual void visit(ASTReturnStmt &) = 0;
+    virtual void visit(ASTBlock &) = 0;
 };
 
 

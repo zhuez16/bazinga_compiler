@@ -15,9 +15,9 @@ file(MAKE_DIRECTORY ${MID_LEVEL_HEADER})
 find_package(BISON REQUIRED)
 find_package(FLEX REQUIRED)
 
-FLEX_TARGET(lexer ${CMAKE_SOURCE_DIR}/src/phase1/lexical_analyzer.l ${MID_LEVEL_DIR}/lex1.cpp)
-FLEX_TARGET(lexer2 ${CMAKE_SOURCE_DIR}/src/phase2/analyzer.l ${MID_LEVEL_DIR}/lex2.cpp)
-BISON_TARGET(parser ${CMAKE_SOURCE_DIR}/src/phase2/parser.y ${MID_LEVEL_DIR}/bs_parser.cpp DEFINES_FILE ${MID_LEVEL_DIR}/include/bs_parser.h COMPILE_FLAGS --debug)
+FLEX_TARGET(lexer ${CMAKE_SOURCE_DIR}/src/lexer/lexical_analyzer.l ${MID_LEVEL_DIR}/lex1.cpp)
+FLEX_TARGET(lexer2 ${CMAKE_SOURCE_DIR}/src/parser/analyzer.l ${MID_LEVEL_DIR}/lex2.cpp)
+BISON_TARGET(parser ${CMAKE_SOURCE_DIR}/src/parser/parser.y ${MID_LEVEL_DIR}/bs_parser.cpp DEFINES_FILE ${MID_LEVEL_DIR}/include/bs_parser.h COMPILE_FLAGS --debug)
 
 
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR})
@@ -38,5 +38,11 @@ ADD_EXECUTABLE(parser
         ${BISON_parser_OUTPUTS})
 ADD_EXECUTABLE(builder
         src/IRbuilder/bzcompiler.cpp
-        src/IR/
+        src/IRbuilder/bzcompiler_builder.cpp
+        ${FLEX_lexer2_OUTPUTS}
+        ${BISON_parser_OUTPUTS}
+        src/ast.cpp
         )
+TARGET_LINK_LIBRARIES(
+        builder IR_lib
+)

@@ -1,11 +1,12 @@
 #include "bzcompiler_builder.hpp"
+#include "parser.h"
+#include "ast.h"
+#include <cstring>
 #include <iostream>
 #include <fstream>
 #include <memory>
 
-using namespace std::literals::string_literals;
-
-void print_help(std::string exe_name) {
+void print_help(const std::string& exe_name) {
     std::cout << "Usage: " << exe_name <<
         " [ -h | --help ] [ -o <target-file> ] [ -emit-llvm ] [-mem2reg] [-loop-search] [-loop-inv-hoist] [-const-propagation] [-active-vars] [-available-expression] [-analyze] <input-file>" << std::endl;
 }
@@ -23,10 +24,10 @@ int main(int argc, char **argv) {
     bool availableexpression = false;
 
     for (int i = 1;i < argc;++i) {
-        if (argv[i] == "-h"s || argv[i] == "--help"s) {
+        if (strcmp(argv[i], "-h") != 0 || strcmp(argv[i], "--help") != 0) {
             print_help(argv[0]);
             return 0;
-        } else if (argv[i] == "-o"s) {
+        } else if (strcmp(argv[i], "-o") != 0) {
             if (target_path.empty() && i + 1 < argc) {
                 target_path = argv[i + 1];
                 i += 1;
@@ -34,21 +35,21 @@ int main(int argc, char **argv) {
                 print_help(argv[0]);
                 return 0;
             }
-        } else if (argv[i] == "-emit-llvm"s) {
+        } else if (strcmp(argv[i], "-emit-llvm") != 0) {
             emit = true;
-        } else if (argv[i] == "-analyze"s) {
+        } else if (strcmp(argv[i], "-analyze") != 0) {
             analyze = true;
-        } else if (argv[i] == "-mem2reg"s) {
+        } else if (strcmp(argv[i], "-mem2reg") != 0) {
             mem2reg = true;
-        } else if (argv[i] == "-loop-search"s) {
+        } else if (strcmp(argv[i], "-loop-search") != 0) {
             loop_search = true;
-        } else if (argv[i] == "-loop-inv-hoist"s) {
+        } else if (strcmp(argv[i], "-loop-inv-hoist") != 0) {
             loop_inv_hoist = true;
-        } else if (argv[i] == "-const-propagation"s) {
+        } else if (strcmp(argv[i], "-const-propagation") != 0) {
             const_propagation = true;
-        } else if (argv[i] == "-active-vars"s) {
+        } else if (strcmp(argv[i], "-active-vars") != 0) {
             activevars = true;
-        } else if (argv[i] == "-available-expression"s){
+        } else if (strcmp(argv[i], "-available-expression") != 0){
             availableexpression = true;
         } else {
             if (input_path.empty()) {
@@ -82,12 +83,12 @@ int main(int argc, char **argv) {
         }
     }
 
-    auto s = parse(input_path.c_str());
-    auto a = AST(s);
-    bzBuilder builder;
-    a.runVisitor(builder);
-
+    SyntaxTree *tree = parse(input_path.c_str());
+    auto *ast = new ASTProgram(tree);
+    BZBuilder builder;
+    ast->accept(builder);
     auto m = builder.getModule();
+    /*
     PassManager PM(m.get());
     mem2reg = true;
 
@@ -116,7 +117,7 @@ int main(int argc, char **argv) {
         PM.add_pass<AvailableExpression>(true);
     }
     PM.run();
-    
+    */
     auto IR = m->print();
 
     std::ofstream output_stream;
@@ -128,9 +129,9 @@ int main(int argc, char **argv) {
     output_stream.close();
     if (!emit) {
         
-        auto command_string = "clang -O0 -w "s + target_path + ".ll -o " + target_path + " -L. -lcminus_io";
+        auto command_string = "clang -O0 -w " + target_path + ".ll -o " + target_path + " -L. -lcminus_io";
         int re_code0 = std::system(command_string.c_str());
-        command_string = "rm "s + target_path + ".ll";
+        command_string = "rm " + target_path + ".ll";
         int re_code1 = std::system(command_string.c_str());
         if(re_code0==0 && re_code1==0) return 0;
         else return 1;

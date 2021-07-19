@@ -41,11 +41,13 @@ public:
     // enter a new scope
     void enter() {
         inner.emplace_back();
+        array_param.emplace_back();
     }
 
     // exit a scope
     void exit() {
         inner.pop_back();
+        array_param.pop_back();
     }
 
     bool in_global() {
@@ -64,16 +66,6 @@ public:
     bool push_params(std::string name, Value *val, std::vector<Value *> params) {
         auto result = array_param[array_param.size() - 1].insert({name, params});
         return result.second;
-    }
-
-    Value* find(const std::string& name) {
-        for (auto s = inner.rbegin(); s!= inner.rend();s++) {
-            auto iter = s->find(name);
-            if (iter != s->end()) {
-                return iter->second;
-            }
-        }
-        return nullptr;
     }
 
     Value *find_params(std::string name, std::vector<Value *> &params) {
@@ -133,6 +125,7 @@ public:
 
 private:
     std::vector<std::map<std::string, ValType *>> inner;
+    std::vector<std::map<std::string, std::vector<Value *>>> array_param;
 };
 
 
@@ -167,6 +160,10 @@ private:
     void visit(ASTWhileStmt &)  final;
     void visit(ASTBreakStmt &)  final;
     void visit(ASTContinueStmt &)  final;
+    void visit(ASTParam &node) final;
+    void visit(ASTFuncDecl &node) final;
+    void visit(ASTReturnStmt &node) final;
+    void visit(ASTBlock &node) final;
 
     IRBuilder *builder;
     Scope scope;
@@ -181,6 +178,8 @@ private:
                                             std::vector<Value *> &init_values, Module *m);
 
     void InitialValueBuilder(const std::vector<int> &dim, const std::vector<Value *> &val, Instruction *gep, int &offset, int depth);
+
+
 };
 
 #endif

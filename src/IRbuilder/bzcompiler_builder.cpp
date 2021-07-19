@@ -95,7 +95,7 @@ void BZBuilder::visit(ASTUnaryOp &node)
         val = builder->create_isub(CONST(0), val);
         break;
     case ASTUnaryOp::AST_OP_INVERSE:
-        val = builder->create_icmp_eq(val, CONST(0);
+        val = builder->create_icmp_eq(val, CONST(0));
         break;
     }
     tmp_val = val;
@@ -318,7 +318,7 @@ void BZBuilder::visit(ASTLVal &node)
     }
     auto is_int = var->get_type()->get_pointer_element_type()->is_integer_type();
     auto is_ptr = var->get_type()->get_pointer_element_type()->is_pointer_type();
-    if (pointer_exp.size() == 0) {
+    if (pointer_exp.empty()) {
         if (is_int)
             tmp_val = scope.find(var_name);
         else if (is_ptr)
@@ -554,7 +554,7 @@ BZBuilder::InitialValueWalker(ASTVarDecl::ASTArrayList *l, const std::vector<int
         int filled = 0;
         for (auto arr: l->list) {
             int _set, _depth;
-            std::tie(_depth, _set) = InitialValueWalker(arr, offset, depth + 1, init_values);
+            std::tie(_depth, _set) = InitialValueWalker(arr, offset, depth + 1, init_values, m);
             max_depth = std::max(max_depth, _depth);
             filled += _set;
         }
@@ -722,12 +722,11 @@ void BZBuilder::visit(ASTVarDecl &node) {
 void BZBuilder::visit(ASTFuncDecl &node){
     auto ret_type = node.getFunctionType();
     Type* fun_ret_type;
-    Type *func_type;
     if(ret_type == node.AST_RET_INT){
-        func_type = Type::get_int32_type(getModule().get());
+        fun_ret_type = Type::get_int32_type(getModule().get());
     }
     else{
-        func_type = Type::get_void_type(getModule().get());
+        fun_ret_type = Type::get_void_type(getModule().get());
     }
     auto params = node.getParams();
     std::vector<Type *> args;
@@ -750,8 +749,8 @@ void BZBuilder::visit(ASTFuncDecl &node){
     cur_fun = fun;
     cur_fun_param_num = 0;
     auto fun_param = fun->get_args();
-    for(auto it = fun_param.begin(); it != fun_param.end(); it++) {
-        cur_fun_param.push_back(*it);
+    for(auto & it : fun_param) {
+        cur_fun_param.push_back(it);
     }
     for(auto param: params){
         param->accept(*this);
@@ -768,7 +767,7 @@ void BZBuilder::visit(ASTParam &node){
         // FIXME: Value是基类，不能这样进行创建
         auto param = cur_fun_param[cur_fun_param_num];
         // Value* arg = new Value(Type::get_int32_ptr_type(getModule().get()), node.getParamName())
-        builder->create_store(param, array_alloc);
+        builder->create_store(param, array_alloca);
         std::vector<Value *> array_params;
         array_params.push_back(ConstantInt::get(0, getModule().get()));
         for (auto array_param : node.getArrayList()) {
@@ -784,8 +783,8 @@ void BZBuilder::visit(ASTParam &node){
         auto params = node.getArrayList();
         // // FIXME: 同上
         // Value* arg = new Value(Type::get_int32_type(getModule().get()), node.getParamName())
-        builder.create_store(cur_fun_param[cur_fun_param_num], alloca);
-        scope.push(node.getParamName(), alloca)
+        builder->create_store(cur_fun_param[cur_fun_param_num], alloca);
+        scope.push(node.getParamName(), alloca);
     }
 }
 
@@ -796,7 +795,8 @@ void BZBuilder::visit(ASTAssignStmt &node) {
     auto assign_value=ret;
     // FIXME: API使用错误
     if (assign_addr->get_type()->is_pointer_type()) {
-        assign_value = assign_addr->create_load(assign_value);
+        builder->create_store(assign_value, assign_addr);
+        // assign_value = assign_addr->create_load(assign_value);
     }
 }
 void BZBuilder::visit(ASTExpressionStmt &node) {
@@ -882,4 +882,20 @@ void BZBuilder::visit(ASTBreakStmt &node) {
 }
 void BZBuilder::visit(ASTContinueStmt &node) {
     builder->create_br(curIterationJudge.top());
+}
+
+void BZBuilder::visit(ASTReturnStmt &node) {
+    if (node.hasReturnValue()) {
+        node.getRetExpression()->accept(*this);
+        builder->create_ret(tmp_val);
+    } else {
+        builder->create_void_ret();
+    }
+}
+void BZBuilder::visit(ASTBlock &node) {
+    scope.enter();
+    for (auto exp: node.getStatements()) {
+        exp->accept(*this);
+    }
+    scope.exit();
 }

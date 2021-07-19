@@ -88,6 +88,21 @@ BinaryInst *BinaryInst::create_fdiv(Value *v1, Value *v2, BasicBlock *bb, Module
     return new BinaryInst(Type::get_float_type(m), Instruction::fdiv, v1, v2, bb);
 }
 
+BinaryInst *BinaryInst::create_mod(Value *v1, Value *v2, BasicBlock *bb, Module *m)
+{
+    return new BinaryInst(Type::get_int32_type(m), Instruction::mod, v1, v2, bb);
+}
+
+BinaryInst *BinaryInst::create_iand(Value *v1, Value *v2, BasicBlock *bb, Module *m)
+{
+    return new BinaryInst(Type::get_int1_type(m), Instruction::land, v1, v2, bb);
+}
+
+BinaryInst *BinaryInst::create_ior(Value *v1, Value *v2, BasicBlock *bb, Module *m)
+{
+    return new BinaryInst(Type::get_int1_type(m), Instruction::lor, v1, v2, bb);
+}
+
 std::string BinaryInst::print()
 {
     std::string instr_ir;
@@ -110,7 +125,7 @@ std::string BinaryInst::print()
     }
     return instr_ir;
 }
-
+/*
 UnaryInst *UnaryInst::create_pos(Value *v1, BasicBlock *bb, Module *m){
     return new UnaryInst(Type::get_int32_type(m),Instruction::pos,v1,bb);
 }
@@ -134,7 +149,7 @@ std::string UnaryInst::print(){
     instr_ir += print_as_op(this->get_operand(0), false);
     return instr_ir;
 }
-
+*/
 CmpInst::CmpInst(Type *ty, CmpOp op, Value *lhs, Value *rhs, 
             BasicBlock *bb)
     : Instruction(ty, Instruction::cmp, 2, bb), cmp_op_(op)

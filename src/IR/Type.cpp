@@ -119,7 +119,8 @@ std::string Type::print(){
     case LabelTyID:
         type_ir += "label";
         break;
-    case IntegerTyID:
+    case IntegerTy32ID:
+    case IntegerTy1ID:
         type_ir += "i";
         type_ir += std::to_string( static_cast<IntegerType *>(this)->get_num_bits());
         break;
@@ -155,7 +156,7 @@ std::string Type::print(){
 }
 
 IntegerType::IntegerType(unsigned num_bits , Module *m)
-    : Type(Type::IntegerTyID, m), num_bits_(num_bits)
+    : Type(num_bits == 1 ? Type::IntegerTy1ID : Type::IntegerTy32ID, m), num_bits_(num_bits)
 {
 }
 

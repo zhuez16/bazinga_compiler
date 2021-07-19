@@ -1,7 +1,9 @@
-#include "Module.h"
+#include "IR/Module.h"
+
+#include <utility>
 
 Module::Module(std::string name) 
-    : module_name_(name)
+    : module_name_(std::move(name))
 {
     void_ty_ = new Type(Type::VoidTyID, this);
     label_ty_ = new Type(Type::LabelTyID, this);

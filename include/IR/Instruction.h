@@ -546,37 +546,6 @@ public:
 };
 
 
-class LoadInst : public Instruction
-{
-private:
-    LoadInst(Type *ty, Value *ptr, BasicBlock *bb);
-    LoadInst(Type *ty, BasicBlock *bb): Instruction(ty, Instruction::load, 1, bb){};
-public:
-    static LoadInst *create_load(Type *ty, Value *ptr, BasicBlock *bb);
-    Value *get_lval() { return this->get_operand(0); }
-
-    Type *get_load_type() const;
-
-    virtual std::string print() override;
-
-    virtual LoadInst* deepcopy(BasicBlock* parent) override{
-        // 复制基本信息
-        LoadInst* newInst = new LoadInst(type_, parent);
-        // 复制UseList
-        newInst->use_list_.clear();
-        for(auto u: use_list_){
-            newInst->use_list_.push_back(u);
-        }
-        // 复制Operands
-        newInst->operands_.clear();
-        for(auto o: operands_){
-            newInst->operands_.push_back(o);
-        }
-        return newInst;
-    };
-};
-
-
 class AllocaInst : public Instruction
 {
 private:

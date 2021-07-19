@@ -99,3 +99,25 @@ ASTStatement *ASTStatement::getASTStatement(TreeNode *t) {
 
 
 // ============  BEGIN OF VISITOR PATTERN =================
+void ASTConstant::accept(ASTvisitor &visitor) { visitor.visit(*this); }
+void ASTUnaryOp::accept(ASTvisitor &visitor) { visitor.visit(*this); }
+void ASTMulOp::accept(ASTvisitor &visitor) { visitor.visit(*this); }
+void ASTAddOp::accept(ASTvisitor &visitor) { visitor.visit(*this); }
+void ASTRelOp::accept(ASTvisitor &visitor) { visitor.visit(*this); }
+void ASTEqOp::accept(ASTvisitor &visitor) { visitor.visit(*this); }
+void ASTAndOp::accept(ASTvisitor &visitor) { visitor.visit(*this); }
+void ASTOrOp::accept(ASTvisitor &visitor) { visitor.visit(*this); }
+void ASTLVal::accept(ASTvisitor &visitor) { visitor.visit(*this); }
+void ASTFuncCall::accept(ASTvisitor &visitor) { visitor.visit(*this); }
+void ASTVarDecl::accept(ASTvisitor &visitor) { visitor.visit(*this); }
+void ASTAssignStmt::accept(ASTvisitor &visitor) { visitor.visit(*this); }
+void ASTExpressionStmt::accept(ASTvisitor &visitor) { visitor.visit(*this); }
+void ASTIfStmt::accept(ASTvisitor &visitor) { visitor.visit(*this); }
+void ASTWhileStmt::accept(ASTvisitor &visitor) { visitor.visit(*this); }
+void ASTBreakStmt::accept(ASTvisitor &visitor) { visitor.visit(*this); }
+void ASTContinueStmt::accept(ASTvisitor &visitor) { visitor.visit(*this); }
+void ASTReturnStmt::accept(ASTvisitor &visitor) { visitor.visit(*this); }
+void ASTParam::accept(ASTvisitor &visitor) { visitor.visit(*this); }
+void ASTBlock::accept(ASTvisitor &visitor) { visitor.visit(*this); }
+void ASTFuncDecl::accept(ASTvisitor &visitor) { visitor.visit(*this); }
+void ASTProgram::accept(ASTvisitor &visitor) { visitor.visit(*this); }

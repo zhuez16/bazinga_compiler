@@ -11,74 +11,65 @@
 #include <string>
 
 class Function;
-
 class Instruction;
-
 class Module;
 
-class BasicBlock : public Value {
-private:
-    explicit BasicBlock(Module *m, const std::string &name, Function *parent);
-
-    std::list<BasicBlock *> prev_bbs;
-    std::list<BasicBlock *> succ_bbs;
-    std::list<Instruction *> instr_list;
-    Function *parent;
-
+class BasicBlock : public Value
+{
 public:
-    static BasicBlock *create(Module *m, const std::string &name, Function *parent) {
+    static BasicBlock *create(Module *m, const std::string &name ,
+                              Function *parent ) {
         auto prefix = name.empty() ? "" : "label_";
         return new BasicBlock(m, prefix + name, parent);
     }
 
-    std::string get_name() {
-        return name_;
-    }
-
-    Function *get_parents() {
-        return parent;
-    }
-
-    std::list<BasicBlock *> &get_prev_bbs() { return prev_bbs; }
-
-    std::list<BasicBlock *> &get_succ_bbs() { return succ_bbs; }
-
-    void add_prev_bb(BasicBlock *bb) { prev_bbs.push_back(bb); }
-
-    void add_succ_bb(BasicBlock *bb) { succ_bbs.push_back(bb); }
-
-    void remove_prev_bb(BasicBlock *bb) { prev_bbs.remove(bb); }
-
-    void remove_succ_bb(BasicBlock *bb) { succ_bbs.remove(bb); }
-
-
-    const Instruction *get_terminator() const;
-
-    Instruction *get_terminator() {
-        return const_cast<Instruction *>{
-                static_cast<const BasicBlock *>(this)->get_terminator();
-        }
-    }
+    // return parent, or null if none.
+    Function *get_parent() { return parent_; }
 
     Module *get_module();
 
-    void push_back_instr(Instruction *instr);
+    /****************api about cfg****************/
 
-    void push_front_instr(Instruction *instr);
+    std::list<BasicBlock *> &get_pre_basic_blocks() { return pre_bbs_; }
+    std::list<BasicBlock *> &get_succ_basic_blocks() { return succ_bbs_; }
+    void add_pre_basic_block(BasicBlock *bb) { pre_bbs_.push_back(bb); }
+    void add_succ_basic_block(BasicBlock *bb) { succ_bbs_.push_back(bb); }
 
-    void delete_instruction(Instruction *instr);
+    void remove_pre_basic_block(BasicBlock *bb) { pre_bbs_.remove(bb); }
+    void remove_succ_basic_block(BasicBlock *bb) { succ_bbs_.remove(bb); }
 
-    bool is_empty();
+    /****************api about cfg****************/
 
-    int get_num_of_instr();
+    /// Returns the terminator instruction if the block is well formed or null
+    /// if the block is not well formed.
+    const Instruction *get_terminator() const;
+    Instruction *get_terminator() {
+        return const_cast<Instruction *>(
+                static_cast<const BasicBlock *>(this)->get_terminator());
+    }
 
-    std::list<Instruction *> &get_instructions();
+    void add_instruction(Instruction *instr);
+    void add_instr_begin(Instruction *instr);
 
-    void erase_from_parents();
+    void delete_instr(Instruction *instr);
+
+    bool empty() { return instr_list_.empty(); }
+
+    int get_num_of_instr() { return instr_list_.size(); }
+    std::list<Instruction *> &get_instructions() { return instr_list_; }
+
+    void erase_from_parent();
 
     virtual std::string print() override;
 
+private:
+    explicit BasicBlock(Module *m, const std::string &name ,
+                        Function *parent );
+    std::list<BasicBlock *> pre_bbs_;
+    std::list<BasicBlock *> succ_bbs_;
+    std::list<Instruction *> instr_list_;
+    Function *parent_;
 
-}
+};
 
 #endif 
