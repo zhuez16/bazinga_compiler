@@ -20,6 +20,9 @@ public:
     static BasicBlock *create(Module *m, const std::string &name ,
                               Function *parent, bool fake=false) {
         auto prefix = name.empty() ? "" : "label_";
+        if (name == "lb1") {
+            int a = 1;
+        }
         return new BasicBlock(m, prefix + name, parent, fake);
     }
 

@@ -61,6 +61,7 @@ void BZBuilder::visit(ASTProgram &node) {
 }
 void BZBuilder::visit(ASTConstant &node)
 {
+    tmp_val = CONST(node.getValue());
     tmp_int = node.getValue();
     use_int = true;
 }
@@ -284,8 +285,20 @@ void BZBuilder::visit(ASTEqOp &node)
 // FIXME: 短路运算符
 void BZBuilder::visit(ASTAndOp &node)
 {
-    if (node.isUnaryExp())
+    if (node.isUnaryExp()) {
         node.getOperand1()->accept(*this);
+        if (node.getOperand1()->getTrueList().empty() && node.getOperand1()->getFalseList().empty()) {
+            auto cod = builder->create_icmp_ne(CONST(0), tmp_val);
+            BasicBlock *t_bb = BasicBlock::create(getModule(), getNewLabel(), currentfunc, true);
+            BasicBlock *f_bb = BasicBlock::create(getModule(), getNewLabel(), currentfunc, true);
+            builder->create_cond_br(cod, t_bb, f_bb);
+            node.pushTrue(t_bb);
+            node.pushFalse(f_bb);
+        } else {
+            node.setTrueList(node.getOperand1()->getTrueList());
+            node.setFalseList(node.getOperand1()->getFalseList());
+        }
+    }
     else {
         node.getOperand1()->accept(*this);
         auto l_val = tmp_val;
@@ -294,6 +307,18 @@ void BZBuilder::visit(ASTAndOp &node)
         builder->set_insert_point(new_b);
         /// 标号回填阶段1结束
         node.getOperand2()->accept(*this);
+        if (node.getOperand2()->getTrueList().empty() && node.getOperand2()->getFalseList().empty()) {
+            auto cod = builder->create_icmp_ne(CONST(0), tmp_val);
+            BasicBlock *t_bb = BasicBlock::create(getModule(), getNewLabel(), currentfunc, true);
+            BasicBlock *f_bb = BasicBlock::create(getModule(), getNewLabel(), currentfunc, true);
+            builder->create_cond_br(cod, t_bb, f_bb);
+            node.getOperand2()->pushTrue(t_bb);
+            node.getOperand2()->pushFalse(f_bb);
+        } else {
+            node.setTrueList(node.getOperand1()->getTrueList());
+            node.setFalseList(node.getOperand1()->getFalseList());
+        }
+
         /// 标号回填 B -> B1 and M <b>B2<\b>
         // Back patch B1.true_list with M.quad
         for (auto bb: node.getOperand1()->getTrueList()) {
@@ -324,9 +349,8 @@ void BZBuilder::visit(ASTOrOp &node)
     if (node.isUnaryExp())
     {
         node.getOperand1()->accept(*this);
-        if (tmp_val->get_type()->is_int32_type()) {
-            tmp_val = builder->create_icmp_ne(tmp_val, CONST(0));
-        }
+        node.setTrueList(node.getOperand1()->getTrueList());
+        node.setFalseList(node.getOperand1()->getFalseList());
     }
     else {
         node.getOperand1()->accept(*this);
@@ -580,6 +604,7 @@ BZBuilder::ConstInitialValueWalker(ASTVarDecl::ASTArrayList *l, const std::vecto
         }
         int delta = max_depth - depth;
         if (delta < 2) {
+            return {depth, offset[offset.size() + 1 - delta]};
             // Do Nothing
         } else {
             int tb_fill = offset[offset.size() + 1 - delta];
@@ -615,7 +640,7 @@ BZBuilder::InitialValueWalker(ASTVarDecl::ASTArrayList *l, const std::vector<int
         }
         int delta = max_depth - depth;
         if (delta < 2) {
-            // Do Nothing
+            return {depth, offset[offset.size() + 1 - delta]};
         } else {
             int tb_fill = offset[offset.size() + 1 - delta];
             for (int i = 0; i < tb_fill - filled; ++i) {
@@ -729,8 +754,10 @@ void BZBuilder::visit(ASTVarDecl &node) {
                     InitialValueBuilder(dimension, _init, var, offset, 0);
                 } else {
                     it->initial_value[0]->value->accept(*this);
-                    auto ld = builder->create_load(tmp_val);
-                    builder->create_store(ld, var);
+                    if (tmp_val->get_type()->is_pointer_type()) {
+                        tmp_val = builder->create_load(tmp_val);
+                    }
+                    builder->create_store(tmp_val, var);
                 }
             }
         }
@@ -801,7 +828,7 @@ void BZBuilder::visit(ASTFuncDecl &node){
     scope.push(node.getFunctionName(), fun);
     scope.enter();
     cur_fun_param.clear();
-    cur_fun = fun;
+    currentfunc = fun;
     cur_fun_param_num = 0;
     auto fun_param = fun->get_args();
     for(auto & it : fun_param) {
@@ -827,7 +854,7 @@ void BZBuilder::visit(ASTParam &node){
         array_params.push_back(ConstantInt::get(0, getModule()));
         for (auto array_param : node.getArrayList()) {
             array_param->accept(*this);
-            array_params.push_back(ret);
+            array_params.push_back(tmp_val);
         }
         // FIXME: 未知定义。注意Array可能是高维数组
         scope.push(node.getParamName(), array_alloca);
@@ -845,9 +872,9 @@ void BZBuilder::visit(ASTParam &node){
 
 void BZBuilder::visit(ASTAssignStmt &node) {
     node.getLeftValue()->accept(*this);
-    auto assign_addr=ret;
+    auto assign_addr=tmp_val;
     node.getExpression()->accept(*this);
-    auto assign_value=ret;
+    auto assign_value=tmp_val;
     // FIXME: API使用错误
     if (assign_addr->get_type()->is_pointer_type()) {
         builder->create_store(assign_value, assign_addr);
@@ -861,9 +888,9 @@ void BZBuilder::visit(ASTExpressionStmt &node) {
 void BZBuilder::visit(ASTIfStmt &node) {
     auto tmp=builder->get_insert_block();
     if (node.hasElseStatement()){
-        auto trueBB=BasicBlock::create(module,"",currentfunc);
-        auto falseBB=BasicBlock::create(module,"",currentfunc);
-        auto exitBB=BasicBlock::create(module,"",currentfunc);
+        auto trueBB=BasicBlock::create(module,getNewLabel(),currentfunc);
+        auto falseBB=BasicBlock::create(module,getNewLabel(),currentfunc);
+        auto exitBB=BasicBlock::create(module,getNewLabel(),currentfunc);
         orTrueExit=trueBB;
         builder->set_insert_point(tmp);
         node.getCondition()->accept(*this);
@@ -872,6 +899,12 @@ void BZBuilder::visit(ASTIfStmt &node) {
         node.getTrueStatement()->accept(*this);
 
         /// 标号回填
+        // 两个list都为空，说明是ASTAdd指令传上来的
+        if (node.getCondition()->getTrueList().empty() && node.getCondition()->getFalseList().empty()) {
+            builder->set_insert_point(tmp);
+            auto cod = builder->create_icmp_eq(CONST(0), tmp_val);
+            builder->create_cond_br(cod, trueBB, falseBB);
+        }
         // back patch B.true_list with M1.quad
         for (auto bb: node.getCondition()->getTrueList()) {
             bb->replace_all_use_with(trueBB);
@@ -899,8 +932,8 @@ void BZBuilder::visit(ASTIfStmt &node) {
         }
     }
     else{
-        auto trueBB=BasicBlock::create(module,"",currentfunc);  // M.quad
-        auto exitBB=BasicBlock::create(module,"",currentfunc);  // NextList回填目标
+        auto trueBB=BasicBlock::create(module,getNewLabel(),currentfunc);  // M.quad
+        auto exitBB=BasicBlock::create(module,getNewLabel(),currentfunc);  // NextList回填目标
         orTrueExit=trueBB;
         builder->set_insert_point(tmp);
         node.getCondition()->accept(*this);
@@ -923,7 +956,6 @@ void BZBuilder::visit(ASTIfStmt &node) {
             isReturned=false;
         }
         if (!isReturned){
-            currentfunc->add_basic_block(exitBB);
             builder->set_insert_point(exitBB);
         }
     }
@@ -931,28 +963,42 @@ void BZBuilder::visit(ASTIfStmt &node) {
 }
 void BZBuilder::visit(ASTWhileStmt &node) {
     auto tmp=builder->get_insert_block();
-    auto judgebb=BasicBlock::create(module,"",currentfunc);
-    auto iteratebb=BasicBlock::create(module,"",currentfunc);
-    auto exitbb=BasicBlock::create(module,"",currentfunc);
+    auto judgebb=BasicBlock::create(module,getNewLabel(),currentfunc);
+    auto iteratebb=BasicBlock::create(module,getNewLabel(),currentfunc);
+    auto exitbb=BasicBlock::create(module,getNewLabel(),currentfunc);
     builder->set_insert_point(tmp);
     builder->create_br(judgebb);
     builder->set_insert_point(judgebb);
     orTrueExit=iteratebb;
     node.getCondition()->accept(*this);
-    builder->create_cond_br(ret,iteratebb,exitbb);
+    builder->create_cond_br(tmp_val,iteratebb,exitbb);
 
     builder->set_insert_point(iteratebb);
     curIteration.push(iteratebb);
     curIterationExit.push(exitbb);
     curIterationJudge.push(judgebb);
-
     node.getWhileBodyStatement()->accept(*this);
     builder->create_br(judgebb);
-
     builder->set_insert_point(exitbb);
     curIteration.pop();
     curIterationExit.pop();
     curIterationJudge.pop();
+    /// 标号回填
+    // 两个list都为空，说明是ASTAdd指令传上来的
+    if (node.getCondition()->getTrueList().empty() && node.getCondition()->getFalseList().empty()) {
+        builder->set_insert_point(tmp);
+        auto cod = builder->create_icmp_eq(CONST(0), tmp_val);
+        builder->create_cond_br(cod, iteratebb, exitbb);
+    }
+    // back patch B.true_list with M.quad
+    for (auto bb: node.getCondition()->getTrueList()) {
+        bb->replace_all_use_with(iteratebb);
+    }
+    // back patch B.false_list (node.next_list) with exit.quad
+    for (auto bb: node.getCondition()->getFalseList()) {
+        bb->replace_all_use_with(exitbb);
+    }
+    /// 标号回填结束
 }
 void BZBuilder::visit(ASTBreakStmt &node) {
     builder->create_br(curIterationExit.top());
