@@ -13,6 +13,7 @@
     std::abort();                                                               \
 }
 
+
 // type
 Type *TyInt32;
 Type *TyVoid;
@@ -62,11 +63,11 @@ void BZBuilder::visit(ASTProgram &node) {
 void BZBuilder::visit(ASTConstant &node)
 {
     tmp_val = CONST(node.getValue());
-    tmp_int = node.getValue();
-    use_int = true;
+    //tmp_int = node.getValue();
+    //use_int = true;
 }
 void BZBuilder::visit(ASTUnaryOp &node)
-{
+{/*
     if (use_int) {
         int val;
         if (node.getExpression()) {
@@ -89,7 +90,7 @@ void BZBuilder::visit(ASTUnaryOp &node)
         }
         return;
     }
-
+*/
     Value *val;
     node.getExpression()->accept(*this);
     val = tmp_val;
@@ -114,6 +115,7 @@ void BZBuilder::visit(ASTMulOp &node)
         node.getOperand1()->accept(*this);
     else
     {
+        /*
         if(use_int){
             node.getOperand1()->accept(*this);
             auto l_val = tmp_int;
@@ -132,7 +134,7 @@ void BZBuilder::visit(ASTMulOp &node)
             }
             return;
         }
-
+*/
         node.getOperand1()->accept(*this);
         auto l_val = tmp_val;
         node.getOperand2()->accept(*this);
@@ -163,7 +165,7 @@ void BZBuilder::visit(ASTAddOp &node)
     if(node.isUnaryExp())
         node.getOperand1()->accept(*this);
     else
-    {
+    {/*
         if(use_int){
             node.getOperand1()->accept(*this);
             auto l_val = tmp_int;
@@ -179,7 +181,7 @@ void BZBuilder::visit(ASTAddOp &node)
             }
             return;
         }
-
+*/
         node.getOperand1()->accept(*this);
         auto l_val = tmp_val;
         node.getOperand2()->accept(*this);
@@ -955,9 +957,7 @@ void BZBuilder::visit(ASTIfStmt &node) {
             builder->create_br(exitBB);
             isReturned=false;
         }
-        if (!isReturned){
-            builder->set_insert_point(exitBB);
-        }
+        builder->set_insert_point(exitBB);
     }
     orTrueExit=nullptr;
 }
