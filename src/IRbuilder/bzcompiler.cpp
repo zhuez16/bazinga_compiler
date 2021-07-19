@@ -23,11 +23,15 @@ int main(int argc, char **argv) {
     bool loop_search = false;
     bool availableexpression = false;
 
+    for (int i = 0; i < argc; ++i) {
+        std::cout << argv[i] << std::endl;
+    }
+
     for (int i = 1;i < argc;++i) {
-        if (strcmp(argv[i], "-h") != 0 || strcmp(argv[i], "--help") != 0) {
+        if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
             print_help(argv[0]);
             return 0;
-        } else if (strcmp(argv[i], "-o") != 0) {
+        } else if (strcmp(argv[i], "-o") == 0) {
             if (target_path.empty() && i + 1 < argc) {
                 target_path = argv[i + 1];
                 i += 1;
@@ -35,21 +39,21 @@ int main(int argc, char **argv) {
                 print_help(argv[0]);
                 return 0;
             }
-        } else if (strcmp(argv[i], "-emit-llvm") != 0) {
+        } else if (strcmp(argv[i], "-emit-llvm") == 0) {
             emit = true;
-        } else if (strcmp(argv[i], "-analyze") != 0) {
+        } else if (strcmp(argv[i], "-analyze") == 0) {
             analyze = true;
-        } else if (strcmp(argv[i], "-mem2reg") != 0) {
+        } else if (strcmp(argv[i], "-mem2reg") == 0) {
             mem2reg = true;
-        } else if (strcmp(argv[i], "-loop-search") != 0) {
+        } else if (strcmp(argv[i], "-loop-search") == 0) {
             loop_search = true;
-        } else if (strcmp(argv[i], "-loop-inv-hoist") != 0) {
+        } else if (strcmp(argv[i], "-loop-inv-hoist") == 0) {
             loop_inv_hoist = true;
-        } else if (strcmp(argv[i], "-const-propagation") != 0) {
+        } else if (strcmp(argv[i], "-const-propagation") == 0) {
             const_propagation = true;
-        } else if (strcmp(argv[i], "-active-vars") != 0) {
+        } else if (strcmp(argv[i], "-active-vars") == 0) {
             activevars = true;
-        } else if (strcmp(argv[i], "-available-expression") != 0){
+        } else if (strcmp(argv[i], "-available-expression") == 0){
             availableexpression = true;
         } else {
             if (input_path.empty()) {
@@ -71,7 +75,7 @@ int main(int argc, char **argv) {
             std::cerr << argv[0] << ": input file " << input_path << " has unknown filetype!" << std::endl;
             return -1;
         } else {
-            if (input_path.substr(pos) != ".cminus") {
+            if (input_path.substr(pos) != ".sy") {
                 std::cerr << argv[0] << ": input file " << input_path << " has unknown filetype!" << std::endl;
                 return -1;
             }
