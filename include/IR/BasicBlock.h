@@ -18,9 +18,9 @@ class BasicBlock : public Value
 {
 public:
     static BasicBlock *create(Module *m, const std::string &name ,
-                              Function *parent ) {
+                              Function *parent, bool fake=false) {
         auto prefix = name.empty() ? "" : "label_";
-        return new BasicBlock(m, prefix + name, parent);
+        return new BasicBlock(m, prefix + name, parent, fake);
     }
 
     // return parent, or null if none.
@@ -64,11 +64,12 @@ public:
 
 private:
     explicit BasicBlock(Module *m, const std::string &name ,
-                        Function *parent );
+                        Function *parent, bool fake);
     std::list<BasicBlock *> pre_bbs_;
     std::list<BasicBlock *> succ_bbs_;
     std::list<Instruction *> instr_list_;
     Function *parent_;
+    bool _fake;
 
 };
 

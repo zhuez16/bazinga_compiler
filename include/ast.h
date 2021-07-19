@@ -9,6 +9,7 @@
 #define BAZINGA_COMPILER_AST_H
 
 #include "syntax_tree.h"
+#include "IR/BasicBlock.h"
 #include <algorithm>
 #include <utility>
 
@@ -42,10 +43,25 @@ enum AST_INST_TYPE {
     AST_BLOCK_STMT
 };
 
+class IShortCalc {
+private:
+    std::vector<BasicBlock *> _true_list;
+    std::vector<BasicBlock *> _false_list;
+public:
+    std::vector<BasicBlock *> getTrueList() { return _true_list; }
+    std::vector<BasicBlock *> getFalseList() { return _false_list; }
+    void pushTrue(BasicBlock *bb) { _true_list.push_back(bb); }
+    void pushFalse(BasicBlock *bb) { _false_list.push_back(bb); }
+    void setTrueList(const std::vector<BasicBlock *> &list) { _true_list = list; }
+    void setFalseList(const std::vector<BasicBlock *> &list) { _false_list = list; }
+    void unionTrueList( const std::vector<BasicBlock *> &list) { _true_list.insert(_true_list.end(), list.begin(), list.end()); }
+    void unionFalseList( const std::vector<BasicBlock *> &list) { _false_list.insert(_false_list.end(), list.begin(), list.end()); }
+};
 
-class ASTInstruction {
+class ASTInstruction : public IShortCalc {
 private:
     AST_INST_TYPE _inst_type;
+
 public:
     virtual void accept(ASTvisitor &) {};
     explicit ASTInstruction(AST_INST_TYPE type) {
@@ -1108,7 +1124,7 @@ private:
     ASTStatement *_while_stmt;
 
 public:
-    virtual void accept(ASTvisitor &) override final;
+    void accept(ASTvisitor &) final;
     explicit ASTWhileStmt(TreeNode *t) : ASTStatement(AST_WHILE_STMT) {
         assert(t != nullptr && t->node_type == AST_iter_stmt && "ASTWhileStatement got invalid TreeNode.");
         _cond = new ASTOrOp(t->children[2]->children[0]);

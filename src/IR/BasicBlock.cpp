@@ -5,8 +5,8 @@
 #include <cassert>
 
 BasicBlock::BasicBlock(Module *m, const std::string &name = "",
-                      Function *parent = nullptr)
-    : Value(Type::get_label_type(m), name), parent_(parent)
+                      Function *parent = nullptr, bool fake=false)
+    : Value(Type::get_label_type(m), name), parent_(parent), _fake(fake)
 {
     assert(parent && "currently parent should not be nullptr");
     parent_->add_basic_block(this);
@@ -61,6 +61,9 @@ void BasicBlock::erase_from_parent()
 
 std::string BasicBlock::print()
 {
+    if (_fake) {
+        return "";
+    }
     std::string bb_ir;
     bb_ir += this->get_name();
     bb_ir += ":";

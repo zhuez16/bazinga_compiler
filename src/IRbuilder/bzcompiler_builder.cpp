@@ -41,6 +41,12 @@ int tmp_int = 0;
 bool use_int = false;
 bool in_global_init = false;
 
+int label_idx = 0;
+
+std::string getNewLabel() {
+    return "lb" + std::to_string(label_idx++);
+}
+
 Function * currentfunc;
 BasicBlock * orTrueExit;
 
@@ -197,8 +203,11 @@ void BZBuilder::visit(ASTAddOp &node)
 }
 void BZBuilder::visit(ASTRelOp &node)
 {
-    if (node.isUnaryExp())
+    if (node.isUnaryExp()) {
         node.getOperand1()->accept(*this);
+        node.setTrueList(node.getOperand1()->getTrueList());
+        node.setFalseList(node.getOperand1()->getFalseList());
+    }
     else {
         node.getOperand1()->accept(*this);
         auto l_val = tmp_val;
@@ -226,12 +235,22 @@ void BZBuilder::visit(ASTRelOp &node)
                 tmp_val = builder->create_icmp_ge(l_val, r_val);
                 break;
         }
+        // 适配短路运算
+        BasicBlock *t_bb = BasicBlock::create(getModule(), getNewLabel(), currentfunc, true);
+        BasicBlock *f_bb = BasicBlock::create(getModule(), getNewLabel(), currentfunc, true);
+        builder->create_cond_br(tmp_val, t_bb, f_bb);
+        node.pushTrue(t_bb);
+        node.pushFalse(f_bb);
     }
+
 }
 void BZBuilder::visit(ASTEqOp &node)
 {
-    if (node.isUnaryExp())
+    if (node.isUnaryExp()){
         node.getOperand1()->accept(*this);
+        node.setTrueList(node.getOperand1()->getTrueList());
+        node.setFalseList(node.getOperand1()->getFalseList());
+    }
     else {
         node.getOperand1()->accept(*this);
         auto l_val = tmp_val;
@@ -253,6 +272,12 @@ void BZBuilder::visit(ASTEqOp &node)
                 tmp_val = builder->create_icmp_ne(l_val, r_val);
                 break;
         }
+        // 适配短路运算
+        BasicBlock *t_bb = BasicBlock::create(getModule(), getNewLabel(), currentfunc, true);
+        BasicBlock *f_bb = BasicBlock::create(getModule(), getNewLabel(), currentfunc, true);
+        builder->create_cond_br(tmp_val, t_bb, f_bb);
+        node.pushTrue(t_bb);
+        node.pushFalse(f_bb);
     }
 }
 
@@ -264,7 +289,22 @@ void BZBuilder::visit(ASTAndOp &node)
     else {
         node.getOperand1()->accept(*this);
         auto l_val = tmp_val;
+        /// 标号回填 B -> B1 and <b>M<\b> B2
+        auto new_b = BasicBlock::create(getModule(), getNewLabel(), currentfunc);  // M.quad
+        builder->set_insert_point(new_b);
+        /// 标号回填阶段1结束
         node.getOperand2()->accept(*this);
+        /// 标号回填 B -> B1 and M <b>B2<\b>
+        // Back patch B1.true_list with M.quad
+        for (auto bb: node.getOperand1()->getTrueList()) {
+            bb->replace_all_use_with(new_b);
+        }
+        // Merge Lists
+        node.setTrueList(node.getOperand2()->getTrueList());
+        node.setFalseList(node.getOperand1()->getFalseList());
+        node.unionFalseList(node.getOperand2()->getFalseList());
+        /// 标号回填阶段2结束
+        /* TODO: 或许不需要了？
         auto r_val = tmp_val;
 
         if (l_val->get_type()->is_int1_type())
@@ -275,6 +315,7 @@ void BZBuilder::visit(ASTAndOp &node)
         }
         // FIXME: LLVM IR 中并没有计算 and/or 的指令，需要使用基本块来实现
         tmp_val = builder->create_iand(l_val, r_val);
+         */
     }
 }
 // FIXME: 短路运算符
@@ -290,9 +331,23 @@ void BZBuilder::visit(ASTOrOp &node)
     else {
         node.getOperand1()->accept(*this);
         auto l_val = tmp_val;
+        /// 标号回填 B -> B1 or <b>M<\b> B2
+        auto new_b = BasicBlock::create(getModule(), getNewLabel(), currentfunc);  // M.quad
+        builder->set_insert_point(new_b);
+        /// 标号回填阶段1结束
         node.getOperand2()->accept(*this);
         auto r_val = tmp_val;
-
+        /// 标号回填 B -> B1 or M <b>B2<\b>
+        // Back patch B1.true_list with M.quad
+        for (auto bb: node.getOperand1()->getFalseList()) {
+            bb->replace_all_use_with(new_b);
+        }
+        // Merge Lists
+        node.setTrueList(node.getOperand1()->getTrueList());
+        node.unionTrueList(node.getOperand2()->getTrueList());
+        node.setFalseList(node.getOperand2()->getFalseList());
+        /// 标号回填阶段2结束
+        /*
         if (l_val->get_type()->is_int1_type())
             l_val = builder->create_zext(l_val, TyInt32);
 
@@ -304,7 +359,7 @@ void BZBuilder::visit(ASTOrOp &node)
         if (tmp_val->get_type()->is_int32_type()) {
             tmp_val = builder->create_icmp_ne(tmp_val, CONST(0));
         }
-
+        */
     }
 }
 void BZBuilder::visit(ASTLVal &node)
@@ -812,9 +867,21 @@ void BZBuilder::visit(ASTIfStmt &node) {
         orTrueExit=trueBB;
         builder->set_insert_point(tmp);
         node.getCondition()->accept(*this);
-        builder->create_cond_br(ret,trueBB,falseBB);
+        // builder->create_cond_br(ret,trueBB,falseBB);
         builder->set_insert_point(trueBB);
         node.getTrueStatement()->accept(*this);
+
+        /// 标号回填
+        // back patch B.true_list with M1.quad
+        for (auto bb: node.getCondition()->getTrueList()) {
+            bb->replace_all_use_with(trueBB);
+        }
+        // back patch B.false_list with M2.quad
+        for (auto bb: node.getCondition()->getFalseList()) {
+            bb->replace_all_use_with(falseBB);
+        }
+        /// 标号回填结束
+
         bool isReturned=true;
         if (builder->get_insert_block()->get_terminator()==nullptr){
             builder->create_br(exitBB);
@@ -832,12 +899,22 @@ void BZBuilder::visit(ASTIfStmt &node) {
         }
     }
     else{
-        auto trueBB=BasicBlock::create(module,"",currentfunc);
-        auto exitBB=BasicBlock::create(module,"",currentfunc);
+        auto trueBB=BasicBlock::create(module,"",currentfunc);  // M.quad
+        auto exitBB=BasicBlock::create(module,"",currentfunc);  // NextList回填目标
         orTrueExit=trueBB;
         builder->set_insert_point(tmp);
         node.getCondition()->accept(*this);
-        builder->create_cond_br(ret,trueBB,exitBB);
+        // builder->create_cond_br(ret,trueBB,exitBB);
+        /// 标号回填
+        // back patch B.true_list with M.quad
+        for (auto bb: node.getCondition()->getTrueList()) {
+            bb->replace_all_use_with(trueBB);
+        }
+        // back patch B.false_list (node.next_list) with exit.quad
+        for (auto bb: node.getCondition()->getFalseList()) {
+            bb->replace_all_use_with(exitBB);
+        }
+        /// 标号回填结束
         builder->set_insert_point(trueBB);
         node.getTrueStatement()->accept(*this);
         bool isReturned=true;
