@@ -929,7 +929,7 @@ void BZBuilder::visit(ASTIfStmt &node) {
             isReturned=false;
         }
         if (!isReturned){
-            currentfunc->add_basic_block(exitBB);
+          //  currentfunc->add_basic_block(exitBB);
             builder->set_insert_point(exitBB);
         }
     }
