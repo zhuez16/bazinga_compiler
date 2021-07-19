@@ -577,7 +577,7 @@ BZBuilder::InitialValueWalker(ASTVarDecl::ASTArrayList *l, const std::vector<int
 
 void BZBuilder::InitialValueBuilder(const std::vector<int> &dim, const std::vector<Value *> &val, Instruction *gep, int &offset, int depth) {
     for (int i = 0; i < dim[depth]; ++i) {
-        auto g_i = builder->create_gep(gep, {ConstantInt::get(i, getModule().get())});
+        auto g_i = builder->create_gep(gep, {ConstantInt::get(i, getModule())});
         if (depth != dim.size() - 1) {
             InitialValueBuilder(dim, val, g_i, offset, depth + 1);
         } else {
@@ -606,7 +606,7 @@ void BZBuilder::visit(ASTVarDecl &node) {
             }
         }
 
-        Type *var_ty = Type::get_int32_type(getModule().get());
+        Type *var_ty = Type::get_int32_type(getModule());
         for (int i = (int)dimension.size() - 1; i >= 0; --i) {
             var_ty = new ArrayType(var_ty, dimension[i]);
         }
@@ -616,10 +616,10 @@ void BZBuilder::visit(ASTVarDecl &node) {
             if (node.isConst()) {
                 if (it->array) {
                     // 全局静态数组
-                    Constant *initializer = ConstantArray::get(dynamic_cast<ArrayType *>(var_ty), ConstantArray::IntegerList2Constant(dimension, init, getModule().get()));
+                    Constant *initializer = ConstantArray::get(dynamic_cast<ArrayType *>(var_ty), ConstantArray::IntegerList2Constant(dimension, init, getModule()));
                     auto var = GlobalVariable::create(
                             it->var_name,
-                            getModule().get(),
+                            getModule(),
                             var_ty,
                             true,
                             initializer
@@ -627,10 +627,10 @@ void BZBuilder::visit(ASTVarDecl &node) {
                     scope.push(it->var_name, var, true, dimension, init);
                 } else {
                     // 全局静态常量
-                    auto *initializer = ConstantInt::get(init[0], getModule().get());
+                    auto *initializer = ConstantInt::get(init[0], getModule());
                     auto var = GlobalVariable::create(
                             it->var_name,
-                            getModule().get(),
+                            getModule(),
                             var_ty,
                             true,
                             initializer
@@ -641,10 +641,10 @@ void BZBuilder::visit(ASTVarDecl &node) {
             else {
                 if (it->array) {
                     // 全局动态数组
-                    Constant *initializer = ConstantArray::get(dynamic_cast<ArrayType *>(var_ty), ConstantArray::IntegerList2Constant(dimension, init, getModule().get()));
+                    Constant *initializer = ConstantArray::get(dynamic_cast<ArrayType *>(var_ty), ConstantArray::IntegerList2Constant(dimension, init, getModule()));
                     auto var = GlobalVariable::create(
                             it->var_name,
-                            getModule().get(),
+                            getModule(),
                             var_ty,
                             false,
                             initializer
@@ -652,10 +652,10 @@ void BZBuilder::visit(ASTVarDecl &node) {
                     scope.push(it->var_name, var, true, dimension, init);
                 } else {
                     // 全局动态变量
-                    auto *initializer = ConstantInt::get(init[0], getModule().get());
+                    auto *initializer = ConstantInt::get(init[0], getModule());
                     auto var = GlobalVariable::create(
                             it->var_name,
-                            getModule().get(),
+                            getModule(),
                             var_ty,
                             false,
                             initializer
@@ -669,7 +669,7 @@ void BZBuilder::visit(ASTVarDecl &node) {
             if (it->has_initial) {
                 if(it->array) {
                     std::vector<Value *> _init;
-                    InitialValueWalker(it->initial_value[0], dimension, 0, _init, getModule().get());
+                    InitialValueWalker(it->initial_value[0], dimension, 0, _init, getModule());
                     int offset;
                     InitialValueBuilder(dimension, _init, var, offset, 0);
                 } else {
@@ -685,11 +685,11 @@ void BZBuilder::visit(ASTVarDecl &node) {
 
         if (node.num == nullptr) {
             if (scope.in_global()) {
-                auto initializer = ConstantZero::get(var_type, module.get());
+                auto initializer = ConstantZero::get(var_type, module);
                 auto var = GlobalVariable::create
                         (
                                 node.id,
-                                module.get(),
+                                module,
                                 var_type,
                                 false,
                                 initializer);
@@ -701,11 +701,11 @@ void BZBuilder::visit(ASTVarDecl &node) {
         } else {
             auto *array_type = ArrayType::get(var_type, node.num->i_val);
             if (scope.in_global()) {
-                auto initializer = ConstantZero::get(array_type, module.get());
+                auto initializer = ConstantZero::get(array_type, module);
                 auto var = GlobalVariable::create
                         (
                                 node.id,
-                                module.get(),
+                                module,
                                 array_type,
                                 false,
                                 initializer);
@@ -723,25 +723,25 @@ void BZBuilder::visit(ASTFuncDecl &node){
     auto ret_type = node.getFunctionType();
     Type* fun_ret_type;
     if(ret_type == node.AST_RET_INT){
-        fun_ret_type = Type::get_int32_type(getModule().get());
+        fun_ret_type = Type::get_int32_type(getModule());
     }
     else{
-        fun_ret_type = Type::get_void_type(getModule().get());
+        fun_ret_type = Type::get_void_type(getModule());
     }
     auto params = node.getParams();
     std::vector<Type *> args;
     std::vector<Value *> fun_args;
     for(auto param : params){
         if(param->isArray()){
-            args.push_back(Type::get_int32_ptr_type(getModule().get()));
+            args.push_back(Type::get_int32_ptr_type(getModule()));
         }
         else{
-            args.push_back(Type::get_int32_type(getModule().get()));
+            args.push_back(Type::get_int32_type(getModule()));
         }
     }
     auto fun_type = FunctionType::get(fun_ret_type, args);
-    auto fun =  Function::create(fun_type, node.getFunctionName(), getModule().get());
-    auto bb = BasicBlock::create(getModule().get(), "entry", fun);
+    auto fun =  Function::create(fun_type, node.getFunctionName(), getModule());
+    auto bb = BasicBlock::create(getModule(), "entry", fun);
     builder->set_insert_point(bb);
     scope.push(node.getFunctionName(), fun);
     scope.enter();
@@ -763,13 +763,13 @@ void BZBuilder::visit(ASTFuncDecl &node){
 
 void BZBuilder::visit(ASTParam &node){
     if(node.isArray()){
-        auto array_alloca = builder->create_alloca(Type::get_int32_ptr_type(getModule().get()));
+        auto array_alloca = builder->create_alloca(Type::get_int32_ptr_type(getModule()));
         // FIXME: Value是基类，不能这样进行创建
         auto param = cur_fun_param[cur_fun_param_num];
-        // Value* arg = new Value(Type::get_int32_ptr_type(getModule().get()), node.getParamName())
+        // Value* arg = new Value(Type::get_int32_ptr_type(getModule()), node.getParamName())
         builder->create_store(param, array_alloca);
         std::vector<Value *> array_params;
-        array_params.push_back(ConstantInt::get(0, getModule().get()));
+        array_params.push_back(ConstantInt::get(0, getModule()));
         for (auto array_param : node.getArrayList()) {
             array_param->accept(*this);
             array_params.push_back(ret);
@@ -779,10 +779,10 @@ void BZBuilder::visit(ASTParam &node){
         scope.push_params(node.getParamName(), array_alloca, array_params);
     }
     else{
-        auto alloca = builder->create_alloca(Type::get_int32_type(getModule().get()));
+        auto alloca = builder->create_alloca(Type::get_int32_type(getModule()));
         auto params = node.getArrayList();
         // // FIXME: 同上
-        // Value* arg = new Value(Type::get_int32_type(getModule().get()), node.getParamName())
+        // Value* arg = new Value(Type::get_int32_type(getModule()), node.getParamName())
         builder->create_store(cur_fun_param[cur_fun_param_num], alloca);
         scope.push(node.getParamName(), alloca);
     }
@@ -806,9 +806,9 @@ void BZBuilder::visit(ASTExpressionStmt &node) {
 void BZBuilder::visit(ASTIfStmt &node) {
     auto tmp=builder->get_insert_block();
     if (node.hasElseStatement()){
-        auto trueBB=BasicBlock::create(module.get(),"",currentfunc);
-        auto falseBB=BasicBlock::create(module.get(),"",currentfunc);
-        auto exitBB=BasicBlock::create(module.get(),"",currentfunc);
+        auto trueBB=BasicBlock::create(module,"",currentfunc);
+        auto falseBB=BasicBlock::create(module,"",currentfunc);
+        auto exitBB=BasicBlock::create(module,"",currentfunc);
         orTrueExit=trueBB;
         builder->set_insert_point(tmp);
         node.getCondition()->accept(*this);
@@ -832,8 +832,8 @@ void BZBuilder::visit(ASTIfStmt &node) {
         }
     }
     else{
-        auto trueBB=BasicBlock::create(module.get(),"",currentfunc);
-        auto exitBB=BasicBlock::create(module.get(),"",currentfunc);
+        auto trueBB=BasicBlock::create(module,"",currentfunc);
+        auto exitBB=BasicBlock::create(module,"",currentfunc);
         orTrueExit=trueBB;
         builder->set_insert_point(tmp);
         node.getCondition()->accept(*this);
@@ -854,9 +854,9 @@ void BZBuilder::visit(ASTIfStmt &node) {
 }
 void BZBuilder::visit(ASTWhileStmt &node) {
     auto tmp=builder->get_insert_block();
-    auto judgebb=BasicBlock::create(module.get(),"",currentfunc);
-    auto iteratebb=BasicBlock::create(module.get(),"",currentfunc);
-    auto exitbb=BasicBlock::create(module.get(),"",currentfunc);
+    auto judgebb=BasicBlock::create(module,"",currentfunc);
+    auto iteratebb=BasicBlock::create(module,"",currentfunc);
+    auto exitbb=BasicBlock::create(module,"",currentfunc);
     builder->set_insert_point(tmp);
     builder->create_br(judgebb);
     builder->set_insert_point(judgebb);

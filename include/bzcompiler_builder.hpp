@@ -123,6 +123,11 @@ public:
         return ret->val;
     }
 
+    Scope() {
+        inner.emplace_back();
+        array_param.emplace_back();
+    }
+
 private:
     std::vector<std::map<std::string, ValType *>> inner;
     std::vector<std::map<std::string, std::vector<Value *>>> array_param;
@@ -132,14 +137,14 @@ private:
 class BZBuilder : public ASTvisitor {
 public:
     BZBuilder() {
-        module = std::unique_ptr<Module>(new Module("bzcomp code"));
-        builder = new IRBuilder(nullptr, module.get());
-        auto TyVoid = Type::get_void_type(module.get());
-        auto TyInt32 = Type::get_int32_type(module.get());
+        module = new Module("bz_code");
+        builder = new IRBuilder(nullptr, module);
+        auto TyVoid = Type::get_void_type(module);
+        auto TyInt32 = Type::get_int32_type(module);
     }
 
-    std::unique_ptr<Module> getModule() {
-        return std::move(module);
+    Module *getModule() {
+        return module;
     }
 private:
     void visit(ASTProgram &) final;
@@ -167,7 +172,7 @@ private:
 
     IRBuilder *builder;
     Scope scope;
-    std::unique_ptr<Module> module;
+    Module *module;
 
     int compute_ast_constant(ASTInstruction *inst);
 

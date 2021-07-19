@@ -1263,7 +1263,10 @@ public:
     virtual void accept(ASTvisitor &) override final;
     explicit ASTBlock(TreeNode *t) : ASTStatement(AST_BLOCK_STMT) {
         assert(t != nullptr && t->node_type == AST_block && "ASTBlock got invalid TreeNode.");
-        block_item_walker(t->children[1]);
+        if (t->children.size() != 2) {
+            // 处理 空的Block的情况。如 {}
+            block_item_walker(t->children[1]);
+        }
     }
 
     std::vector<ASTStatement *> getStatements() {
