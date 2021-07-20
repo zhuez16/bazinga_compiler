@@ -24,12 +24,6 @@ int main(int argc, char **argv) {
     bool loop_search = false;
     bool availableexpression = false;
 
-<<<<<<< HEAD
-    for (int i = 0; i < argc; ++i) {
-        std::cout << argv[i] << std::endl;
-    }
-=======
->>>>>>> 4f7dd467d91634584d09b385f2ae2010036b299a
     for (int i = 1;i < argc;++i) {
         if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
             print_help(argv[0]);
@@ -137,13 +131,8 @@ int main(int argc, char **argv) {
     output_stream << IR;
     output_stream.close();
     if (!emit) {
-<<<<<<< HEAD
-        std::cout<<"in llvm"<<std::endl;
-        auto command_string = "clang -O0 -w " + target_path + ".ll -o " + target_path + " -L. -lcminus_io";
-=======
         
         auto command_string = "clang -O0 -w " + target_path + ".ll -o " + target_path + " -L. -lsylib";
->>>>>>> 4f7dd467d91634584d09b385f2ae2010036b299a
         int re_code0 = std::system(command_string.c_str());
         command_string = "rm " + target_path + ".ll";
         int re_code1 = std::system(command_string.c_str());
