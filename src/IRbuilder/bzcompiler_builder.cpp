@@ -13,35 +13,14 @@
     std::abort();                                                               \
 }
 
-
-// type
-Type *TyInt32;
-Type *TyVoid;
-Type *TyInt32Ptr;
-Type *TyInt1;
+Type * TyInt32;
 // store temporary value
 Value *tmp_val = nullptr;
-// whether require lvalue
-bool require_address = false;
-// function that is being built
-Function *cur_fun = nullptr;
 // detect scope pre-enter (for elegance only)
 std::vector<Argument *> cur_fun_param;
 int cur_fun_param_num = 0;
 bool pre_enter_scope = false;
-//
-std::vector<Value *> array_init;
-//
-// std::vector<BasicBlock*> iter_expr,iter_cont;
-enum CurBaseListType { WHILE_COND, WHILE_BODY, IF_COND, IF_THEN, IF_ELSE };
-
-std::vector<CurBaseListType> BL_types;
-
-// std::vector<BaseBlock *> base_layer;
-int tmp_int = 0;
-bool use_int = false;
-bool in_global_init = false;
-
+bool need_load = true;
 int label_idx = 0;
 
 std::string getNewLabel() {
@@ -49,13 +28,13 @@ std::string getNewLabel() {
 }
 
 Function * currentfunc;
-BasicBlock * orTrueExit;
 
 std::stack<BasicBlock *> curIteration;
 std::stack<BasicBlock *> curIterationExit;
 std::stack<BasicBlock *> curIterationJudge;
 Value *ret;
 void BZBuilder::visit(ASTProgram &node) {
+    TyInt32 = Type::get_int32_type(getModule());
     for(auto delc: node.getDeclareList()){
         delc->accept(*this);
     }
@@ -63,38 +42,18 @@ void BZBuilder::visit(ASTProgram &node) {
 void BZBuilder::visit(ASTConstant &node)
 {
     tmp_val = CONST(node.getValue());
-    //tmp_int = node.getValue();
-    //use_int = true;
 }
 void BZBuilder::visit(ASTUnaryOp &node)
-{/*
-    if (use_int) {
-        int val;
-        if (node.getExpression()) {
-            node.getExpression()->accept(*this);
-            val = tmp_int;
-        } else {
-            //_IRBUILDER_ERROR_("Function call in ConstExp!");
-        }
-        switch (node.getUnaryOpType()) {
-            case ASTUnaryOp::AST_OP_POSITIVE:
-                tmp_int = 0 + val;
-                break;
-            case ASTUnaryOp::AST_OP_NEGATIVE:
-                tmp_int = 0 - val;
-                break;
-            case ASTUnaryOp::AST_OP_INVERSE:
-                tmp_int = (val != 0);
-                //_IRBUILDER_ERROR_("NOT operation in ConstExp!")
-            break;
-        }
-        return;
-    }
-*/
+{
     Value *val;
     node.getExpression()->accept(*this);
     val = tmp_val;
-
+    if (need_load && val->get_type()->is_pointer_type()) {
+        val = builder->create_load(val->get_type()->get_pointer_element_type(), val);
+    }
+    if (val->get_type()->is_int1_type()) {
+        val = builder->create_zext(val, TyInt32);
+    }
     switch (node.getUnaryOpType()) {
     case ASTUnaryOp::AST_OP_POSITIVE:
         val = builder->create_iadd(CONST(0), val);
@@ -111,37 +70,29 @@ void BZBuilder::visit(ASTUnaryOp &node)
 
 void BZBuilder::visit(ASTMulOp &node)
 {
-    if(node.isUnaryExp())
+    if(node.isUnaryExp()) {
         node.getOperand1()->accept(*this);
+        if (need_load && tmp_val->get_type()->is_pointer_type()) {
+            tmp_val = builder->create_load(tmp_val->get_type()->get_pointer_element_type(), tmp_val);
+        }
+    }
     else
     {
-        /*
-        if(use_int){
-            node.getOperand1()->accept(*this);
-            auto l_val = tmp_int;
-            node.getOperand2()->accept(*this);
-            auto r_val = tmp_int;
-            switch (node.getOpType()) {
-                case ASTMulOp::AST_OP_MUL:
-                    tmp_int = l_val * r_val;
-                    break;
-                case ASTMulOp::AST_OP_DIV:
-                    tmp_int = l_val / r_val;
-                    break;
-                case ASTMulOp::AST_OP_MOD:
-                    tmp_int = l_val % r_val;
-                    break;
-            }
-            return;
-        }
-*/
         node.getOperand1()->accept(*this);
         auto l_val = tmp_val;
         node.getOperand2()->accept(*this);
         auto r_val = tmp_val;
 
+        if (l_val->get_type()->is_pointer_type()) {
+            l_val = builder->create_load(l_val->get_type()->get_pointer_element_type(), l_val);
+        }
+
         if (l_val->get_type()->is_int1_type()) {
             l_val = builder->create_zext(l_val, TyInt32);
+        }
+
+        if (r_val->get_type()->is_pointer_type()) {
+            r_val = builder->create_load(r_val->get_type()->get_pointer_element_type(), r_val);
         }
 
         if (r_val->get_type()->is_int1_type()) {
@@ -162,36 +113,32 @@ void BZBuilder::visit(ASTMulOp &node)
 }
 void BZBuilder::visit(ASTAddOp &node)
 {
-    if(node.isUnaryExp())
+    if(node.isUnaryExp()) {
         node.getOperand1()->accept(*this);
-    else
-    {/*
-        if(use_int){
-            node.getOperand1()->accept(*this);
-            auto l_val = tmp_int;
-            node.getOperand2()->accept(*this);
-            auto r_val = tmp_int;
-            switch (node.getOpType()) {
-                case ASTAddOp::AST_OP_ADD:
-                    tmp_int = l_val + r_val;
-                    break;
-                case ASTAddOp::AST_OP_MINUS:
-                    tmp_int = l_val - r_val;
-                    break;
-            }
-            return;
+        if (need_load && tmp_val->get_type()->is_pointer_type()) {
+            tmp_val = builder->create_load(tmp_val->get_type()->get_pointer_element_type(), tmp_val);
         }
-*/
+    }
+    else
+    {
         node.getOperand1()->accept(*this);
         auto l_val = tmp_val;
         node.getOperand2()->accept(*this);
         auto r_val = tmp_val;
+
+        if (l_val->get_type()->is_pointer_type()) {
+            l_val = builder->create_load(l_val->get_type()->get_pointer_element_type(), l_val);
+        }
         
         if (l_val->get_type()->is_int1_type()) {
             l_val = builder->create_zext(l_val, TyInt32);
         }
 
-            if (r_val->get_type()->is_int1_type()) {
+        if (r_val->get_type()->is_pointer_type()) {
+            r_val = builder->create_load(r_val->get_type()->get_pointer_element_type(), r_val);
+        }
+
+        if (r_val->get_type()->is_int1_type()) {
             r_val = builder->create_zext(r_val, TyInt32);
         }
         switch (node.getOpType()) {
@@ -217,8 +164,16 @@ void BZBuilder::visit(ASTRelOp &node)
         node.getOperand2()->accept(*this);
         auto r_val = tmp_val;
 
+        if (l_val->get_type()->is_pointer_type()) {
+            l_val = builder->create_load(l_val->get_type()->get_pointer_element_type(), l_val);
+        }
+
         if (l_val->get_type()->is_int1_type())
             l_val = builder->create_zext(l_val, TyInt32);
+
+        if (r_val->get_type()->is_pointer_type()) {
+            r_val = builder->create_load(r_val->get_type()->get_pointer_element_type(), r_val);
+        }
 
         if (r_val->get_type()->is_int1_type()) {
             r_val = builder->create_zext(r_val, TyInt32);
@@ -284,13 +239,17 @@ void BZBuilder::visit(ASTEqOp &node)
     }
 }
 
-// FIXME: 短路运算符
 void BZBuilder::visit(ASTAndOp &node)
 {
     if (node.isUnaryExp()) {
         node.getOperand1()->accept(*this);
         if (node.getOperand1()->getTrueList().empty() && node.getOperand1()->getFalseList().empty()) {
-            auto cod = builder->create_icmp_ne(CONST(0), tmp_val);
+            CmpInst *cod;
+            if (tmp_val->get_type()->is_int1_type()) {
+                cod = builder->create_icmp_ne(CONST(false), tmp_val);
+            } else {
+                cod = builder->create_icmp_ne(CONST(0), tmp_val);
+            }
             BasicBlock *t_bb = BasicBlock::create(getModule(), getNewLabel(), currentfunc, true);
             BasicBlock *f_bb = BasicBlock::create(getModule(), getNewLabel(), currentfunc, true);
             builder->create_cond_br(cod, t_bb, f_bb);
@@ -331,21 +290,9 @@ void BZBuilder::visit(ASTAndOp &node)
         node.setFalseList(node.getOperand1()->getFalseList());
         node.unionFalseList(node.getOperand2()->getFalseList());
         /// 标号回填阶段2结束
-        /* TODO: 或许不需要了？
-        auto r_val = tmp_val;
-
-        if (l_val->get_type()->is_int1_type())
-            l_val = builder->create_zext(l_val, TyInt32);
-
-        if (r_val->get_type()->is_int1_type()) {
-            r_val = builder->create_zext(r_val, TyInt32);
-        }
-        // FIXME: LLVM IR 中并没有计算 and/or 的指令，需要使用基本块来实现
-        tmp_val = builder->create_iand(l_val, r_val);
-         */
     }
 }
-// FIXME: 短路运算符
+
 void BZBuilder::visit(ASTOrOp &node)
 {
     if (node.isUnaryExp())
@@ -373,19 +320,6 @@ void BZBuilder::visit(ASTOrOp &node)
         node.unionTrueList(node.getOperand2()->getTrueList());
         node.setFalseList(node.getOperand2()->getFalseList());
         /// 标号回填阶段2结束
-        /*
-        if (l_val->get_type()->is_int1_type())
-            l_val = builder->create_zext(l_val, TyInt32);
-
-        if (r_val->get_type()->is_int1_type()) {
-            r_val = builder->create_zext(r_val, TyInt32);
-        }
-
-        tmp_val = builder->create_ior(l_val, r_val);
-        if (tmp_val->get_type()->is_int32_type()) {
-            tmp_val = builder->create_icmp_ne(tmp_val, CONST(0));
-        }
-        */
     }
 }
 void BZBuilder::visit(ASTLVal &node)
@@ -429,11 +363,13 @@ void BZBuilder::visit(ASTLVal &node)
         else
         {
             tmp_ptr = var;
+            std::vector<Value *> idxs({CONST(0)});
             for (auto exp : pointer_exp)
             {
                 exp->accept(*this);
-                tmp_ptr = builder->create_gep(tmp_ptr, {tmp_val});
+                idxs.push_back(tmp_val);
             }
+            tmp_ptr = builder->create_gep(tmp_ptr, idxs);
         }
         tmp_val = tmp_ptr;
     }
@@ -445,18 +381,33 @@ void BZBuilder::visit(ASTFuncCall &node)
         exit(120);
     std::vector<Value *> args;
     std::vector<ASTAddOp *> params=node.getParamList();
+
     for (int i = 0; i < params.size(); i++) {
         auto arg = params[i];
         auto arg_type =
                 dynamic_cast<Function *>(func_name)->get_function_type()->get_param_type(i);
-        if (arg_type->is_integer_type())
-            require_address = false;
-        else
-            require_address = true;
-        arg->accept(*this);
-        require_address = false;
+
+        if (!arg_type->is_integer_type()){
+            need_load = false;
+            arg->accept(*this);
+            std::vector<Value *> idxs;
+            Type *ty = tmp_val->get_type();
+            while (ty->is_pointer_type() || ty->is_array_type()) {
+                idxs.push_back(CONST(0));
+                if (ty->is_pointer_type()) {
+                    ty = ty->get_pointer_element_type();
+                } else {
+                    ty = ty->get_array_element_type();
+                }
+            }
+            tmp_val = builder->create_gep(tmp_val, idxs);
+            need_load = true;
+        } else {
+            arg->accept(*this);
+        }
         args.push_back(tmp_val);
     }
+
     tmp_val = builder->create_call(dynamic_cast<Function *>(func_name), args);
 }
 
@@ -586,220 +537,182 @@ int BZBuilder::compute_ast_constant(ASTInstruction *inst) {
  * @param init_values
  * @return 当前块填充的数量
  */
-std::tuple<int, int>
-BZBuilder::ConstInitialValueWalker(ASTVarDecl::ASTArrayList *l, const std::vector<int> &offset, int depth,
+void BZBuilder::ConstInitialValueWalker(ASTVarDecl::ASTArrayList *l, const std::vector<int> &dim, int depth,
                                    std::vector<int> &init_values) {
-    if (l->isEmpty) {
-        for (int i = 0; i < offset[offset.size() - 1]; ++i) {
-            init_values.push_back(0);
-        }
-        return std::make_tuple(depth + 1, offset[offset.size() - 1]);
+    auto cur_bound = dim[depth];
+    auto d_length = 1;
+    for(int i = depth + 1; i < dim.size(); ++i) {
+        d_length *= dim[i];
     }
-    if (l->isArray) {
-        int max_depth = 0;
-        int filled = 0;
-        for (auto arr: l->list) {
-            int _set, _depth;
-            std::tie(_depth, _set) = ConstInitialValueWalker(arr, offset, depth + 1, init_values);
-            max_depth = std::max(max_depth, _depth);
-            filled += _set;
-        }
-        int delta = max_depth - depth;
-        if (delta < 2) {
-            return {depth, offset[offset.size() + 1 - delta]};
-            // Do Nothing
-        } else {
-            int tb_fill = offset[offset.size() + 1 - delta];
-            for (int i = 0; i < tb_fill - filled; ++i) {
-                init_values.push_back(0);
+    std::vector<int>init_list;
+    for(int i = 0; i < l->list.size(); ++i) {
+        auto init_val = l->list[i];
+        if(l->isArray) {
+            int pos = init_list.size();
+            for(int j = 0; j < (d_length - pos % d_length) % d_length; ++j) {
+                init_list.push_back(0);
             }
-            return {depth, tb_fill};
+            ConstInitialValueWalker(init_val, dim, depth + 1, init_values);
+        } else {
+            init_list.push_back(compute_ast_constant(l->value));
         }
-    } else {
-        init_values.push_back(compute_ast_constant(l->value));
-        return std::make_tuple(depth, 1);
     }
+    for (int i = init_list.size(); i < d_length * cur_bound; ++i) {
+        init_list.push_back(0);
+    }
+    init_values.insert(init_values.end(), init_list.begin(), init_list.end());
 }
 
 
-std::tuple<int, int>
-BZBuilder::InitialValueWalker(ASTVarDecl::ASTArrayList *l, const std::vector<int> &offset, int depth,
+void BZBuilder::InitialValueWalker(ASTVarDecl::ASTArrayList *l, const std::vector<int> &dim, int depth,
                                    std::vector<Value *> &init_values, Module *m) {
-    if (l->isEmpty) {
-        for (int i = 0; i < offset[offset.size() - 1]; ++i) {
-            init_values.push_back(ConstantZero::get(Type::get_int32_type(m), m));
-        }
-        return std::make_tuple(depth + 1, offset[offset.size() - 1]);
+    auto cur_bound = dim[depth];
+    auto d_length = 1;
+    for(int i = depth + 1; i < dim.size(); ++i) {
+        d_length *= dim[i];
     }
-    if (l->isArray) {
-        int max_depth = 0;
-        int filled = 0;
-        for (auto arr: l->list) {
-            int _set, _depth;
-            std::tie(_depth, _set) = InitialValueWalker(arr, offset, depth + 1, init_values, m);
-            max_depth = std::max(max_depth, _depth);
-            filled += _set;
-        }
-        int delta = max_depth - depth;
-        if (delta < 2) {
-            return {depth, offset[offset.size() + 1 - delta]};
-        } else {
-            int tb_fill = offset[offset.size() + 1 - delta];
-            for (int i = 0; i < tb_fill - filled; ++i) {
-                init_values.push_back(ConstantZero::get(Type::get_int32_type(m), m));
+    std::vector<Value *>init_list;
+    for(int i = 0; i < l->list.size(); ++i) {
+        auto init_val = l->list[i];
+        if(l->isArray) {
+            int pos = init_list.size();
+            for(int j = 0; j < (d_length - pos % d_length) % d_length; ++j) {
+                init_list.push_back(CONST(0));
             }
-            return {depth, tb_fill};
+            InitialValueWalker(init_val, dim, depth + 1, init_values, m);
+        } else {
+            l->value->accept(*this);
+            init_list.push_back(tmp_val);
         }
-    } else {
-        l->value->accept(*this);
-        init_values.push_back(tmp_val);
-        return std::make_tuple(depth, 1);
     }
+    for (int i = init_list.size(); i < d_length * cur_bound; ++i) {
+        init_list.push_back(CONST(0));
+    }
+    init_values.insert(init_values.end(), init_list.begin(), init_list.end());
 }
 
 void BZBuilder::InitialValueBuilder(const std::vector<int> &dim, const std::vector<Value *> &val, Instruction *gep, int &offset, int depth) {
     for (int i = 0; i < dim[depth]; ++i) {
-        auto g_i = builder->create_gep(gep, {ConstantInt::get(i, getModule())});
+        auto g_i = builder->create_gep(gep, {CONST(0), ConstantInt::get(i, getModule())});
         if (depth != dim.size() - 1) {
             InitialValueBuilder(dim, val, g_i, offset, depth + 1);
         } else {
-            builder->create_store(g_i, val[offset++]);
+            builder->create_store(val[offset++], g_i);
         }
     }
 }
 
+ArrayType* getArrayTypeByDimension(const std::vector<int> &dim) {
+    assert(!dim.empty() && "Dimension should not be empty");
+    Type *ty = TyInt32;
+    for(int i = (int)dim.size() - 1; i >= 0; --i) {
+        ty = ArrayType::get(ty, dim[i]);
+    }
+    return dynamic_cast<ArrayType *>(ty);
+}
+
+std::vector<Constant *> BZBuilder::int2constant(const std::vector<int> &ori) {
+    std::vector<Constant *> cons;
+    for (int it: ori) {
+        cons.push_back(ConstantInt::get(it, getModule()));
+    }
+    return cons;
+}
+
+std::vector<Value *> BZBuilder::int2value(const std::vector<int> &ori) {
+    std::vector<Value *> cons;
+    for (int it: ori) {
+        cons.push_back(ConstantInt::get(it, getModule()));
+    }
+    return cons;
+}
+
 void BZBuilder::visit(ASTVarDecl &node) {
     for (ASTVarDecl::ASTVarDeclInst *it: node.getVarDeclList()) {
-        std::vector<int> dimension;
-        std::vector<int> init;
+        std::vector<int> dimension;  // 只要是数组就有
+        ArrayType* arr_ty;
         if (it->array) {
-            for (ASTAddOp *op: it->_array_list) {
-                dimension.push_back(compute_ast_constant(op));
+            for (auto d: it->_array_list) {
+                dimension.push_back(compute_ast_constant(d));
             }
-            if (it->has_initial) {
-                ConstInitialValueWalker(it->initial_value[0], dimension, 0, init);
-            }
-        } else if (it->has_initial) {
-            auto val = it->initial_value[0];
-            if (val->isEmpty) {
-                init.push_back(0);
-            } else {
-                init.push_back(compute_ast_constant(val->value));
-            }
+            arr_ty = getArrayTypeByDimension(dimension);
         }
-
-        Type *var_ty = Type::get_int32_type(getModule());
-        for (int i = (int)dimension.size() - 1; i >= 0; --i) {
-            var_ty = new ArrayType(var_ty, dimension[i]);
-        }
-
-
-        if (scope.in_global()) {
-            if (node.isConst()) {
+        if (node.isConst()) {
+            // 常量处理
+            if (scope.in_global()) {
+                // 全局量
                 if (it->array) {
-                    // 全局静态数组
-                    Constant *initializer = ConstantArray::get(dynamic_cast<ArrayType *>(var_ty), ConstantArray::IntegerList2Constant(dimension, init, getModule()));
-                    auto var = GlobalVariable::create(
-                            it->var_name,
-                            getModule(),
-                            var_ty,
-                            true,
-                            initializer
-                    );
-                    scope.push(it->var_name, var, true, dimension, init);
+                    std::vector<int> init;
+                    ConstInitialValueWalker(it->initial_value[0], dimension, 0, init);
+                    auto gv = GlobalVariable::create(it->var_name, getModule(), arr_ty, true, ConstantArray::get(arr_ty, ConstantArray::IntegerList2Constant(dimension, init, getModule())));
+                    scope.push(it->var_name, gv, true, dimension, init);
                 } else {
-                    // 全局静态常量
-                    auto *initializer = ConstantInt::get(init[0], getModule());
-                    auto var = GlobalVariable::create(
-                            it->var_name,
-                            getModule(),
-                            var_ty,
-                            true,
-                            initializer
-                    );
-                    scope.push(it->var_name, var, true);
+                    int scala_init = compute_ast_constant(it->initial_value[0]->value);
+                    auto gv = GlobalVariable::create(it->var_name, getModule(), TyInt32, true, CONST(scala_init));
+                    scope.push(it->var_name, gv, true, {}, {scala_init});
                 }
-            }
-            else {
+            } else {
+                // 局部量
                 if (it->array) {
-                    // 全局动态数组
-                    Constant *initializer = ConstantArray::get(dynamic_cast<ArrayType *>(var_ty), ConstantArray::IntegerList2Constant(dimension, init, getModule()));
-                    auto var = GlobalVariable::create(
-                            it->var_name,
-                            getModule(),
-                            var_ty,
-                            false,
-                            initializer
-                    );
-                    scope.push(it->var_name, var, true, dimension, init);
+                    std::vector<int> init;
+                    int off = 0;
+                    ConstInitialValueWalker(it->initial_value[0], dimension, 0, init);
+                    auto lv = builder->create_alloca(arr_ty);
+                    InitialValueBuilder(dimension, int2value(init), lv, off, 0);
+                    scope.push(it->var_name, lv, true, dimension, init);
                 } else {
-                    // 全局动态变量
-                    auto *initializer = ConstantInt::get(init[0], getModule());
-                    auto var = GlobalVariable::create(
-                            it->var_name,
-                            getModule(),
-                            var_ty,
-                            false,
-                            initializer
-                    );
-                    scope.push(it->var_name, var, true);
+                    int scala_init = compute_ast_constant(it->initial_value[0]->value);
+                    auto ptr = builder->create_alloca(TyInt32);
+                    builder->create_store(CONST(scala_init), ptr);
+                    scope.push(it->var_name, ptr, true, {}, {scala_init});
                 }
             }
         } else {
-            auto var = builder->create_alloca(var_ty);
-            scope.push(it->var_name, var, node.isConst(), dimension, init);
-            if (it->has_initial) {
-                if(it->array) {
-                    std::vector<Value *> _init;
-                    InitialValueWalker(it->initial_value[0], dimension, 0, _init, getModule());
-                    int offset;
-                    InitialValueBuilder(dimension, _init, var, offset, 0);
-                } else {
-                    it->initial_value[0]->value->accept(*this);
-                    if (tmp_val->get_type()->is_pointer_type()) {
-                        tmp_val = builder->create_load(tmp_val);
+            // 变量处理
+            if (scope.in_global()) {
+                // 全局量
+                if (it->array) {
+                    if (it->has_initial) {
+                        std::vector<int> init;
+                        ConstInitialValueWalker(it->initial_value[0], dimension, 0, init);
+                        auto gv = GlobalVariable::create(it->var_name, getModule(), arr_ty, false, ConstantArray::get(arr_ty, int2constant(init)));
+                        scope.push(it->var_name, gv, false, dimension, init);
+                    } else {
+                        auto gv = GlobalVariable::create(it->var_name, getModule(), arr_ty, false, ConstantZero::get(arr_ty, getModule()));
+                        scope.push(it->var_name, gv, false, dimension);
                     }
-                    builder->create_store(tmp_val, var);
+                } else {
+                    if (it->has_initial) {
+                        int scala_init = compute_ast_constant(it->initial_value[0]->value);
+                        auto gv = GlobalVariable::create(it->var_name, getModule(), TyInt32, false, CONST(scala_init));
+                        scope.push(it->var_name, gv, false);
+                    } else {
+                        auto gv = GlobalVariable::create(it->var_name, getModule(), TyInt32, false, CONST(0));
+                        scope.push(it->var_name, gv, false);
+                    }
+                }
+            } else {
+                // 局部量
+                if (it->array) {
+
+                    auto lv = builder->create_alloca(arr_ty);
+                    if(it->has_initial) {
+                        std::vector<Value *> init;
+                        int off = 0;
+                        InitialValueWalker(it->initial_value[0], dimension, 0, init, getModule());
+                        InitialValueBuilder(dimension, init, lv, off, 0);
+                    }
+                    scope.push(it->var_name, lv, false, dimension);
+                } else {
+                    auto ptr = builder->create_alloca(TyInt32);
+                    if(it->has_initial) {
+                        it->initial_value[0]->value->accept(*this);
+                        builder->create_store(tmp_val, ptr);
+                    }
+                    scope.push(it->var_name, ptr, false);
                 }
             }
         }
-
-
-        /** TODO: Finish initializer
-
-        if (node.num == nullptr) {
-            if (scope.in_global()) {
-                auto initializer = ConstantZero::get(var_type, module);
-                auto var = GlobalVariable::create
-                        (
-                                node.id,
-                                module,
-                                var_type,
-                                false,
-                                initializer);
-                scope.push(node.id, var);
-            } else {
-                auto var = builder->create_alloca(var_type);
-                scope.push(node.id, var);
-            }
-        } else {
-            auto *array_type = ArrayType::get(var_type, node.num->i_val);
-            if (scope.in_global()) {
-                auto initializer = ConstantZero::get(array_type, module);
-                auto var = GlobalVariable::create
-                        (
-                                node.id,
-                                module,
-                                array_type,
-                                false,
-                                initializer);
-                scope.push(node.id, var);
-            } else {
-                auto var = builder->create_alloca(array_type);
-                scope.push(node.id, var);
-            }
-        }
-         **/
     }
 
 }
@@ -848,9 +761,7 @@ void BZBuilder::visit(ASTFuncDecl &node){
 void BZBuilder::visit(ASTParam &node){
     if(node.isArray()){
         auto array_alloca = builder->create_alloca(Type::get_int32_ptr_type(getModule()));
-        // FIXME: Value是基类，不能这样进行创建
         auto param = cur_fun_param[cur_fun_param_num];
-        // Value* arg = new Value(Type::get_int32_ptr_type(getModule()), node.getParamName())
         builder->create_store(param, array_alloca);
         std::vector<Value *> array_params;
         array_params.push_back(ConstantInt::get(0, getModule()));
@@ -858,15 +769,12 @@ void BZBuilder::visit(ASTParam &node){
             array_param->accept(*this);
             array_params.push_back(tmp_val);
         }
-        // FIXME: 未知定义。注意Array可能是高维数组
         scope.push(node.getParamName(), array_alloca);
         scope.push_params(node.getParamName(), array_alloca, array_params);
     }
     else{
         auto alloca = builder->create_alloca(Type::get_int32_type(getModule()));
         auto params = node.getArrayList();
-        // // FIXME: 同上
-        // Value* arg = new Value(Type::get_int32_type(getModule()), node.getParamName())
         builder->create_store(cur_fun_param[cur_fun_param_num], alloca);
         scope.push(node.getParamName(), alloca);
     }
@@ -877,10 +785,8 @@ void BZBuilder::visit(ASTAssignStmt &node) {
     auto assign_addr=tmp_val;
     node.getExpression()->accept(*this);
     auto assign_value=tmp_val;
-    // FIXME: API使用错误
     if (assign_addr->get_type()->is_pointer_type()) {
         builder->create_store(assign_value, assign_addr);
-        // assign_value = assign_addr->create_load(assign_value);
     }
 }
 void BZBuilder::visit(ASTExpressionStmt &node) {
@@ -893,10 +799,8 @@ void BZBuilder::visit(ASTIfStmt &node) {
         auto trueBB=BasicBlock::create(module,getNewLabel(),currentfunc);
         auto falseBB=BasicBlock::create(module,getNewLabel(),currentfunc);
         auto exitBB=BasicBlock::create(module,getNewLabel(),currentfunc);
-        orTrueExit=trueBB;
         builder->set_insert_point(tmp);
         node.getCondition()->accept(*this);
-        // builder->create_cond_br(ret,trueBB,falseBB);
         builder->set_insert_point(trueBB);
         node.getTrueStatement()->accept(*this);
 
@@ -936,7 +840,6 @@ void BZBuilder::visit(ASTIfStmt &node) {
     else{
         auto trueBB=BasicBlock::create(module,getNewLabel(),currentfunc);  // M.quad
         auto exitBB=BasicBlock::create(module,getNewLabel(),currentfunc);  // NextList回填目标
-        orTrueExit=trueBB;
         builder->set_insert_point(tmp);
         node.getCondition()->accept(*this);
         // builder->create_cond_br(ret,trueBB,exitBB);
@@ -959,7 +862,6 @@ void BZBuilder::visit(ASTIfStmt &node) {
         }
         builder->set_insert_point(exitBB);
     }
-    orTrueExit=nullptr;
 }
 void BZBuilder::visit(ASTWhileStmt &node) {
     auto tmp=builder->get_insert_block();
@@ -969,9 +871,8 @@ void BZBuilder::visit(ASTWhileStmt &node) {
     builder->set_insert_point(tmp);
     builder->create_br(judgebb);
     builder->set_insert_point(judgebb);
-    orTrueExit=iteratebb;
     node.getCondition()->accept(*this);
-    builder->create_cond_br(tmp_val,iteratebb,exitbb);
+    // builder->create_cond_br(tmp_val,iteratebb,exitbb);
 
     builder->set_insert_point(iteratebb);
     curIteration.push(iteratebb);

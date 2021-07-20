@@ -86,7 +86,46 @@ public:
     void accept(ASTvisitor &) final;
     explicit ASTConstant(TreeNode *t) : ASTInstruction(AST_CONSTANT) {
         assert(t != nullptr && t->node_type == AST_INT_CONST && "ASTConstant got invalid TreeNode pointer");
-        _value = std::atoi(t->node_name.c_str());
+        if (t->node_name[0] == '0') {
+            if (t->node_name.length() == 1) {
+                _value = 0;
+                return;
+            }
+            if (t->node_name[1] == 'x' || t->node_name[1] == 'X') {
+                // 16进制数
+                _value = 0;
+                for (int i = 2; i < t->node_name.length(); ++i) {
+                    int digit;
+                    char num = t->node_name[i];
+                    if ('0' <= num && num <= '9') {
+                        digit = num - '0';
+                    } else if ('a' <= num && num <= 'f') {
+                        digit = num - 'a' + 10;
+                    } else if ('A' <= num && num <= 'F') {
+                        digit = num - 'A' + 10;
+                    } else {
+                        assert(0 && "Got unrecognizable digit");
+                    }
+                    _value = 16 * _value + digit;
+                }
+            } else {
+                // 8进制数
+                _value = 0;
+                for (int i = 1; i < t->node_name.length(); ++i) {
+                    int digit;
+                    char num = t->node_name[i];
+                    if ('0' <= num && num <= '7') {
+                        digit = num - '0';
+                    } else {
+                        assert(0 && "Got unrecognizable digit");
+                    }
+                    _value = 8 * _value + digit;
+                }
+            }
+        } else {
+            // 10进制数
+            _value = std::atoi(t->node_name.c_str());
+        }
     }
 
     /**
