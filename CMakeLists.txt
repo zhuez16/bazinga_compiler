@@ -37,6 +37,8 @@ ADD_EXECUTABLE(parser
         ${FLEX_lexer2_OUTPUTS}
         ${BISON_parser_OUTPUTS})
 ADD_EXECUTABLE(builder
+        src/pass/dominator.cpp
+        src/pass/mem2reg.cpp
         src/IRbuilder/bzcompiler.cpp
         src/IRbuilder/bzcompiler_builder.cpp
         ${FLEX_lexer2_OUTPUTS}
