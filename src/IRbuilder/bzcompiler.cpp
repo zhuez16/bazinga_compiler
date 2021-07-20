@@ -133,7 +133,7 @@ int main(int argc, char **argv) {
     output_stream.close();
     if (!emit) {
         
-        auto command_string = "clang -O0 -w " + target_path + ".ll -o " + target_path + " -L. -lcminus_io";
+        auto command_string = "clang -O0 -w " + target_path + ".ll -o " + target_path + " -L. -lsylib";
         int re_code0 = std::system(command_string.c_str());
         command_string = "rm " + target_path + ".ll";
         int re_code1 = std::system(command_string.c_str());

@@ -2,6 +2,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 PROJECT(bazinga_compiler)
 
 set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -std=c99 -Wno-deprecated-register")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c99 -Wno-deprecated-register")
 set(CMAKE_BUILD_TYPE "Debug")
 set(CMAKE_C_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g2 -ggdb")
 set(CMAKE_C_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")
@@ -25,6 +26,7 @@ INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/include)
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/IR)
 INCLUDE_DIRECTORIES(${MID_LEVEL_DIR}/include)
 ADD_SUBDIRECTORY(src/IR)
+ADD_SUBDIRECTORY(src/runtime)
 ADD_EXECUTABLE(lexer
         src/test/test_lexer.cpp
         ${FLEX_lexer_OUTPUTS}

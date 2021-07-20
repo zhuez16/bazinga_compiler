@@ -67,34 +67,13 @@ void BZBuilder::visit(ASTConstant &node)
     //use_int = true;
 }
 void BZBuilder::visit(ASTUnaryOp &node)
-{/*
-    if (use_int) {
-        int val;
-        if (node.getExpression()) {
-            node.getExpression()->accept(*this);
-            val = tmp_int;
-        } else {
-            //_IRBUILDER_ERROR_("Function call in ConstExp!");
-        }
-        switch (node.getUnaryOpType()) {
-            case ASTUnaryOp::AST_OP_POSITIVE:
-                tmp_int = 0 + val;
-                break;
-            case ASTUnaryOp::AST_OP_NEGATIVE:
-                tmp_int = 0 - val;
-                break;
-            case ASTUnaryOp::AST_OP_INVERSE:
-                tmp_int = (val != 0);
-                //_IRBUILDER_ERROR_("NOT operation in ConstExp!")
-            break;
-        }
-        return;
-    }
-*/
+{
     Value *val;
     node.getExpression()->accept(*this);
     val = tmp_val;
-
+    if (val->get_type()->is_pointer_type()) {
+        val = builder->create_load(val->get_type()->get_pointer_element_type(), val);
+    }
     switch (node.getUnaryOpType()) {
     case ASTUnaryOp::AST_OP_POSITIVE:
         val = builder->create_iadd(CONST(0), val);
@@ -111,30 +90,15 @@ void BZBuilder::visit(ASTUnaryOp &node)
 
 void BZBuilder::visit(ASTMulOp &node)
 {
-    if(node.isUnaryExp())
+    if(node.isUnaryExp()) {
         node.getOperand1()->accept(*this);
+        // Load from pointer if needed
+        if (tmp_val->get_type()->is_pointer_type()) {
+            tmp_val = builder->create_load(tmp_val->get_type()->get_pointer_element_type(), tmp_val);
+        }
+    }
     else
     {
-        /*
-        if(use_int){
-            node.getOperand1()->accept(*this);
-            auto l_val = tmp_int;
-            node.getOperand2()->accept(*this);
-            auto r_val = tmp_int;
-            switch (node.getOpType()) {
-                case ASTMulOp::AST_OP_MUL:
-                    tmp_int = l_val * r_val;
-                    break;
-                case ASTMulOp::AST_OP_DIV:
-                    tmp_int = l_val / r_val;
-                    break;
-                case ASTMulOp::AST_OP_MOD:
-                    tmp_int = l_val % r_val;
-                    break;
-            }
-            return;
-        }
-*/
         node.getOperand1()->accept(*this);
         auto l_val = tmp_val;
         node.getOperand2()->accept(*this);
@@ -142,6 +106,10 @@ void BZBuilder::visit(ASTMulOp &node)
 
         if (l_val->get_type()->is_int1_type()) {
             l_val = builder->create_zext(l_val, TyInt32);
+        }
+
+        if (r_val->get_type()->is_pointer_type()) {
+            l_val = builder->create_load(r_val->get_type()->get_pointer_element_type(), r_val);
         }
 
         if (r_val->get_type()->is_int1_type()) {
@@ -162,26 +130,11 @@ void BZBuilder::visit(ASTMulOp &node)
 }
 void BZBuilder::visit(ASTAddOp &node)
 {
-    if(node.isUnaryExp())
+    if(node.isUnaryExp()) {
         node.getOperand1()->accept(*this);
+    }
     else
-    {/*
-        if(use_int){
-            node.getOperand1()->accept(*this);
-            auto l_val = tmp_int;
-            node.getOperand2()->accept(*this);
-            auto r_val = tmp_int;
-            switch (node.getOpType()) {
-                case ASTAddOp::AST_OP_ADD:
-                    tmp_int = l_val + r_val;
-                    break;
-                case ASTAddOp::AST_OP_MINUS:
-                    tmp_int = l_val - r_val;
-                    break;
-            }
-            return;
-        }
-*/
+    {
         node.getOperand1()->accept(*this);
         auto l_val = tmp_val;
         node.getOperand2()->accept(*this);
@@ -191,7 +144,7 @@ void BZBuilder::visit(ASTAddOp &node)
             l_val = builder->create_zext(l_val, TyInt32);
         }
 
-            if (r_val->get_type()->is_int1_type()) {
+        if (r_val->get_type()->is_int1_type()) {
             r_val = builder->create_zext(r_val, TyInt32);
         }
         switch (node.getOpType()) {
@@ -717,7 +670,7 @@ void BZBuilder::visit(ASTVarDecl &node) {
                             true,
                             initializer
                     );
-                    scope.push(it->var_name, var, true);
+                    scope.push(it->var_name, var, true, {}, {compute_ast_constant(it->initial_value[0]->value)});
                 }
             }
             else {

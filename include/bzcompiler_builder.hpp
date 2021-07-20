@@ -101,7 +101,7 @@ public:
         ValType *val = getRawType(name);
         assert(val != nullptr && "Can't find target variable in scope");
         assert(val->isConst && "Only const value can get variable");
-        if (val->isArray ^ dim.empty()) {
+        if (!(val->isArray ^ dim.empty())) {
             assert(0 && "Variable Type mismatch params");
         }
         if (val->isArray) {
@@ -141,6 +141,14 @@ public:
         builder = new IRBuilder(nullptr, module);
         auto TyVoid = Type::get_void_type(module);
         auto TyInt32 = Type::get_int32_type(module);
+        auto TyInt32Ptr = Type::get_int32_ptr_type(module);
+        // 添加运行库函数
+        scope.push("getint", Function::create(FunctionType::get(TyInt32, {}), "getint", getModule()));
+        scope.push("getch", Function::create(FunctionType::get(TyInt32, {}), "getch", getModule()));
+        scope.push("getarray", Function::create(FunctionType::get(TyInt32, {TyInt32Ptr}), "getarray", getModule()));
+        scope.push("putint", Function::create(FunctionType::get(TyVoid, {TyInt32}), "putint", getModule()));
+        scope.push("putch", Function::create(FunctionType::get(TyVoid, {TyInt32}), "putch", getModule()));
+        scope.push("putarray", Function::create(FunctionType::get(TyVoid, {TyInt32, TyInt32Ptr}), "putarray", getModule()));
     }
 
     Module *getModule() {

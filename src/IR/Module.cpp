@@ -18,6 +18,7 @@ Module::Module(std::string name)
     instr_id2string_.insert({ Instruction::sub, "sub" });
     instr_id2string_.insert({ Instruction::mul, "mul" });
     instr_id2string_.insert({ Instruction::sdiv, "sdiv" });
+    instr_id2string_.insert({Instruction::mod, "srem"});
     
     instr_id2string_.insert({ Instruction::fadd, "fadd" });
     instr_id2string_.insert({ Instruction::fsub, "fsub" });
