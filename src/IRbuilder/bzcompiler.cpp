@@ -23,10 +23,6 @@ int main(int argc, char **argv) {
     bool loop_search = false;
     bool availableexpression = false;
 
-    for (int i = 0; i < argc; ++i) {
-        std::cout << argv[i] << std::endl;
-    }
-
     for (int i = 1;i < argc;++i) {
         if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
             print_help(argv[0]);
