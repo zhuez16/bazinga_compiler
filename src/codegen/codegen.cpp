@@ -5,9 +5,8 @@
 #include "include/codegen/codegen.h"
 
 
-
 std::string codegen::generateModuleCode(std::map<Value *, int> register_mapping, bool auto_alloc) {
-    return std::string();
+    std::string asm_code;
 }
 
 std::string codegen::generateFunctionCode(Function *func) {
