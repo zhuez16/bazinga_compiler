@@ -3,10 +3,15 @@
 #include "pass/dominator.h"
 
 std::map<Value *, std::vector<Value *>> var_val_stack;
-
+// reference :Efficiently computing static single
+// assignment form and the control dependence graph.
 void Mem2Reg::run() {
     printf("running mem2reg\n");
+    std::cout << m_->get_functions().size() << std::endl;
     for(auto f: m_->get_functions()){
+        std::cout << f->get_name() << std::endl;
+        std::cout << f->get_basic_blocks().size() << std::endl;
+        if(f->get_basic_blocks().size() == 0 ){ continue; }
         // get dominance frontier message
         dom = new dominator(m_);
         printf("before run dom\n");
@@ -55,24 +60,27 @@ void Mem2Reg::run() {
                 }
             }
         }
+        std::cout << f->get_basic_blocks().size() << std::endl;
+        std::cout << f->get_entry_block()->get_name() << std::endl;
         re_name(f->get_entry_block());
     }
 }
 void Mem2Reg::re_name(BasicBlock *bb) {
     std::vector<Instruction *> wait_delete;
+    if(bb->is_fake_block()) { return; }
     for (auto instr : bb->get_instructions() ){
         if (instr->is_phi()){
             // step 3: push phi instr as lval's lastest value define
+            std::cout << "1" << std::endl;
             auto l_val = dynamic_cast<PhiInst *>(instr)->get_lval();
+            std::cout << "2" << std::endl;
             var_val_stack[l_val].push_back(instr);
         }
     }
-
     for (auto instr : bb->get_instructions() ){
         if ( instr->is_load() ){
             // step 4: replace load with the top of stack[l_val]
             auto l_val = dynamic_cast<LoadInst *>(instr)->get_lval();
-
             if (!dynamic_cast<GlobalVariable *>(l_val) &&
                 !dynamic_cast<GetElementPtrInst *>(l_val)){
                 if ( var_val_stack.find(l_val)!=var_val_stack.end()){
@@ -93,7 +101,6 @@ void Mem2Reg::re_name(BasicBlock *bb) {
             }
         }
     }
-
     for ( auto succ_bb : bb->get_succ_basic_blocks() ){
         for ( auto instr : succ_bb->get_instructions() ){
             if ( instr->is_phi()){
@@ -109,6 +116,8 @@ void Mem2Reg::re_name(BasicBlock *bb) {
     }
 
     for ( auto dom_succ_bb : dom->get_dom_tree_succ_blocks(bb) ){
+        if(dom_succ_bb->is_fake_block()) { continue; }
+        std::cout << dom_succ_bb->get_name() << std::endl;
         re_name(dom_succ_bb);
     }
 

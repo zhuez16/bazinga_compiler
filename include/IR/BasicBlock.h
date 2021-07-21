@@ -57,7 +57,7 @@ public:
     void delete_instr(Instruction *instr);
 
     bool empty() { return instr_list_.empty(); }
-
+    bool is_fake_block() {return _fake; }
     int get_num_of_instr() { return instr_list_.size(); }
     std::list<Instruction *> &get_instructions() { return instr_list_; }
 

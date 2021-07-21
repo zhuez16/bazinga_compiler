@@ -17,6 +17,7 @@ public:
     BasicBlock *get_immediate_dominance(BasicBlock *bb) { return immediate_dominance[bb]; }
     void create_immediate_dominance(Function *f);
     void set_immediate_dominance(BasicBlock *bb, BasicBlock *idom) { immediate_dominance[bb] = idom; }
+
     void create_dominance_frontier(Function *f);
     void create_reverse_post_order(Function *f);
     void post_order_visit(BasicBlock *bb, std::set<BasicBlock *> &visited);
@@ -26,6 +27,7 @@ public:
     std::set<BasicBlock *> get_dom_tree_succ_blocks(BasicBlock *bb) { return dom_tree_succ_blocks[bb]; }
     void add_dominance_frontier(BasicBlock *bb, BasicBlock *dom_frontier_bb) { dominannce_frontier[bb].insert(dom_frontier_bb); }
     void create_dom_tree_succ(Function *f);
+    void print_dom_tree();
 private:
 
     std::list<BasicBlock *> reverse_post_order_;
