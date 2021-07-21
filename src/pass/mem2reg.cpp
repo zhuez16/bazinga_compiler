@@ -6,25 +6,26 @@ std::map<Value *, std::vector<Value *>> var_val_stack;
 // reference :Efficiently computing static single
 // assignment form and the control dependence graph.
 void Mem2Reg::run() {
-    printf("running mem2reg\n");
-    std::cout << m_->get_functions().size() << std::endl;
+//    printf("running mem2reg\n");
+//    std::cout << m_->get_functions().size() << std::endl;
     for(auto f: m_->get_functions()){
-        std::cout << f->get_name() << std::endl;
-        std::cout << f->get_basic_blocks().size() << std::endl;
+//        std::cout << f->get_name() << std::endl;
+//        std::cout << f->get_basic_blocks().size() << std::endl;
         if(f->get_basic_blocks().size() == 0 ){ continue; }
         // get dominance frontier message
         dom = new dominator(m_);
-        printf("before run dom\n");
+//        printf("before run dom\n");
         dom->run();
-        printf("after run dom\n");
+//        printf("after run dom\n");
         std::set<Value *> promote_alloca;
         std::map<Value *, std::set<BasicBlock *>> alloca_to_live_in_block;
         // record block use but not define
         for(auto bb: f->get_basic_blocks()){
             std::set<Value *> record;
             for(auto instr: bb->get_instructions()){
-                // store: store i32 val, i32 ptr
+                // store: store i32 val, i32* ptr
                 if(instr->is_store()){
+                    instr->print();
                     auto val = instr->get_operand(0);
                     auto ptr = instr->get_operand(1);
                     if( !(dynamic_cast<GlobalVariable *>(ptr)) &&
@@ -50,7 +51,7 @@ void Mem2Reg::run() {
                 work_list.pop_back();
                 for(auto dominance_frontier_bb: dom->get_dominance_frontier(bb)){
                     auto new_pair = std::make_pair(dominance_frontier_bb, alloca);
-                    if(block_own_phi.find(new_pair) != block_own_phi.end()){
+                    if(block_own_phi.find(new_pair) == block_own_phi.end()){
                         auto phi = PhiInst::create_phi(alloca->get_type()->get_pointer_element_type(), dominance_frontier_bb);
                         phi->set_lval(alloca);
                         dominance_frontier_bb->add_instr_begin(phi);
@@ -60,8 +61,8 @@ void Mem2Reg::run() {
                 }
             }
         }
-        std::cout << f->get_basic_blocks().size() << std::endl;
-        std::cout << f->get_entry_block()->get_name() << std::endl;
+//        std::cout << f->get_basic_blocks().size() << std::endl;
+//        std::cout << f->get_entry_block()->get_name() << std::endl;
         re_name(f->get_entry_block());
     }
 }
@@ -71,9 +72,9 @@ void Mem2Reg::re_name(BasicBlock *bb) {
     for (auto instr : bb->get_instructions() ){
         if (instr->is_phi()){
             // step 3: push phi instr as lval's lastest value define
-            std::cout << "1" << std::endl;
+//            std::cout << "1" << std::endl;
             auto l_val = dynamic_cast<PhiInst *>(instr)->get_lval();
-            std::cout << "2" << std::endl;
+//            std::cout << "2" << std::endl;
             var_val_stack[l_val].push_back(instr);
         }
     }
@@ -84,6 +85,10 @@ void Mem2Reg::re_name(BasicBlock *bb) {
             if (!dynamic_cast<GlobalVariable *>(l_val) &&
                 !dynamic_cast<GetElementPtrInst *>(l_val)){
                 if ( var_val_stack.find(l_val)!=var_val_stack.end()){
+                    assert(var_val_stack[l_val].back());
+                    std::cout<<"4"<<std::endl;
+                    instr->print();
+                    std::cout<<var_val_stack[l_val].back()->get_type() << std::endl;
                     instr->replace_all_use_with(var_val_stack[l_val].back());
                     wait_delete.push_back(instr);
                 }
@@ -117,7 +122,7 @@ void Mem2Reg::re_name(BasicBlock *bb) {
 
     for ( auto dom_succ_bb : dom->get_dom_tree_succ_blocks(bb) ){
         if(dom_succ_bb->is_fake_block()) { continue; }
-        std::cout << dom_succ_bb->get_name() << std::endl;
+//        std::cout << dom_succ_bb->get_name() << std::endl;
         re_name(dom_succ_bb);
     }
 
