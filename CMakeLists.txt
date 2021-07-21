@@ -46,7 +46,8 @@ ADD_EXECUTABLE(builder
         ${FLEX_lexer2_OUTPUTS}
         ${BISON_parser_OUTPUTS}
         src/ast.cpp
-        src/pass_manager.cpp include/pass_manager.h src/pass/active_vars.cpp include/pass/active_vars.h src/codegen/codegen.cpp include/codegen/codegen.h src/codegen/instgen.cpp include/codegen/instgen.h)
+        src/pass_manager.cpp
+        src/pass/active_vars.cpp)
 TARGET_LINK_LIBRARIES(
         builder IR_lib
 )

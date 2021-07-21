@@ -1,7 +1,7 @@
 #include "bzcompiler_builder.hpp"
 #include "parser.h"
 #include "ast.h"
-#include "Pass/mem2reg.h"
+#include "pass/mem2reg.h"
 #include <cstring>
 #include <iostream>
 #include <fstream>
@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
     printf("start running pass manager\n");
     if( mem2reg )
     {
-        PM.add_pass<Mem2RegPass>();
+        PM.add_pass<Mem2Reg>();
     }
 //    if( loop_search ){
 //        PM.add_pass<LoopSearch>();

@@ -537,58 +537,88 @@ int BZBuilder::compute_ast_constant(ASTInstruction *inst) {
  * @param init_values
  * @return 当前块填充的数量
  */
-void BZBuilder::ConstInitialValueWalker(ASTVarDecl::ASTArrayList *l, const std::vector<int> &dim, int depth,
+std::tuple<int, int> BZBuilder::ConstInitialValueWalker(ASTVarDecl::ASTArrayList *l, const std::vector<int> &dim, int depth,
                                    std::vector<int> &init_values) {
-    auto cur_bound = dim[depth];
-    auto d_length = 1;
-    for(int i = depth + 1; i < dim.size(); ++i) {
-        d_length *= dim[i];
-    }
-    std::vector<int>init_list;
-    for(int i = 0; i < l->list.size(); ++i) {
-        auto init_val = l->list[i];
-        if(l->isArray) {
-            int pos = init_list.size();
-            for(int j = 0; j < (d_length - pos % d_length) % d_length; ++j) {
-                init_list.push_back(0);
+    int align = dim[dim.size() - 1];
+    int inited = 0;
+    int max_depth = depth;
+    for (auto it: l->list) {
+        if (it->isArray) {
+            int tb_fill = inited % align;
+            for(int i = 0; i < tb_fill; ++i) {
+                init_values.push_back(0);
+                ++inited;
             }
-            ConstInitialValueWalker(init_val, dim, depth + 1, init_values);
+            int _dp, _filled;
+            std::tie(_dp, _filled) = ConstInitialValueWalker(it, dim, depth + 1, init_values);
+            inited += _filled;
+            max_depth = std::max(max_depth, _dp);
         } else {
-            init_list.push_back(compute_ast_constant(l->value));
+            ++inited;
+            init_values.push_back(compute_ast_constant(it->value));
         }
     }
-    for (int i = init_list.size(); i < d_length * cur_bound; ++i) {
-        init_list.push_back(0);
+    int total_fill = 1;
+    for(int i = 0; i <= max_depth - depth; ++i) {
+        total_fill *= dim[dim.size() - 1 - i];
     }
-    init_values.insert(init_values.end(), init_list.begin(), init_list.end());
+    for(int i = inited; i < total_fill; ++i) {
+        init_values.push_back(0);
+        ++inited;
+    }
+    if(depth == 0) {
+        int tbfill = 1;
+        for(int i : dim) {
+            tbfill *= i;
+        }
+        for(int i = inited; i < tbfill; ++i) {
+            init_values.push_back(0);
+        }
+    }
+    return {max_depth, inited};
 }
 
 
-void BZBuilder::InitialValueWalker(ASTVarDecl::ASTArrayList *l, const std::vector<int> &dim, int depth,
+std::tuple<int, int> BZBuilder::InitialValueWalker(ASTVarDecl::ASTArrayList *l, const std::vector<int> &dim, int depth,
                                    std::vector<Value *> &init_values, Module *m) {
-    auto cur_bound = dim[depth];
-    auto d_length = 1;
-    for(int i = depth + 1; i < dim.size(); ++i) {
-        d_length *= dim[i];
-    }
-    std::vector<Value *>init_list;
-    for(int i = 0; i < l->list.size(); ++i) {
-        auto init_val = l->list[i];
-        if(l->isArray) {
-            int pos = init_list.size();
-            for(int j = 0; j < (d_length - pos % d_length) % d_length; ++j) {
-                init_list.push_back(CONST(0));
+    int align = dim[dim.size() - 1];
+    int inited = 0;
+    int max_depth = depth;
+    for (auto it: l->list) {
+        if (it->isArray) {
+            int tb_fill = inited % align;
+            for(int i = 0; i < tb_fill; ++i) {
+                init_values.push_back(CONST(0));
+                ++inited;
             }
-            InitialValueWalker(init_val, dim, depth + 1, init_values, m);
+            int _dp, _filled;
+            std::tie(_dp, _filled) = InitialValueWalker(it, dim, depth + 1, init_values, m);
+            inited += _filled;
+            max_depth = std::max(max_depth, _dp);
         } else {
-            l->value->accept(*this);
-            init_list.push_back(tmp_val);
+            ++inited;
+            it->value->accept(*this);
+            init_values.push_back(tmp_val);
         }
     }
-    for (int i = init_list.size(); i < d_length * cur_bound; ++i) {
-        init_list.push_back(CONST(0));
+    int total_fill = 1;
+    for(int i = 0; i <= max_depth - depth; ++i) {
+        total_fill *= dim[dim.size() - 1 - i];
     }
-    init_values.insert(init_values.end(), init_list.begin(), init_list.end());
+    for(int i = inited; i < total_fill; ++i) {
+        init_values.push_back(CONST(0));
+        ++inited;
+    }
+    if(depth == 0) {
+        int tbfill = 1;
+        for(int i : dim) {
+            tbfill *= i;
+        }
+        for(int i = inited; i < tbfill; ++i) {
+            init_values.push_back(CONST(0));
+        }
+    }
+    return {max_depth, inited};
 }
 
 void BZBuilder::InitialValueBuilder(const std::vector<int> &dim, const std::vector<Value *> &val, Instruction *gep, int &offset, int depth) {
@@ -675,7 +705,7 @@ void BZBuilder::visit(ASTVarDecl &node) {
                     if (it->has_initial) {
                         std::vector<int> init;
                         ConstInitialValueWalker(it->initial_value[0], dimension, 0, init);
-                        auto gv = GlobalVariable::create(it->var_name, getModule(), arr_ty, false, ConstantArray::get(arr_ty, int2constant(init)));
+                        auto gv = GlobalVariable::create(it->var_name, getModule(), arr_ty, false, ConstantArray::get(arr_ty, ConstantArray::IntegerList2Constant(dimension, init, getModule())));
                         scope.push(it->var_name, gv, false, dimension, init);
                     } else {
                         auto gv = GlobalVariable::create(it->var_name, getModule(), arr_ty, false, ConstantZero::get(arr_ty, getModule()));
