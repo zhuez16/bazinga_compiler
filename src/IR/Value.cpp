@@ -23,16 +23,23 @@ std::string Value::get_name() const
 void Value::replace_all_use_with(Value *new_val)
 {
     for (auto use : use_list_) {
-        auto bb = dynamic_cast<BasicBlock *>(use.val_);
-        if (bb) {
-            auto bbori =dynamic_cast<BasicBlock *>(this);
-            bb->replace_basic_block(bbori, dynamic_cast<BasicBlock *>(new_val));
-            return;
-        }
-
         auto val = dynamic_cast<User *>(use.val_);
         assert(val && "new_val is not a user");
         val->set_operand(use.arg_no_, new_val);
+    }
+    auto val = dynamic_cast<BasicBlock *>(this);
+    if (val) {
+        auto new_bb = dynamic_cast<BasicBlock *>(new_val);
+        for (BasicBlock * pre_bb: val->get_pre_basic_blocks()) {
+            pre_bb->remove_succ_basic_block(val);
+            pre_bb->add_succ_basic_block(new_bb);
+            new_bb->add_pre_basic_block(pre_bb);
+        }
+        for (BasicBlock * suc_bb: val->get_succ_basic_blocks()) {
+            suc_bb->remove_pre_basic_block(val);
+            suc_bb->add_pre_basic_block(new_bb);
+            new_bb->add_succ_basic_block(suc_bb);
+        }
     }
 }
 
