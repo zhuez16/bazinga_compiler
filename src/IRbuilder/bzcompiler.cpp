@@ -1,6 +1,7 @@
 #include "bzcompiler_builder.hpp"
 #include "parser.h"
 #include "ast.h"
+#include "Pass/mem2reg.h"
 #include <cstring>
 #include <iostream>
 #include <fstream>
@@ -22,10 +23,6 @@ int main(int argc, char **argv) {
     bool loop_inv_hoist = false;
     bool loop_search = false;
     bool availableexpression = false;
-
-    for (int i = 0; i < argc; ++i) {
-        std::cout << argv[i] << std::endl;
-    }
 
     for (int i = 1;i < argc;++i) {
         if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
@@ -86,42 +83,44 @@ int main(int argc, char **argv) {
             }
         }
     }
-
+    printf("start build ast\n");
     SyntaxTree *tree = parse(input_path.c_str());
     auto *ast = new ASTProgram(tree);
     BZBuilder builder;
     ast->accept(builder);
     auto m = builder.getModule();
-    /*
-    PassManager PM(m.get());
+
+    PassManager PM(m);
     mem2reg = true;
 
     m->set_print_name();
-
+    printf("start running pass manager\n");
     if( mem2reg )
     {
-        PM.add_pass<Mem2Reg>();
+        PM.add_pass<Mem2RegPass>();
     }
-    if( loop_search ){
-        PM.add_pass<LoopSearch>();
-    }
-    if( const_propagation )
-    {
-        PM.add_pass<ConstPropagation>(true);
-    }
-    if( activevars )
-    {
-        PM.add_pass<ActiveVars>();
-    }
-    if( loop_inv_hoist )
-    {
-        PM.add_pass<LoopInvHoist>(true);
-    }
-    if(availableexpression){
-        PM.add_pass<AvailableExpression>(true);
-    }
+//    if( loop_search ){
+//        PM.add_pass<LoopSearch>();
+//    }
+//    if( const_propagation )
+//    {
+//        PM.add_pass<ConstPropagation>(true);
+//    }
+//    if( activevars )
+//    {
+//        PM.add_pass<ActiveVars>();
+//    }
+//    if( loop_inv_hoist )
+//    {
+//        PM.add_pass<LoopInvHoist>(true);
+//    }
+//    if(availableexpression){
+//        PM.add_pass<AvailableExpression>(true);
+//    }
+    printf("555\n");
     PM.run();
-    */
+    PM.run();
+    printf("after running pass manager\n");
     auto IR = m->print();
 
     std::ofstream output_stream;

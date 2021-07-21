@@ -93,5 +93,15 @@ std::string BasicBlock::print()
         bb_ir += "\n";
     }
 
+    // 空BasicBlock，自动加上return语句
+    if (get_terminator() == nullptr) {
+        bb_ir += "  ";
+        if(get_parent()->get_return_type()->is_void_type()) {
+            bb_ir += "ret void\n";
+        } else {
+            bb_ir += "ret i32 0\n";
+        }
+    }
+
     return bb_ir;
 }

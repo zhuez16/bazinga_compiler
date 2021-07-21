@@ -48,14 +48,19 @@ ConstantArray *ConstantArray::get(ArrayType *ty, const std::vector<Constant*> &v
 std::string ConstantArray::print()
 {
     std::string const_ir;
-    const_ir += this->get_type()->print();
-    const_ir += " ";
+    // const_ir += this->get_type()->print();
+    // const_ir += " ";
     const_ir += "[";
     for ( int i = 0 ; i < this->get_size_of_array() ; i++ )
     {
+        const_ir += get_element_value(i)->get_type()->print();
+        const_ir += " ";
         const_ir += get_element_value(i)->print();
         const_ir += ", ";
     }
+    const_ir.pop_back();
+    const_ir.pop_back();
+    const_ir += "]";
     return const_ir;
 }
 
