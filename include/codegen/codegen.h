@@ -45,7 +45,7 @@ private:
     std::map<Value *,int> reg_mapping;
     std::map<Value *,int> stack_mapping;
     std::set<Value *> allocated;
-    std::map<Value *,int> got;
+    std::map<Value *,int> global_table;
     std::map<Instruction*, std::set<Value>> context_active_vars;
     int stack_size;
     int thread_stack_bits;
@@ -68,7 +68,7 @@ public:
     std::string generateFunctionPostCode(Function *func);
     std::string generateBasicBlockCode(BasicBlock *bb);
     std::string generateInstructionCode(Instruction *instr);
-    std::string global(std::string name);
+    std::string globalVariable(std::string name);
     std::string getBasicBlockLabelName(BasicBlock *bb);
     std::string getFunctionLabelName(Function *func,int type);
     std::string generateFunctionCall(Instruction *instr,std::string func_name,
@@ -88,7 +88,11 @@ public:
     std::string comment(std::string s);
     std::map<Value *, int> regAlloc();
     std::string runCodeGenerate();
-
+    std::string generateGlobalTable();
+    std::string mt_start();
+    std::string mt_end();
+    std::string mt_vars(Function *func);
+    std::string allocate_stack(Function *func);
 };
 
 
