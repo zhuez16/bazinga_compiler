@@ -1,6 +1,7 @@
 #include "IR/Value.h"
 #include "IR/Type.h"
 #include "IR/User.h"
+#include "IR/BasicBlock.h"
 #include <cassert>
 
 Value::Value(Type *ty, const std::string &name )
@@ -22,6 +23,13 @@ std::string Value::get_name() const
 void Value::replace_all_use_with(Value *new_val)
 {
     for (auto use : use_list_) {
+        auto bb = dynamic_cast<BasicBlock *>(use.val_);
+        if (bb) {
+            auto bbori =dynamic_cast<BasicBlock *>(this);
+            bb->replace_basic_block(bbori, bb);
+            return;
+        }
+
         auto val = dynamic_cast<User *>(use.val_);
         assert(val && "new_val is not a user");
         val->set_operand(use.arg_no_, new_val);

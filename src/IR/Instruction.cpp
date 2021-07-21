@@ -316,7 +316,8 @@ BranchInst *BranchInst::create_cond_br(Value *cond, BasicBlock *if_true, BasicBl
     if_false->add_pre_basic_block(bb);
     bb->add_succ_basic_block(if_false);
     bb->add_succ_basic_block(if_true);
-
+    if_false->add_use(bb, 0);
+    if_true->add_use(bb, 0);
     return new BranchInst(cond, if_true, if_false, bb);
 }
 
@@ -324,7 +325,7 @@ BranchInst *BranchInst::create_br(BasicBlock *if_true, BasicBlock *bb)
 {
     if_true->add_pre_basic_block(bb);
     bb->add_succ_basic_block(if_true);
- 
+    if_true->add_use(bb, 0);
     return new BranchInst(if_true, bb);
 }
 
