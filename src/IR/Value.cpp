@@ -26,7 +26,7 @@ void Value::replace_all_use_with(Value *new_val)
         auto bb = dynamic_cast<BasicBlock *>(use.val_);
         if (bb) {
             auto bbori =dynamic_cast<BasicBlock *>(this);
-            bb->replace_basic_block(bbori, bb);
+            bb->replace_basic_block(bbori, dynamic_cast<BasicBlock *>(new_val));
             return;
         }
 
