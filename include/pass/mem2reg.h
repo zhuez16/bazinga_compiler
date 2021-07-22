@@ -13,16 +13,14 @@
 class Mem2Reg : public Pass
 {
 private:
-    Function * func_;
-    dominator *dom;
+    Function * func_{};
+    dominator *dom{};
 
 public:
     Mem2Reg(Module *m) : Pass(m){}
-    ~Mem2Reg(){};
+    ~Mem2Reg()= default;;
     void run() override;
-    void generate_phi();
-    void re_name(BasicBlock *bb);
-    void remove_alloca();
+    void rename(BasicBlock *bb);
 };
 
 #endif
