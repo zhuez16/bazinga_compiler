@@ -4,8 +4,6 @@
 
 #ifndef BAZINGA_COMPILER_CODEGEN_H
 #define BAZINGA_COMPILER_CODEGEN_H
-#include <linux/sched.h>
-#include <sys/wait.h>
 #include <iostream>
 #include <map>
 #include <set>
@@ -22,7 +20,7 @@
 #include "IR/Type.h"
 #include "IR/User.h"
 #include "IR/Value.h"
-
+#include "instgen.h"
 const std::string global_vars_label=".global_vars";
 const int arch_version=8;
 const bool enlarge_stack=true;
@@ -39,6 +37,42 @@ const int L2_cache_size=1*(1<<<20);
 const int thread_id_reg=10;
 const int clone_flag=CLONE_VM | SIGCHLD;
 
+const std::set<InstGen::Reg> callee_save_regs={
+        InstGen::Reg(4),
+        InstGen::Reg(5),
+        InstGen::Reg(6),
+        InstGen::Reg(7),
+        InstGen::Reg(8),
+        InstGen::Reg(9),
+        InstGen::Reg(10),
+        InstGen::Reg(11)
+};
+const std::set<InstGen::Reg> caller_save_regs={
+        InstGen::Reg(0),
+        InstGen::Reg(1),
+        InstGen::Reg(2),
+        InstGen::Reg(3),
+        InstGen::Reg(12),
+        InstGen::Reg(14),
+};
+const std::set<InstGen::Reg> allocate_regs={
+        InstGen::Reg(0),
+        InstGen::Reg(1),
+        InstGen::Reg(2),
+        InstGen::Reg(3),
+        InstGen::Reg(4),
+        InstGen::Reg(5),
+        InstGen::Reg(6),
+        InstGen::Reg(7),
+        InstGen::Reg(8),
+        InstGen::Reg(9),
+        InstGen::Reg(10),
+};
+const std::set<InstGen::Reg> temp_regs={
+        InstGen::Reg(op_reg_0),
+        InstGen::Reg(op_reg_1),
+};
+
 class codegen {
 private:
     Module *module;
@@ -53,7 +87,6 @@ private:
     bool debug;
     double spill_cost_total;
     double color_bonus_total;
-    bool mt_enabled;
 public:
     codegen(Module *module,bool debug=false){
         this->module=module;
@@ -80,7 +113,7 @@ public:
     bool isSameMapping(Value *a,Value *b);
     std::string virtualRegMove(std::vector<Value*> target,std::vector<Value*> source);
     std::string virtualRegMove(Value *target, Value *sourse);
-    std::string assignSpecificReg(Value *val, int target);
+    std::string assignSpecificReg(Reg *val, int target);
     std::string getSpecificReg(Value *val, int source);
     std::string generateGlobalVarsCode();
     std::string generateInitializerCode();
@@ -89,9 +122,6 @@ public:
     std::map<Value *, int> regAlloc();
     std::string runCodeGenerate();
     std::string generateGlobalTable();
-    std::string mt_start();
-    std::string mt_end();
-    std::string mt_vars(Function *func);
     std::string allocate_stack(Function *func);
 };
 
