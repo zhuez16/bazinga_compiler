@@ -84,11 +84,7 @@ void Mem2Reg::re_name(BasicBlock *bb) {
             auto l_val = dynamic_cast<LoadInst *>(instr)->get_lval();
             if (!dynamic_cast<GlobalVariable *>(l_val) &&
                 !dynamic_cast<GetElementPtrInst *>(l_val)){
-                if ( var_val_stack.find(l_val)!=var_val_stack.end()){
-                    assert(var_val_stack[l_val].back());
-                    std::cout<<"4"<<std::endl;
-                    instr->print();
-                    std::cout<<var_val_stack[l_val].back()->get_type() << std::endl;
+                if ( var_val_stack.find(l_val) != var_val_stack.end()){
                     instr->replace_all_use_with(var_val_stack[l_val].back());
                     wait_delete.push_back(instr);
                 }
@@ -98,7 +94,6 @@ void Mem2Reg::re_name(BasicBlock *bb) {
             // step 5: push r_val of store instr as lval's lastest definition
             auto l_val = dynamic_cast<StoreInst *>(instr)->get_lval();
             auto r_val = dynamic_cast<StoreInst *>(instr)->get_rval();
-
             if (!dynamic_cast<GlobalVariable *>(l_val) &&
                 !dynamic_cast<GetElementPtrInst *>(l_val)){
                 var_val_stack[l_val].push_back(r_val);
@@ -110,8 +105,7 @@ void Mem2Reg::re_name(BasicBlock *bb) {
         for ( auto instr : succ_bb->get_instructions() ){
             if ( instr->is_phi()){
                 auto l_val = dynamic_cast<PhiInst *>(instr)->get_lval();
-                if (var_val_stack.find(l_val)!= var_val_stack.end()){
-//                    assert(var_val_stack[l_val].size()!=0);
+                if (var_val_stack.find(l_val) != var_val_stack.end()){
                     // step 6: fill phi pair parameters
                     dynamic_cast<PhiInst *>(instr)->add_phi_pair_operand( var_val_stack[l_val].back(), bb);
                 }

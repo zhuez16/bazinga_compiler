@@ -2,6 +2,7 @@
 #include "parser.h"
 #include "ast.h"
 #include "pass/mem2reg.h"
+#include "pass/global2local.h"
 #include <cstring>
 #include <iostream>
 #include <fstream>
@@ -92,7 +93,7 @@ int main(int argc, char **argv) {
 
     PassManager PM(m);
     mem2reg = true;
-
+    PM.add_pass<Global2Local>();
     m->set_print_name();
 //    printf("start running pass manager\n");
     if( mem2reg )
@@ -126,7 +127,7 @@ int main(int argc, char **argv) {
     std::ofstream output_stream;
     auto output_file = target_path+".ll";
     output_stream.open(output_file, std::ios::out);
-    output_stream << "; ModuleID = 'cminus'\n";
+    output_stream << "; ModuleID = 'sysy2021_bzcompiler'\n";
     output_stream << "source_filename = \""+ input_path +"\"\n\n";
     output_stream << IR;
     output_stream.close();
