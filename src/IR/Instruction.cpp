@@ -3,6 +3,7 @@
 #include "IR/Function.h"
 #include "IR/BasicBlock.h"
 #include "IR/Instruction.h"
+#include "IR/Constant.h"
 #include "IR/IRprinter.h"
 #include <cassert>
 #include <vector>
@@ -29,6 +30,15 @@ Function *Instruction::get_function()
 Module *Instruction::get_module() 
 { 
     return parent_->get_module(); 
+}
+
+bool Instruction::isStaticCalculable() {
+    if (isBinary()) {
+        auto cl = dynamic_cast<ConstantInt *>(get_operand(0));
+        auto cr = dynamic_cast<ConstantInt *>(get_operand(1));
+        return cl != nullptr && cr != nullptr;
+    }
+    return false;
 }
 
 BinaryInst::BinaryInst(Type *ty, OpID id, Value *v1, Value *v2, 
@@ -125,6 +135,29 @@ std::string BinaryInst::print()
     }
     return instr_ir;
 }
+
+int BinaryInst::calculate() {
+    assert(isStaticCalculable() && "Only static op can be calculated");
+    auto cl = dynamic_cast<ConstantInt *>(get_operand(0))->get_value();
+    auto cr = dynamic_cast<ConstantInt *>(get_operand(1))->get_value();
+    switch (get_instr_type()) {
+        case add:
+            return cl + cr;
+        case sub:
+            return cl - cr;
+        case mul:
+            return cl * cr;
+        case sdiv:
+            if (cr == 0) return 0;
+            return cl / cr;
+        case mod:
+            if (cr == 0) return 0;
+            return cl % cr;
+        default:
+            assert(0 && "Invalid instr type");
+    }
+}
+
 /*
 UnaryInst *UnaryInst::create_pos(Value *v1, BasicBlock *bb, Module *m){
     return new UnaryInst(Type::get_int32_type(m),Instruction::pos,v1,bb);

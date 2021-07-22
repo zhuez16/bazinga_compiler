@@ -8,8 +8,7 @@
 #include <memory>
 class Pass{
 public:
-    Pass(Module* m) : m_(m){
-    }
+    explicit Pass(Module* m) : m_(m) {}
     virtual void run()=0;
 protected:
     Module* m_;
@@ -17,7 +16,7 @@ protected:
 
 class PassManager{
 public:
-    PassManager(Module* m) : m_(m){}
+    explicit PassManager(Module* m) : m_(m){}
     template<typename PassType> void add_pass(bool print_ir=false){
         passes_.push_back(std::pair<Pass*,bool>(new PassType(m_),print_ir));
     }

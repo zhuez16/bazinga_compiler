@@ -47,7 +47,8 @@ ADD_EXECUTABLE(builder
         ${BISON_parser_OUTPUTS}
         src/ast.cpp
         src/pass_manager.cpp
-        src/pass/active_vars.cpp)
+        src/pass/active_vars.cpp
+        src/pass/combining.cpp)
 TARGET_LINK_LIBRARIES(
         builder IR_lib
 )

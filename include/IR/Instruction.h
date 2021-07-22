@@ -37,7 +37,7 @@ public:
         fcmp,
         phi,
         call,
-        getelementptr, 
+        getelementptr,
         zext, // zero extend
         fptosi,
         sitofp,
@@ -84,7 +84,7 @@ public:
             }
             it1++;
         }
-        
+
     };
 
     /// ============= INLINE OPTIMIZATION HELPER FUNCTIONS ==============
@@ -115,7 +115,7 @@ public:
             case zext: return "zext"; break;
             case fptosi: return "fptosi"; break;
             case sitofp: return "sitofp"; break;
-        
+
         default: return ""; break;
         }
     }
@@ -135,14 +135,7 @@ public:
     bool is_sub() { return op_id_ == sub; }
     bool is_mul() { return op_id_ == mul; }
     bool is_div() { return op_id_ == sdiv; }
-    
-    
-    bool is_fadd() { return op_id_ == fadd; }
-    bool is_fsub() { return op_id_ == fsub; }
-    bool is_fmul() { return op_id_ == fmul; }
-    bool is_fdiv() { return op_id_ == fdiv; }
-    bool is_fp2si() { return op_id_ == fptosi; }
-    bool is_si2fp() { return op_id_ == sitofp; }
+
 
     bool is_cmp() { return op_id_ == cmp; }
     bool is_fcmp() { return op_id_ == fcmp; }
@@ -150,14 +143,18 @@ public:
     bool is_call() { return op_id_ == call; }
     bool is_gep() { return op_id_ == getelementptr; }
     bool is_zext() { return op_id_ == zext; }
-    
+
 
     bool isBinary()
     {
-        return (is_add() || is_sub() || is_mul() || is_div() ||
-                is_fadd() || is_fsub() || is_fmul() || is_fdiv()) &&
+        return (is_add() || is_sub() || is_mul() || is_div()) &&
                (get_num_operand() == 2);
     }
+
+    bool isStaticCalculable();
+
+
+    virtual int calculate()  { return 0; }
 
     bool isTerminator() { return is_br() || is_ret(); }
 
@@ -230,6 +227,8 @@ public:
     };
 
     virtual std::string print() override;
+
+    int calculate() final;
 
 private:
     void assertValid();
@@ -381,7 +380,7 @@ public:
                 *it1 = ptMap[o];
             }
         }
-        
+
     };
 };
 

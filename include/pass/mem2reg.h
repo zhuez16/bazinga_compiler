@@ -17,7 +17,7 @@ private:
     dominator *dom{};
 
 public:
-    Mem2Reg(Module *m) : Pass(m){}
+    explicit Mem2Reg(Module *m) : Pass(m){}
     ~Mem2Reg()= default;;
     void run() override;
     void rename(BasicBlock *bb);
