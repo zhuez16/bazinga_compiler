@@ -19,17 +19,41 @@ Module *BasicBlock::get_module()
 
 void BasicBlock::add_instruction(Instruction *instr)
 {
+    instr->setSuccInst(nullptr);
+    if (instr_list_.empty()) {
+        instr->setSuccInst(nullptr);
+    } else {
+        Instruction *last_inst = instr_list_.back();
+        instr->setPrevInst(last_inst);
+        last_inst->setSuccInst(instr);
+    }
     instr_list_.push_back(instr);
 }
 
 void BasicBlock::add_instr_begin(Instruction *instr)
 {
+    instr->setPrevInst(nullptr);
+    if (instr_list_.empty()) {
+        instr->setSuccInst(nullptr);
+    } else {
+        Instruction *first_inst = instr_list_.front();
+        instr->setSuccInst(first_inst);
+        first_inst->setPrevInst(instr);
+    }
     instr_list_.push_front(instr);
 }
 
 void BasicBlock::delete_instr( Instruction *instr )
 {
     instr_list_.remove(instr);
+    Instruction *prev = instr->getPrevInst();
+    Instruction *succ = instr->getSuccInst();
+    if (prev != nullptr) {
+        prev->setSuccInst(succ);
+    }
+    if (succ != nullptr) {
+        succ->setPrevInst(prev);
+    }
     instr->remove_use_of_ops();
 }
 

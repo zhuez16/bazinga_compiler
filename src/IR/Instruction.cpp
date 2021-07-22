@@ -33,11 +33,6 @@ Module *Instruction::get_module()
 }
 
 bool Instruction::isStaticCalculable() {
-    if (isBinary()) {
-        auto cl = dynamic_cast<ConstantInt *>(get_operand(0));
-        auto cr = dynamic_cast<ConstantInt *>(get_operand(1));
-        return cl != nullptr && cr != nullptr;
-    }
     return false;
 }
 
@@ -111,6 +106,12 @@ BinaryInst *BinaryInst::create_iand(Value *v1, Value *v2, BasicBlock *bb, Module
 BinaryInst *BinaryInst::create_ior(Value *v1, Value *v2, BasicBlock *bb, Module *m)
 {
     return new BinaryInst(Type::get_int1_type(m), Instruction::lor, v1, v2, bb);
+}
+
+bool BinaryInst::isStaticCalculable() {
+    auto cl = dynamic_cast<ConstantInt *>(get_operand(0));
+    auto cr = dynamic_cast<ConstantInt *>(get_operand(1));
+    return cl != nullptr && cr != nullptr;
 }
 
 std::string BinaryInst::print()
@@ -229,6 +230,34 @@ std::string CmpInst::print()
         instr_ir += print_as_op(this->get_operand(1), true);
     }
     return instr_ir;
+}
+
+bool CmpInst::isStaticCalculable() {
+    auto cl = dynamic_cast<ConstantInt *>(get_operand(0));
+    auto cr = dynamic_cast<ConstantInt *>(get_operand(1));
+    return cl != nullptr && cr != nullptr;
+}
+
+int CmpInst::calculate() {
+    assert(isStaticCalculable() && "Only static op can be calculated");
+    auto cl = dynamic_cast<ConstantInt *>(get_operand(0))->get_value();
+    auto cr = dynamic_cast<ConstantInt *>(get_operand(1))->get_value();
+    switch (get_cmp_op()) {
+        case GT:
+            return cl > cr;
+        case GE:
+            return cl >= cr;
+        case EQ:
+            return cl == cr;
+        case NE:
+            return cl != cr;
+        case LT:
+            return cl < cr;
+        case LE:
+            return cl <= cr;
+        default:
+            assert(0 && "Invalid instr type");
+    }
 }
 
 FCmpInst::FCmpInst(Type *ty, CmpOp op, Value *lhs, Value *rhs, 
@@ -725,6 +754,19 @@ std::string PhiInst::print()
     return instr_ir; 
 }
 
-BranchInst::BranchInst(int op_num, BasicBlock *bb): Instruction(Type::get_void_type(bb->get_module()), Instruction::br, op_num, bb){};
+BranchInst::BranchInst(int op_num, BasicBlock *bb): Instruction(Type::get_void_type(bb->get_module()), Instruction::br, op_num, bb){}
+
+BasicBlock *BranchInst::getTrueBB() const {
+    if (is_cond_br()) {
+        return dynamic_cast<BasicBlock *>(get_operand(1));
+    } else {
+        return dynamic_cast<BasicBlock *>(get_operand(0));
+    }
+}
+
+BasicBlock *BranchInst::getFalseBB() const {
+    assert(is_cond_br() && "Only condition branch has a false block");
+    return dynamic_cast<BasicBlock *>(get_operand(2));
+};
 ReturnInst::ReturnInst(BasicBlock *bb, size_t num_op): Instruction(Type::get_void_type(bb->get_module()), Instruction::ret, num_op, bb){};
 StoreInst::StoreInst(BasicBlock *bb): Instruction(Type::get_void_type(bb->get_module()), Instruction::store, 2, bb){};

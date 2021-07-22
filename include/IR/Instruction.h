@@ -57,6 +57,19 @@ public:
     Function *get_function();
     Module *get_module();
 
+    /// ============= FUNCTION CONTEXT IN SUBROUTINE ================
+    ///              维护一个基本块内的指令关系链，用于优化处理
+
+private:
+    Instruction *_prev_inst;
+    Instruction *_next_inst;
+public:
+    Instruction *getPrevInst() const { return _prev_inst; }
+    Instruction *getSuccInst() const { return _next_inst; }
+    void setPrevInst(Instruction *inst) { _prev_inst = inst; }
+    void setSuccInst(Instruction *inst) { _next_inst = inst; }
+
+
     /// ============= INLINE OPTIMIZATION HELPER FUNCTIONS ==============
 
     // 创建一个指令的深拷贝
@@ -151,7 +164,7 @@ public:
                (get_num_operand() == 2);
     }
 
-    bool isStaticCalculable();
+    virtual bool isStaticCalculable();
 
 
     virtual int calculate()  { return 0; }
@@ -230,6 +243,8 @@ public:
 
     int calculate() final;
 
+    bool isStaticCalculable() final;
+
 private:
     void assertValid();
 };
@@ -257,6 +272,10 @@ public:
                                BasicBlock *bb, Module *m);
 
     CmpOp get_cmp_op() { return cmp_op_; }
+
+    bool isStaticCalculable() final;
+
+    int calculate() final;
 
     virtual CmpInst* deepcopy(BasicBlock* parent) override{
         // 复制基本信息
@@ -398,6 +417,14 @@ public:
     static BranchInst *create_br(BasicBlock *if_true, BasicBlock *bb);
 
     bool is_cond_br() const;
+
+    Value *get_condition() const {
+        assert(is_cond_br() && "Only condition branch have a condition");
+        return get_operand(0);
+    }
+
+    BasicBlock *getTrueBB() const;
+    BasicBlock *getFalseBB() const;
 
     virtual std::string print() override;
 

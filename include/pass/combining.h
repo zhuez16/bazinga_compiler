@@ -19,14 +19,14 @@ public:
         TopTy,
         DownTy,
         ConstantTy,
-        ZeroTy
+        ZeroTy,
+        EmptyTy         // 无返回值的语句 Value使用Empty标记，实际不参与计算
     };
 private:
     ValueConstantTy _ty;
     int _value{};
 
-    explicit ValueLattice(ValueConstantTy ty, int val = 0) : _ty((ty == ConstantTy && val == 0) ? ZeroTy : ty),
-                                                             _value(val) {}
+
 
 public:
     /**
@@ -35,6 +35,9 @@ public:
     ValueLattice() {
         _ty = TopTy;
     }
+
+    explicit ValueLattice(ValueConstantTy ty, int val = 0) : _ty((ty == ConstantTy && val == 0) ? ZeroTy : ty),
+                                                             _value(val) {}
 
     explicit ValueLattice(int val) : _ty(val == 0 ? ZeroTy : ConstantTy), _value(val) {}
 
@@ -55,6 +58,8 @@ public:
 
     bool isZeroType() const { return getType() == ZeroTy; }
 
+    bool isEmptyType() const { return getType() == EmptyTy; }
+
     bool isConstantOrZeroType() const { return getType() == ConstantTy || getType() == ZeroTy; }
 
     /**
@@ -65,6 +70,7 @@ public:
      * @return
      */
     static ValueLattice meet(const ValueLattice &lhs, const ValueLattice &rhs) {
+        assert(!lhs.isEmptyType() && !rhs.isEmptyType() && "Empty type is not calculable");
         if (lhs.isTopType() && rhs.isTopType()) {
             return ValueLattice(TopTy);
         }
@@ -98,6 +104,7 @@ public:
     static ValueLattice operand(const ValueLattice &lhs, const ValueLattice &rhs,
                                 int (*fp)(int lhs, int rhs),
                                 bool considerZero) {
+        assert(!lhs.isEmptyType() && !rhs.isEmptyType() && "Empty type is not calculable");
         if (lhs.isTopType() || rhs.isTopType()) {
             return ValueLattice(TopTy);
         }
@@ -136,21 +143,126 @@ public:
  */
 class InstLattice {
 public:
+    friend class ValueLattice;
     enum InstReachableType {
         UnreachableTy,
-        ReachableTy
+        ReachableTy,
+        EmptyTy
     };
+
+    explicit InstLattice(InstReachableType ty = EmptyTy) : _ty(ty) {}
+
+    InstReachableType getType() const { return _ty; }
+    bool isReachable() const { return getType() == ReachableTy; }
+    bool isUnreachable() const { return getType() == UnreachableTy; }
+    bool isEmpty() const { return getType() == EmptyTy; }
+
+    /**
+     * Implement of operator [<=]
+     * @param lhs
+     * @param rhs
+     * @return
+     */
+    static InstLattice testing(const ValueLattice &lhs, bool rhs) {
+        assert(!lhs.isEmptyType() && "Empty type is not calculable");
+        if (lhs.isTopType()) return InstLattice(UnreachableTy);
+        if (lhs.isDownType()) return InstLattice(ReachableTy);
+        if (lhs.getValue() != 0) {
+            if (rhs) return InstLattice(ReachableTy);
+            else return InstLattice(UnreachableTy);
+        } else {
+            if (rhs) return InstLattice(UnreachableTy);
+            else return InstLattice(ReachableTy);
+        }
+    }
+
+    /**
+     * Implement of operator [=>]
+     * @param lhs
+     * @param rhs
+     * @return
+     */
+    static ValueLattice unreached(const InstLattice &lhs, const ValueLattice &rhs) {
+        assert(!rhs.isEmptyType() && "Empty type is not calculable");
+        if (lhs.isUnreachable()) return ValueLattice(ValueLattice::TopTy);
+        return rhs;
+    }
+
+    friend InstLattice operator* (const InstLattice &lhs, const InstLattice &rhs) {
+        if (lhs.isUnreachable() || rhs.isUnreachable()) {
+            return InstLattice(UnreachableTy);
+        } else {
+            return InstLattice(ReachableTy);
+        }
+    }
+
+    friend InstLattice operator+ (const InstLattice &lhs, const InstLattice &rhs) {
+        if (lhs.isEmpty()) return rhs;
+        if (rhs.isEmpty()) return lhs;
+        if (lhs.isReachable() || rhs.isReachable()) {
+            return InstLattice(ReachableTy);
+        } else {
+            return InstLattice(UnreachableTy);
+        }
+    }
+
+    friend bool operator== (const InstLattice &lhs, const InstLattice &rhs) {
+        return lhs._ty == rhs._ty;
+    }
 
 private:
     InstReachableType _ty;
-    Instruction *_inst;
 };
 
 
+typedef struct Lattice {
+public:
+    ValueLattice val;
+    InstLattice inst;
+
+    friend bool operator== (const Lattice &lhs, const Lattice &rhs) {
+        return lhs.val == rhs.val && lhs.inst == rhs.inst;
+    }
+
+    friend bool operator!= (const Lattice &lhs, const Lattice &rhs) {
+        return !(lhs == rhs);
+    }
+
+    explicit Lattice(const InstLattice &l) : inst(l), val(ValueLattice(ValueLattice::EmptyTy)) {}
+
+    explicit Lattice(const ValueLattice &v) : inst(InstLattice(InstLattice::UnreachableTy)), val(v) {}
+
+    Lattice(const ValueLattice &v, const InstLattice &l) : inst(l), val(v) {}
+
+    Lattice() : inst(InstLattice(InstLattice::UnreachableTy)), val(ValueLattice(ValueLattice::EmptyTy)) {}
+} Lattice;
+
+struct ConditionLink {
+    enum CondTy {
+        NoCond,
+        TrueCond,
+        FalseCond
+    };
+
+    CondTy type;
+    Instruction *from;
+    Value *condition;
+
+    ConditionLink(Instruction* i, Value *v, CondTy ty) : from(i), type(ty), condition(v) {}
+    explicit ConditionLink(Instruction* i) : from(i), type(NoCond), condition(nullptr) {}
+};
+
 class ConstFoldingDCEliminating : public Pass {
 private:
-    std::map<Value *, ValueLattice> _map;
+
+    std::map<Value *, Lattice> _map;
     std::queue<Instruction *> _worklist;
+    std::map<Value *, std::vector<ConditionLink>> _linking;
+    void addLink(Value *v, const ConditionLink &link) {
+        _linking[v].push_back(link);
+    }
+    std::vector<ConditionLink> getLink(Value *v) {return _linking[v]; }
+
     bool existInMap(Value *v) { return _map.find(v) != _map.end(); }
     /**
      * 由值获取Lattice\n
@@ -158,8 +270,18 @@ private:
      * @param v
      * @return
      */
-    ValueLattice getLatticeByValue(Value *v) { return _map[v]; }
-    void setLattice(Value *v, const ValueLattice &l) { _map[v] = l; }
+    Lattice getLatticeByValue(Value *v) {
+        if (existInMap(v)) {
+            return _map[v];
+        } else {
+            auto const_int = dynamic_cast<ConstantInt *>(v);
+            if (const_int != nullptr) {
+                return Lattice(ValueLattice(const_int->get_value()));
+            }
+            return {};
+        }
+    }
+    void setLattice(Value *v, const Lattice &l) { _map[v] = l; }
     void pushWorkList(Instruction *v) { _worklist.push(v); }
     Instruction *popWorkList() {
         if(_worklist.empty()) {
