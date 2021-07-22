@@ -11,12 +11,10 @@ void Mem2Reg::run() {
     for(auto f: m_->get_functions()){
 //        std::cout << f->get_name() << std::endl;
 //        std::cout << f->get_basic_blocks().size() << std::endl;
-        if(f->get_basic_blocks().size() == 0 ){ continue; }
+        if(f->get_basic_blocks().empty() ){ continue; }
         // get dominance frontier message
         dom = new dominator(m_);
-//        printf("before run dom\n");
         dom->run();
-//        printf("after run dom\n");
         std::set<Value *> promote_alloca;
         std::map<Value *, std::set<BasicBlock *>> alloca_to_live_in_block;
         // record block use but not define
@@ -61,20 +59,29 @@ void Mem2Reg::run() {
                 }
             }
         }
-//        std::cout << f->get_basic_blocks().size() << std::endl;
-//        std::cout << f->get_entry_block()->get_name() << std::endl;
-        re_name(f->get_entry_block());
+        rename(f->get_entry_block());
+
+        // Remove unused alloca functions
+        for (auto bb: f->get_basic_blocks()) {
+            std::vector<Instruction *> tbd_list;
+            for (auto inst: bb->get_instructions()) {
+                if (inst->is_alloca() && inst->get_use_list().empty()) {
+                    tbd_list.push_back(inst);
+                }
+            }
+            for (auto inst: tbd_list) {
+                bb->delete_instr(inst);
+            }
+        }
     }
 }
-void Mem2Reg::re_name(BasicBlock *bb) {
+void Mem2Reg::rename(BasicBlock *bb) {
     std::vector<Instruction *> wait_delete;
     if(bb->is_fake_block()) { return; }
     for (auto instr : bb->get_instructions() ){
         if (instr->is_phi()){
             // step 3: push phi instr as lval's lastest value define
-//            std::cout << "1" << std::endl;
             auto l_val = dynamic_cast<PhiInst *>(instr)->get_lval();
-//            std::cout << "2" << std::endl;
             var_val_stack[l_val].push_back(instr);
         }
     }
@@ -117,7 +124,7 @@ void Mem2Reg::re_name(BasicBlock *bb) {
     for ( auto dom_succ_bb : dom->get_dom_tree_succ_blocks(bb) ){
         if(dom_succ_bb->is_fake_block()) { continue; }
 //        std::cout << dom_succ_bb->get_name() << std::endl;
-        re_name(dom_succ_bb);
+        rename(dom_succ_bb);
     }
 
     for (auto instr : bb->get_instructions()){

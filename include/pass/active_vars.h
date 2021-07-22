@@ -19,10 +19,10 @@
 
 class active_vars: public Pass {
 public:
-    active_vars(Module *m): Pass(m){}
-    void run();
+    explicit active_vars(Module *m): Pass(m){}
+    void run() override;
 private:
-    Function *func_;
+    Function *func_{};
     std::map<BasicBlock*,std::unordered_set<Value *> > active, live_in, live_out;
     std::map<BasicBlock*,std::unordered_set<Value *> > use, def, phi_op;
     std::map<BasicBlock*,std::set<std::pair<BasicBlock *,Value  *>>> phi_op_pair;

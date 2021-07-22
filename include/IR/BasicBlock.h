@@ -9,6 +9,7 @@
 #include <list>
 #include <set>
 #include <string>
+#include <vector>
 
 class Function;
 class Instruction;

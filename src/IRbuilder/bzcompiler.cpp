@@ -3,6 +3,7 @@
 #include "ast.h"
 #include "pass/mem2reg.h"
 #include "pass/global2local.h"
+#include "pass/combining.h"
 #include <cstring>
 #include <iostream>
 #include <fstream>
@@ -100,6 +101,7 @@ int main(int argc, char **argv) {
     {
         PM.add_pass<Mem2Reg>();
     }
+    PM.add_pass<ConstFoldingDCEliminating>();
 //    if( loop_search ){
 //        PM.add_pass<LoopSearch>();
 //    }
