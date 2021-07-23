@@ -172,14 +172,14 @@ void dominator::create_dom_tree_succ(Function *f){
 }
 
 void dominator::print_dom_tree() {
-//    std::cout <<"======="<<std::endl;
-//    std::cout << dom_tree_succ_blocks.size() << std::endl;
+    std::cout <<"======="<<std::endl;
+    std::cout << dom_tree_succ_blocks.size() << std::endl;
     for(auto x: dom_tree_succ_blocks){
         if(x.first->is_fake_block()) continue;
-//        std::cout << x.first->get_name() << std::endl;
-//        for(auto s: x.second){
-//            std::cout << x.first->get_name() << " -->  " << s->get_name() << std::endl;
-//        }
+        std::cout << x.first->get_name() << std::endl;
+        for(auto s: x.second){
+            std::cout << x.first->get_name() << " -->  " << s->get_name() << std::endl;
+        }
     }
-//    std::cout <<"======="<<std::endl;
+    std::cout <<"======="<<std::endl;
 }

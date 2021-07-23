@@ -12,6 +12,7 @@
 class Global2Local : public Pass{
 private:
     Function * func_;
+    std::set<Function *> called_fun;
     std::map<Function *, std::set<Value *>> fun_use_var;
     std::map<Value *, std::set<Function *>> var_used_by_fun;
     std::set<GlobalVariable *> used_global_var;

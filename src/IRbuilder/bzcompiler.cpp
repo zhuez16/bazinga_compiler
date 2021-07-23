@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
     auto m = builder.getModule();
 
     PassManager PM(m);
-    mem2reg = false;
+    mem2reg = true;
     PM.add_pass<Global2Local>();
     m->set_print_name();
 //    printf("start running pass manager\n");
@@ -124,8 +124,6 @@ int main(int argc, char **argv) {
 //    }
 //    printf("555\n");
     PM.run();
-//    PM.run();
-//    printf("after running pass manager\n");
     auto IR = m->print();
 
     std::ofstream output_stream;

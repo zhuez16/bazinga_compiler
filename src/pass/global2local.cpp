@@ -9,10 +9,11 @@ void Global2Local::create_func_call_tree() {
             for(auto instr: bb->get_instructions()){
                 if(instr->is_call()){
                     func_call_tree[func].insert(dynamic_cast<Function *>(instr->get_operand(0)));
+                    called_fun.insert(dynamic_cast<Function *>(instr->get_operand(0)));
                     if(func == dynamic_cast<Function *>(instr->get_operand(0)) ){
                         recursive_fun.insert(func);
-                        std::cout<<func->get_name() <<std::endl;
-                        std::cout<<dynamic_cast<Function *>(instr->get_operand(0))->get_name() <<std::endl;
+//                        std::cout<<func->get_name() <<std::endl;
+//                        std::cout<<dynamic_cast<Function *>(instr->get_operand(0))->get_name() <<std::endl;
                     }
                 }
             }
@@ -90,26 +91,32 @@ void Global2Local::run() {
         else if(var_used_by_fun[global_var].size() == 1 ){
             auto use_fun = *(var_used_by_fun[global_var].begin());
             if(recursive_fun.find(use_fun) != recursive_fun.end()) continue;
-            if(global_var->get_init()->get_type()->is_int32_type()){
-                auto init_val = global_var->get_init();
-                auto entry_block = use_fun->get_entry_block();
-                std::vector<Instruction *> temp_inst_store;
-                for(auto instr: entry_block->get_instructions()){
-                    temp_inst_store.push_back(instr);
+            if(called_fun.find(func_) == called_fun.end()){
+                // if func_ is not called by any function
+                if(global_var->get_init()->get_type()->is_int32_type()){
+                    auto init_val = global_var->get_init();
+                    auto entry_block = use_fun->get_entry_block();
+                    std::vector<Instruction *> temp_inst_store;
+                    for(auto instr: entry_block->get_instructions()){
+                        temp_inst_store.push_back(instr);
+                    }
+                    entry_block->get_instructions().clear();
+                    auto alloca_for_global = AllocaInst::create_alloca(m_->get_int32_type(), entry_block);
+                    auto store_for_global = StoreInst::create_store(init_val, alloca_for_global, entry_block);
+                    alloca_for_global->set_parent(entry_block);
+                    store_for_global->set_parent(entry_block);
+                    for(auto instr: temp_inst_store){
+                        entry_block->add_instruction(instr);
+                    }
+                    global_var->replace_all_use_with(alloca_for_global);
+                    m_->delete_global_variable(global_var);
                 }
-                entry_block->get_instructions().clear();
-                auto alloca_for_global = AllocaInst::create_alloca(m_->get_int32_type(), entry_block);
-                auto store_for_global = StoreInst::create_store(init_val, alloca_for_global, entry_block);
-                alloca_for_global->set_parent(entry_block);
-                store_for_global->set_parent(entry_block);
-                for(auto instr: temp_inst_store){
-                    entry_block->add_instruction(instr);
+                else{
+                    // TODO: is it necessary to localization an global array?
                 }
-                global_var->replace_all_use_with(alloca_for_global);
-                m_->delete_global_variable(global_var);
             }
-            else{
-                // TODO: is it necessary to localization an global array?
+            else if(func_call_tree[func_].empty()){
+                // if func_ does not call any other function
             }
         }
     }
