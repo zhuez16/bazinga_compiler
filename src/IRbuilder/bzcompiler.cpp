@@ -101,7 +101,9 @@ int main(int argc, char **argv) {
     {
         PM.add_pass<Mem2Reg>();
     }
-//    PM.add_pass<ConstFoldingDCEliminating>();
+    if ( const_propagation ) {
+        PM.add_pass<ConstFoldingDCEliminating>();
+    }
 //    if( loop_search ){
 //        PM.add_pass<LoopSearch>();
 //    }

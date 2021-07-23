@@ -34,8 +34,7 @@ std::map<CmpInst::CmpOp, int (*)(int, int)> CmpID2Inst = {
 };
 
 void ConstFoldingDCEliminating::run() {
-    //Test 1: 只做常量折叠
-
+    // std::cout << m_->print() << std::endl;
     for (auto function: m_->get_functions()){
         if (function->is_declaration()) continue;
         std::vector<Instruction *> inst_tbd;
@@ -54,12 +53,16 @@ void ConstFoldingDCEliminating::run() {
                         }
                     } else {
                         setLattice(inst, Lattice(ValueLattice()));
-                        pushWorkList(inst);
                     }
                 } else {
                     setLattice(inst, Lattice());
                 }
+                pushWorkList(inst);
             }
+        }
+        // 将函数参数压入Lattice并标为DownType
+        for (auto arg: function->get_args()) {
+            setLattice(arg, Lattice(ValueLattice(ValueLattice::DownTy)));
         }
         // 起步设置，将Initial块的Inst设为Reachable
         Instruction *entry = function->get_entry_block()->get_instructions().front();
@@ -85,6 +88,7 @@ void ConstFoldingDCEliminating::run() {
          */
         Instruction *proceed_value;
         while ((proceed_value = popWorkList()) != nullptr) {
+            // std::cout << "Visiting  " << proceed_value->print() << std::endl;
             Lattice ll = getLatticeByValue(proceed_value);
             // Sub Step 1: 可达性计算
             InstLattice l;
@@ -109,62 +113,87 @@ void ConstFoldingDCEliminating::run() {
                     }
                 }
             }
-            // Sub Step 2：Value计算
-            switch (proceed_value->get_instr_type()) {
-                /**
-                 * Binary Op: a op b -> int32
-                 * $ S_{i} = S_{i-1}$
-                 * $ x_i = [S_{i} => f_{x_0, x_1,...}]$
-                 */
-                case Instruction::add:
-                case Instruction::sub:
-                case Instruction::mul:
-                case Instruction::sdiv:
-                case Instruction::mod: {
-                    auto bin = dynamic_cast<BinaryInst *>(proceed_value);
-                    auto l_vl = getLatticeByValue(bin->get_operand(0)).val;
-                    auto r_vl = getLatticeByValue(bin->get_operand(1)).val;
-                    // $f_{op}(x1, x2)$
-                    v = ValueLattice::operand(l_vl, r_vl, OPId2Inst[bin->get_instr_type()], bin->get_instr_type() == Instruction::mul);
-                    // S => f
-                    v = InstLattice::unreached(l, v);
-                    break;
-                }
-                case Instruction::cmp: {
-                    auto cmp = dynamic_cast<CmpInst *>(proceed_value);
-                    auto l_vl = getLatticeByValue(cmp->get_operand(0)).val;
-                    auto r_vl = getLatticeByValue(cmp->get_operand(1)).val;
-                    // $f_{op}(x1, x2)$
-                    v = ValueLattice::operand(l_vl, r_vl, CmpID2Inst[cmp->get_cmp_op()], false);
-                    v = InstLattice::unreached(l, v);
-                    break;
-                }
-                case Instruction::phi: {
-                    auto phi = dynamic_cast<PhiInst *>(proceed_value);
-                    ValueLattice vv = getLatticeByValue(phi->get_operand(0)).val;
-                    for (int i = 1; i < phi->get_num_operand() / 2; ++i) {
-                        vv = ValueLattice::meet(vv, getLatticeByValue(phi->get_operand(i * 2)).val);
+
+
+            /*
+            if (l.isUnreachable()) {
+                std::cout << "[UN] " << proceed_value->print() << std::endl;
+            } else {
+                std::cout << "[RC] " << proceed_value->print() << std::endl;
+            }
+            */
+            if (proceed_value->print() == "%op7 = icmp slt i32 %op13, 100") {
+                printf("");
+            }
+
+            // Void Type 无需计算Value
+            if (!proceed_value->is_void()) {
+                // Sub Step 2：Value计算
+                switch (proceed_value->get_instr_type()) {
+                    /**
+                     * Binary Op: a op b -> int32
+                     * $ S_{i} = S_{i-1}$
+                     * $ x_i = [S_{i} => f_{x_0, x_1,...}]$
+                     */
+                    case Instruction::add:
+                    case Instruction::sub:
+                    case Instruction::mul:
+                    case Instruction::sdiv:
+                    case Instruction::mod: {
+                        auto bin = dynamic_cast<BinaryInst *>(proceed_value);
+                        auto l_vl = getLatticeByValue(bin->get_operand(0)).val;
+                        auto r_vl = getLatticeByValue(bin->get_operand(1)).val;
+                        // $f_{op}(x1, x2)$
+                        v = ValueLattice::operand(l_vl, r_vl, OPId2Inst[bin->get_instr_type()],
+                                                  bin->get_instr_type() == Instruction::mul);
+                        // S => f
+                        v = InstLattice::unreached(l, v);
+                        break;
                     }
-                    v = InstLattice::unreached(l, vv);
-                    break;
-                }
-                case Instruction::call: {
-                    auto call = dynamic_cast<CallInst *>(proceed_value);
-                    if (!dynamic_cast<Function *>(call->get_operand(0))->get_function_type()->get_return_type()->is_void_type()) {
+                    case Instruction::cmp: {
+                        auto cmp = dynamic_cast<CmpInst *>(proceed_value);
+                        auto l_vl = getLatticeByValue(cmp->get_operand(0)).val;
+                        auto r_vl = getLatticeByValue(cmp->get_operand(1)).val;
+                        // $f_{op}(x1, x2)$
+                        v = ValueLattice::operand(l_vl, r_vl, CmpID2Inst[cmp->get_cmp_op()], false);
+                        v = InstLattice::unreached(l, v);
+                        break;
+                    }
+                    case Instruction::phi: {
+                        auto phi = dynamic_cast<PhiInst *>(proceed_value);
+                        ValueLattice vv = getLatticeByValue(phi->get_operand(0)).val;
+                        for (int i = 1; i < phi->get_num_operand() / 2; ++i) {
+                            vv = ValueLattice::meet(vv, getLatticeByValue(phi->get_operand(i * 2)).val);
+                        }
+                        v = InstLattice::unreached(l, vv);
+                        break;
+                    }
+                    case Instruction::call: {
+                        auto call = dynamic_cast<CallInst *>(proceed_value);
+                        if (!dynamic_cast<Function *>(call->get_operand(
+                                0))->get_function_type()->get_return_type()->is_void_type()) {
+                            v = ValueLattice(ValueLattice::DownTy);
+                        } else {
+                            v = ValueLattice(ValueLattice::EmptyTy);
+                        }
+                        break;
+                    }
+                    case Instruction::zext: {
+                        v = getLatticeByValue(proceed_value->get_operand(0)).val;
+                        v = InstLattice::unreached(l, v);
+                        break;
+                    }
+                    case Instruction::getelementptr:
+                    case Instruction::alloca:
+                    case Instruction::load: {
                         v = ValueLattice(ValueLattice::DownTy);
-                    } else {
-                        v = ValueLattice(ValueLattice::EmptyTy);
+                        v = InstLattice::unreached(l, v);
+                        break;
                     }
-                    break;
+                    default:
+                        // A instruction with no return value has a Empty value lattice
+                        break;
                 }
-                case Instruction::zext: {
-                    v = getLatticeByValue(proceed_value->get_operand(0)).val;
-                    v = InstLattice::unreached(l, v);
-                    break;
-                }
-                default:
-                    // A instruction with no return value has a Empty value lattice
-                    break;
             }
             // 与原本的进行对比
             Lattice new_la(v, l);
@@ -173,6 +202,18 @@ void ConstFoldingDCEliminating::run() {
                 setLattice(proceed_value, new_la);
                 for (auto user: proceed_value->get_use_list()) {
                     pushWorkList(dynamic_cast<Instruction *>(user.val_));
+                }
+                if (proceed_value->getSuccInst() != nullptr) {
+                    pushWorkList(proceed_value->getSuccInst());
+                }
+            }
+            // Branch 指令需将跳转目标的第一条指令加入列表
+            // 注：即使Branch指令本身Lattice没有改变，但他的条件可能发生了改变，仍然要重新判断
+            auto br = dynamic_cast<BranchInst *>(proceed_value);
+            if (br != nullptr) {
+                pushWorkList(br->getTrueBB()->get_instructions().front());
+                if (br->is_cond_br()) {
+                    pushWorkList(br->getFalseBB()->get_instructions().front());
                 }
             }
         }
@@ -198,5 +239,85 @@ void ConstFoldingDCEliminating::run() {
         for(Instruction * inst: inst_tbd) {
             inst->get_parent()->delete_instr(inst);
         }
+
+        // Step 5 移除不必要的BasicBlocks
+        for(auto bb: function->get_basic_blocks()) {
+            auto term = bb->get_terminator();
+            if (term != nullptr) {
+                if (term->is_br()) {
+                    auto br = dynamic_cast<BranchInst *>(term);
+                    if (br->is_cond_br()) {
+                        auto const_int = dynamic_cast<ConstantInt *>(br->get_condition());
+                        if (const_int) {
+                            BasicBlock *target_bb;
+                            if (const_int->get_value()) {
+                                target_bb = br->getTrueBB();
+                            } else {
+                                target_bb = br->getFalseBB();
+                            }
+                            bb->delete_instr(br);
+                            BranchInst::create_br(target_bb, bb);
+                        }
+                    }
+                }
+            }
+        }
+        std::vector<BasicBlock *> bb_tbd;
+        std::set<BasicBlock *> bb_visited;
+        std::queue<BasicBlock *> bb_visit_queue;
+        bb_visit_queue.push(function->get_entry_block());
+        while (!bb_visit_queue.empty()) {
+            auto bb_visiting = bb_visit_queue.front();
+            bb_visit_queue.pop();
+            bb_visited.insert(bb_visiting);
+            auto br = dynamic_cast<BranchInst *>(bb_visiting->get_terminator());
+            if (br != nullptr) {
+                auto tbr = br->getTrueBB();
+                if (bb_visited.find(tbr) == bb_visited.end()) {
+                    bb_visit_queue.push(tbr);
+                }
+                if (br->is_cond_br()) {
+                    auto fbr = br->getFalseBB();
+                    if (bb_visited.find(fbr) == bb_visited.end()) {
+                        bb_visit_queue.push(fbr);
+                    }
+                }
+            }
+        }
+
+        for (auto bb: function->get_basic_blocks()) {
+            if (bb_visited.find(bb) == bb_visited.end()) {
+                bb_tbd.push_back(bb);
+            }
+        }
+
+        for (auto bb: bb_tbd) {
+            function->remove(bb);
+        }
+
+        // Step 6 删除无用的 Phi 指令 (x = phi [x0, label 0])
+        inst_tbd.clear();
+        for (auto bb: function->get_basic_blocks()) {
+            for (auto inst: bb->get_instructions()) {
+                auto phi = dynamic_cast<PhiInst *>(inst);
+                if (phi == nullptr) {
+                    // Phi 指令只可能出现在BB最前端，若不是phi直接终止遍历
+                    break;
+                }
+                if (phi->get_num_operand() == 2) {
+                    // 可以移除的 Phi 指令
+                    phi->replace_all_use_with(phi->get_operand(0));
+                    inst_tbd.push_back(phi);
+                }
+            }
+        }
+        for(Instruction * inst: inst_tbd) {
+            inst->get_parent()->delete_instr(inst);
+        }
+
+
+        clearLattice();
+        clearWorkList();
+        clearLink();
     }
 }

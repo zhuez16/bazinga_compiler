@@ -62,8 +62,8 @@ public:
     ///              维护一个基本块内的指令关系链，用于优化处理
 
 private:
-    Instruction *_prev_inst;
-    Instruction *_next_inst;
+    Instruction *_prev_inst = nullptr;
+    Instruction *_next_inst = nullptr;
 public:
     Instruction *getPrevInst() const { return _prev_inst; }
     Instruction *getSuccInst() const { return _next_inst; }
@@ -715,6 +715,13 @@ public:
     {
         this->add_operand(val);
         this->add_operand(pre_bb);
+    }
+    void remove_source(BasicBlock *bb) {
+        for (int i = 1; i < get_num_operand(); i+=2) {
+            if ((Value *)bb == get_operand(i)) {
+                remove_operands(i - 1, i);
+            }
+        }
     }
     virtual std::string print() override;
 

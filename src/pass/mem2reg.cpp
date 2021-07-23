@@ -24,7 +24,7 @@ void Mem2Reg::run() {
                     auto ptr = instr->get_operand(1);
                     if( !(dynamic_cast<GlobalVariable *>(ptr)) &&
                         !(dynamic_cast<GetElementPtrInst *>(ptr))
-                        ){
+                            ){
                         if(record.find(val) == record.end()){
                             promote_alloca.insert(ptr);
                         }
@@ -85,7 +85,9 @@ void Mem2Reg::rename(BasicBlock *bb) {
             auto l_val = dynamic_cast<LoadInst *>(instr)->get_lval();
             if (!dynamic_cast<GlobalVariable *>(l_val) &&
                 !dynamic_cast<GetElementPtrInst *>(l_val)){
-                if ( var_val_stack.find(l_val) != var_val_stack.end()){
+                if ( var_val_stack.find(l_val)!=var_val_stack.end()){
+                    assert(var_val_stack[l_val].back());
+                    instr->print();
                     instr->replace_all_use_with(var_val_stack[l_val].back());
                     wait_delete.push_back(instr);
                 }
@@ -94,6 +96,7 @@ void Mem2Reg::rename(BasicBlock *bb) {
         if (instr->is_store()){
             auto l_val = dynamic_cast<StoreInst *>(instr)->get_lval();
             auto r_val = dynamic_cast<StoreInst *>(instr)->get_rval();
+
             if (!dynamic_cast<GlobalVariable *>(l_val) &&
                 !dynamic_cast<GetElementPtrInst *>(l_val)){
                 var_val_stack[l_val].push_back(r_val);

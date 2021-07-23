@@ -1,19 +1,19 @@
 #include "pass/dominator.h"
 #include "queue"
 #include "iostream"
-#include "iostream"
+
 // reference : A Simple, Fast Dominance Algorithm
 void print_block(Function* f){
     for(auto bb: f->get_basic_blocks()){
-        std::cout << "**********" << std::endl;
-        std::cout << bb->get_name() << " is a " << (bb->is_fake_block() ? "fake block" : "true block") << std::endl;
+        //std::cout << "**********" << std::endl;
+        //std::cout << bb->get_name() << " is a " << (bb->is_fake_block() ? "fake block" : "true block") << std::endl;
         if(!bb->is_fake_block()){
             std::cout << bb->get_name() << "has " << bb->get_pre_basic_blocks().size() << " pre block " << std::endl;
             for(auto succ: bb->get_pre_basic_blocks()){
                 std::cout<< succ->get_name() << std::endl;
             }
         }
-        std::cout << "**********" << std::endl;
+        //std::cout << "**********" << std::endl;
     }
 }
 

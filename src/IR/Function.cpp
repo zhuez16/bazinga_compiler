@@ -42,7 +42,17 @@ Module *Function::get_parent() const
 
 void Function::remove(BasicBlock* bb)
 { 
-    basic_blocks_.remove(bb); 
+    basic_blocks_.remove(bb);
+    std::vector<PhiInst *> phis;
+    for (auto user: bb->get_use_list()) {
+        auto phi = dynamic_cast<PhiInst *>(user.val_);
+        if (phi != nullptr) {
+            phis.push_back(phi);
+        }
+    }
+    for (auto phi: phis) {
+        phi->remove_source(bb);
+    }
     for (auto pre : bb->get_pre_basic_blocks()) 
     {
         pre->remove_succ_basic_block(bb);
