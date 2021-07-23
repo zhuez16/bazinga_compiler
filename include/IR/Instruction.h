@@ -715,6 +715,13 @@ public:
         this->add_operand(val);
         this->add_operand(pre_bb);
     }
+    void remove_source(BasicBlock *bb) {
+        for (int i = 1; i < get_num_operand(); i+=2) {
+            if ((Value *)bb == get_operand(i)) {
+                remove_operands(i - 1, i);
+            }
+        }
+    }
     virtual std::string print() override;
 
     virtual PhiInst* deepcopy(BasicBlock* parent) override{

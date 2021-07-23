@@ -262,7 +262,7 @@ private:
         _linking[v].push_back(link);
     }
     std::vector<ConditionLink> getLink(Value *v) {return _linking[v]; }
-
+    void clearLink() { _linking.clear(); }
     bool existInMap(Value *v) { return _map.find(v) != _map.end(); }
     /**
      * 由值获取Lattice\n
@@ -272,7 +272,14 @@ private:
      */
     Lattice getLatticeByValue(Value *v) {
         if (existInMap(v)) {
-            return _map[v];
+            auto ret = _map[v];
+            /*
+            auto inst = dynamic_cast<Instruction *>(v);
+            if (inst) {
+                std::cout << "Lattice " << inst->print() << " load as [R: " << ret.inst.getType() << ",  V: " << ret.val.getType() << "]" << std::endl;
+            }
+             */
+            return ret;
         } else {
             auto const_int = dynamic_cast<ConstantInt *>(v);
             if (const_int != nullptr) {
@@ -281,8 +288,24 @@ private:
             return {};
         }
     }
-    void setLattice(Value *v, const Lattice &l) { _map[v] = l; }
-    void pushWorkList(Instruction *v) { _worklist.push(v); }
+    void setLattice(Value *v, const Lattice &l) {
+        /*
+        auto inst = dynamic_cast<Instruction *>(v);
+        if (inst) {
+            std::cout << "Lattice " << inst->print() << " set to [R: " << l.inst.getType() << ",  V: " << l.val.getType() << "]" << std::endl;
+        }
+        */
+        _map[v] = l;
+    }
+
+    void clearLattice() {
+        _map.clear();
+    }
+    void pushWorkList(Instruction *v) {
+        if (v == nullptr) return;
+        // std::cout << "Pushed  " << v->print() << std::endl;
+        _worklist.push(v);
+    }
     Instruction *popWorkList() {
         if(_worklist.empty()) {
             return nullptr;
@@ -292,6 +315,11 @@ private:
             _worklist.pop();
             return ret;
         }
+    }
+
+    void clearWorkList() {
+        std::queue<Instruction *> empty;
+        std::swap(empty, _worklist);
     }
 public:
     explicit ConstFoldingDCEliminating(Module *m) : Pass(m) {}
