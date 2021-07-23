@@ -11,7 +11,7 @@ std::string codegen::generateModuleCode(std::map<Value *, int> register_mapping,
     asm_code+=tab+".arch armv"+std::to_string(arch_version)+"-a"+newline;
     asm_code+=tab+".file \""+"\""1+newline;
     asm_code+=tab+".text"+newline;
-    for (auto func:this->module->get_functions()){
+    for (auto &func:this->module->get_functions()){
         if (func->get_basic_blocks().size())
             asm_code+=codegen::globalVariable(func->get_name());
     }
@@ -28,6 +28,27 @@ std::string codegen::generateModuleCode(std::map<Value *, int> register_mapping,
     return asm_code;
 }
 
+
+std::string codegen::generateFunctionCode(Function *func) {
+    std::string asm_code;
+    asm_code+=codegen::allocate_stack(func);
+    int counter=0;
+    for (auto &bb: func->get_basic_blocks()){
+        if (bb->getName().empty()){
+            bb->set_name(std::to_string (counter++));
+        }
+    }
+    asm_code+=func->get_name()+":"+newline;
+    asm_code+=codegen::comment("stack_size="+std::to_string(this->stack_size));
+    asm_code+=codegen::generateFunctionEntryCode();
+
+    for (auto &bb: func->get_basic_blocks()){
+        asm_code+=codegen::generateBasicBlockCode(bb);
+    }
+
+    asm_code+=codegen::generateFunctionExitCode();
+}
+
 std::string codegen::allocate_stack(Function *func){
     std::string asm_code;
     this->stack_size=0;
@@ -37,29 +58,6 @@ std::string codegen::allocate_stack(Function *func){
         if (!reg_mapping.count(arg)){
             stack_mapping[arg]=this->stack_size;
             this->stack_size+=4;
-        }
-    }
-    //clear pointer in func
-    for (auto &bb:func->get_basic_blocks()){
-        for (auto &inst:bb->get_instructions()){
-            if (this->reg_mapping().count(inst)){
-                int map_reg_id=this->reg_mapping.at(inst);
-                if (map_reg_id>InstGen::max_reg_id) {
-                    reg_mapping.erase(inst);
-                }
-            }
-            if (this->reg_mapping.count(inst))
-                continue;
-            if (this->stack_mapping(inst))
-                continue;
-            if (inst->is_alloca())
-                continue;
-            auto sizeof_val=inst->get_type()->get_size());
-            sizeof_val=((sizeof_val+3)/4)*4;
-            if (sizeof_val){
-                this->stack_mapping[inst]=sizeof_val;
-                this->stack_size+=sizeof_val;
-            }
         }
     }
     for (auto &bb: func->get_basic_blocks()){
@@ -76,39 +74,27 @@ std::string codegen::allocate_stack(Function *func){
         }
     }
 }
-std::string codegen::generateFunctionCode(Function *func) {
-    std::string asm_code;
-    asm_code+=codegen::allocate_stack(func);
-    int counter=0;
-    for (auto &bb: func->get_basic_blocks()){
-        if (bb->getName().empty()){
-            bb->set_name(std::to_string (counter++));
-        }
-    }
-    asm_code+=func->get_name()+":"+newline;
-    asm_code+=codegen::comment("stack_size="+std::to_string(this->stack_size));
-    asm_code+=codegen::generateFunctionEntryCode();
-}
 
 std::string codegen::generateFunctionEntryCode(Function *func) {
     std::string asm_code;
     asm_code.clear();
     asm_code+=codegen::getFunctionLabelName(func,0)+":"+newline;
     asm_code+=codegen::comment("function initialize");
-    auto save_registers=codegen::getCalleeSaveRegisters(func);
+    auto &save_registers=codegen::getCalleeSaveRegisters(func);
     save_register.push_back(InstGen::Reg(14)); //lr reg
     std::sort(save_registers.begin(),save_registers.end());
     //large stack allocate
-    if (func->get_name()=="main"){
-        asm_code+=InstGen::gen_push(save_registers);
-        asm_code+=InstGen::
-    }
+    asm_code+=InstGen::gen_push(save_registers);
     // save callee register and lr
+    asm_code+=InstGen::gen_add(InstGen::Reg(13),this->stack_size);
     // allocate stack space and process function args
 }
 
 std::string codegen::generateFunctionExitCode(Function *func) {
-    return std::string();
+    std::string asm_code;
+    asm_code+=InstGen::gen_sub(InstGen::(13),this->stack_size);
+    asm_code+=InstGen::gen_pop(this->getAllRegisters());
+    return asm_code;
 }
 
 std::string codegen::generateFunctionPostCode(Function *func) {
@@ -118,7 +104,12 @@ std::string codegen::generateFunctionPostCode(Function *func) {
 }
 
 std::string codegen::generateBasicBlockCode(BasicBlock *bb) {
-    return codegen::getBasicBlockLabelName(bb)+":"+newline;
+    std::string asm_code;
+    asm_code+=codegen::getBasicBlockLabelName(bb)+":"+newline;
+    for (auto instr:bb->get_instructions()){
+        asm_code+=codegen::generateInstructionCode(instr);
+    }
+    return asm_code;
 }
 
 std::string codegen::generateInstructionCode(Instruction *instr) {
