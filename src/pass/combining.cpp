@@ -295,6 +295,27 @@ void ConstFoldingDCEliminating::run() {
             function->remove(bb);
         }
 
+        // Step 6 删除无用的 Phi 指令 (x = phi [x0, label 0])
+        inst_tbd.clear();
+        for (auto bb: function->get_basic_blocks()) {
+            for (auto inst: bb->get_instructions()) {
+                auto phi = dynamic_cast<PhiInst *>(inst);
+                if (phi == nullptr) {
+                    // Phi 指令只可能出现在BB最前端，若不是phi直接终止遍历
+                    break;
+                }
+                if (phi->get_num_operand() == 2) {
+                    // 可以移除的 Phi 指令
+                    phi->replace_all_use_with(phi->get_operand(0));
+                    inst_tbd.push_back(phi);
+                }
+            }
+        }
+        for(Instruction * inst: inst_tbd) {
+            inst->get_parent()->delete_instr(inst);
+        }
+
+
         clearLattice();
         clearWorkList();
         clearLink();

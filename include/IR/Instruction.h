@@ -61,8 +61,8 @@ public:
     ///              维护一个基本块内的指令关系链，用于优化处理
 
 private:
-    Instruction *_prev_inst;
-    Instruction *_next_inst;
+    Instruction *_prev_inst = nullptr;
+    Instruction *_next_inst = nullptr;
 public:
     Instruction *getPrevInst() const { return _prev_inst; }
     Instruction *getSuccInst() const { return _next_inst; }

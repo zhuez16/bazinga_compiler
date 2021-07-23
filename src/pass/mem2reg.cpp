@@ -6,11 +6,7 @@ std::map<Value *, std::vector<Value *>> var_val_stack;
 // reference :Efficiently computing static single
 // assignment form and the control dependence graph.
 void Mem2Reg::run() {
-//    printf("running mem2reg\n");
-//    std::cout << m_->get_functions().size() << std::endl;
     for(auto f: m_->get_functions()){
-//        std::cout << f->get_name() << std::endl;
-//        std::cout << f->get_basic_blocks().size() << std::endl;
         if(f->get_basic_blocks().empty() ){ continue; }
         // get dominance frontier message
         dom = new dominator(m_);
@@ -28,7 +24,7 @@ void Mem2Reg::run() {
                     auto ptr = instr->get_operand(1);
                     if( !(dynamic_cast<GlobalVariable *>(ptr)) &&
                         !(dynamic_cast<GetElementPtrInst *>(ptr))
-                        ){
+                            ){
                         if(record.find(val) == record.end()){
                             promote_alloca.insert(ptr);
                         }
@@ -94,7 +90,6 @@ void Mem2Reg::rename(BasicBlock *bb) {
                 if ( var_val_stack.find(l_val)!=var_val_stack.end()){
                     assert(var_val_stack[l_val].back());
                     instr->print();
-                if ( var_val_stack.find(l_val) != var_val_stack.end()){
                     instr->replace_all_use_with(var_val_stack[l_val].back());
                     wait_delete.push_back(instr);
                 }
@@ -104,6 +99,7 @@ void Mem2Reg::rename(BasicBlock *bb) {
             // step 5: push r_val of store instr as lval's lastest definition
             auto l_val = dynamic_cast<StoreInst *>(instr)->get_lval();
             auto r_val = dynamic_cast<StoreInst *>(instr)->get_rval();
+
             if (!dynamic_cast<GlobalVariable *>(l_val) &&
                 !dynamic_cast<GetElementPtrInst *>(l_val)){
                 var_val_stack[l_val].push_back(r_val);
@@ -115,7 +111,8 @@ void Mem2Reg::rename(BasicBlock *bb) {
         for ( auto instr : succ_bb->get_instructions() ){
             if ( instr->is_phi()){
                 auto l_val = dynamic_cast<PhiInst *>(instr)->get_lval();
-                if (var_val_stack.find(l_val) != var_val_stack.end()){
+                if (var_val_stack.find(l_val)!= var_val_stack.end()){
+//                    assert(var_val_stack[l_val].size()!=0);
                     // step 6: fill phi pair parameters
                     dynamic_cast<PhiInst *>(instr)->add_phi_pair_operand( var_val_stack[l_val].back(), bb);
                 }
@@ -126,7 +123,6 @@ void Mem2Reg::rename(BasicBlock *bb) {
 
     for ( auto dom_succ_bb : dom->get_dom_tree_succ_blocks(bb) ){
         if(dom_succ_bb->is_fake_block()) { continue; }
-//        std::cout << dom_succ_bb->get_name() << std::endl;
         rename(dom_succ_bb);
     }
 
