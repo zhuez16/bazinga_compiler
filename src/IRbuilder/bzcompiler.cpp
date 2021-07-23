@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
     auto m = builder.getModule();
 
     PassManager PM(m);
-    mem2reg = true;
+    mem2reg = false;
     PM.add_pass<Global2Local>();
     m->set_print_name();
 //    printf("start running pass manager\n");

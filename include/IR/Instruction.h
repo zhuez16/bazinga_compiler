@@ -3,6 +3,7 @@
 
 #include "User.h"
 #include "Type.h"
+#include "cassert"
 #include "BasicBlock.h"
 #include <map>
 
