@@ -219,12 +219,11 @@ std::string gen_store(const Reg &source, const Addr &target);
 std::string gen_swi(const Constant &id);
 std::string gen_bic(const Reg &target, const Reg &op1, const RegValue &op2);
 
-/*
-std::string bic(const Reg &target, const Reg &v1, const Reg &v2, const Reg &v3);
+//std::string bic(const Reg &target, const Reg &v1, const Reg &v2, const Reg &v3);
 std::tuple<int, int, int> choose_multiplier(int d, int N);
 std::string divConst(const Reg &target, const Reg &source,
                      const Constant &divisor);
-*/
+
 }; // namespace InstGen
 
 const InstGen::Reg vinst_temp_reg = InstGen::Reg(11);
