@@ -149,6 +149,8 @@ public:
         scope.push("putint", Function::create(FunctionType::get(TyVoid, {TyInt32}), "putint", getModule()));
         scope.push("putch", Function::create(FunctionType::get(TyVoid, {TyInt32}), "putch", getModule()));
         scope.push("putarray", Function::create(FunctionType::get(TyVoid, {TyInt32, TyInt32Ptr}), "putarray", getModule()));
+        scope.push("starttime", Function::create(FunctionType::get(TyVoid, {}), "starttime", getModule()));
+        scope.push("stoptime", Function::create(FunctionType::get(TyVoid, {}), "stoptime", getModule()));
     }
 
     Module *getModule() {
