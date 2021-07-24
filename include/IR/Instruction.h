@@ -24,11 +24,6 @@ public:
         mul,
         sdiv,
         mod,
-        // float binary operators
-        fadd,
-        fsub,
-        fmul,
-        fdiv,
         // Memory operators
         alloca,
         load,

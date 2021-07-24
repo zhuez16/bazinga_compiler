@@ -25,6 +25,10 @@ const std::string reg_name[] = {"r0",  "r1", "r2", "r3", "r4",  "r5",
 
 const int max_reg_id = 15;
 
+const int imm_16_max = 65535;
+const int imm_12_max = 4095;
+const int imm_8_max = 255;
+
 enum CmpOp {
   EQ, // ==
   NE, // !=
@@ -119,6 +123,9 @@ public:
   }
 };
 
+const Reg sp = Reg(13);
+const Reg lr = Reg(14);
+const Reg pc = Reg(15);
 
 class Addr {
   Reg reg;
@@ -164,7 +171,7 @@ std::string gen_mov(const Reg &target, const RegValue &source, const CmpOp &cond
 std::string gen_mvn(const Reg &target, const RegValue &source, const CmpOp &cond = NOP);
 std::string gen_movw(const Reg &target, const RegValue &source, const CmpOp &cond = NOP);
 std::string gen_movt(const Reg &target, const RegValue &source, const CmpOp &cond = NOP);
-//std::string setRegValue(const Reg &target, const Constant &source);
+std::string setRegValue(const Reg &target, const Constant &source);
 std::string gen_adrl(const Reg &target, const Label &source);
 std::string gen_ldr(const Reg &target, const Addr &source);
 std::string gen_ldr(const Reg &target, const Label &source);
@@ -176,7 +183,6 @@ std::string gen_str(const Reg &source, const Label &target);
 std::string gen_str(const Reg &target, const Reg &base, const Reg &offset);
 std::string gen_str(const Reg &target, const Reg &base, const Reg &offset,
                 const Constant &shift);
-//std::string store(const Reg &source, const Reg &base, const Reg &offset);
 std::string gen_bl(const std::string &target_func_name);
 std::string gen_add(const Reg &target, const Reg &op1, const RegValue &op2);
 std::string gen_sub(const Reg &target, const Reg &op1, const RegValue &op2);
@@ -203,15 +209,13 @@ std::string gen_smull(const Reg &target, const Reg &op1, const Reg &op2,
 std::string gen_sdiv(const Reg &target, const Reg &op1, const Reg &op2);
 std::string gen_cmp(const Reg &lhs, const RegValue &rhs);
 std::string gen_b(const Label &target, const CmpOp &op = NOP);
-/*
 std::string instConst(std::string (*inst)(const Reg &target, const Reg &op1,
                                           const RegValue &op2),
                       const Reg &target, const Reg &op1, const Constant &op2);
 std::string instConst(std::string (*inst)(const Reg &op1, const RegValue &op2),
                       const Reg &op1, const Constant &op2);
-std::string load(const Reg &target, const Addr &source);
-std::string store(const Reg &source, const Addr &target);
-*/
+std::string gen_load(const Reg &target, const Addr &source);
+std::string gen_store(const Reg &source, const Addr &target);
 std::string gen_swi(const Constant &id);
 std::string gen_bic(const Reg &target, const Reg &op1, const RegValue &op2);
 
