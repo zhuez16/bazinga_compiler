@@ -41,6 +41,7 @@ ADD_EXECUTABLE(parser
 ADD_EXECUTABLE(builder
         src/pass/dominator.cpp
         src/pass/mem2reg.cpp
+        src/pass/loop_search.cpp
         src/pass/global2local.cpp
         src/IRbuilder/bzcompiler.cpp
         src/IRbuilder/bzcompiler_builder.cpp

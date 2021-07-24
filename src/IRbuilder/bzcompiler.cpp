@@ -4,6 +4,7 @@
 #include "pass/mem2reg.h"
 #include "pass/global2local.h"
 #include "pass/combining.h"
+#include "pass/loop_search.h"
 #include <cstring>
 #include <iostream>
 #include <fstream>
@@ -95,6 +96,7 @@ int main(int argc, char **argv) {
     PassManager PM(m);
     mem2reg = true;
     PM.add_pass<Global2Local>();
+    PM.add_pass<LoopSearch>();
     m->set_print_name();
 //    printf("start running pass manager\n");
     if( mem2reg )

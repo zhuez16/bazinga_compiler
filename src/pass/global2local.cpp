@@ -91,7 +91,7 @@ void Global2Local::run() {
         else if(var_used_by_fun[global_var].size() == 1 ){
             auto use_fun = *(var_used_by_fun[global_var].begin());
             if(recursive_fun.find(use_fun) != recursive_fun.end()) continue;
-            if(called_fun.find(func_) == called_fun.end()){
+            if(called_fun.find(use_fun) == called_fun.end()){
                 // if func_ is not called by any function
                 if(global_var->get_init()->get_type()->is_int32_type()){
                     auto init_val = global_var->get_init();
@@ -117,6 +117,39 @@ void Global2Local::run() {
             }
             else if(func_call_tree[func_].empty()){
                 // if func_ does not call any other function
+                if(global_var->get_init()->get_type()->is_int32_type()){
+                    if(use_fun->get_basic_blocks().size() != 1) continue;
+                    auto entry_block = use_fun->get_entry_block();
+                    std::vector<Instruction *> temp_inst_store;
+                    for(auto instr: entry_block->get_instructions()){
+                        temp_inst_store.push_back(instr);
+                    }
+                    Value *final_store = nullptr;
+                    // detect the last assignment
+                    for(auto instr: entry_block->get_instructions()){
+                        if(instr->is_store()){
+                            auto store_instr = dynamic_cast<StoreInst *>(instr);
+                            auto l_val = store_instr->get_lval();
+                            auto l_val_global = dynamic_cast<GlobalVariable *>(l_val);
+                            if(l_val_global && l_val_global == global_var){
+                                final_store = store_instr->get_rval();
+                            }
+                        }
+                    }
+                    entry_block->get_instructions().clear();
+                    auto alloca_for_global = AllocaInst::create_alloca(m_->get_int32_type(), entry_block);
+                    auto global_load = LoadInst::create_load(global_var->get_type(), global_var, entry_block);
+                    for(auto instr: temp_inst_store){
+                        entry_block->add_instruction(instr);
+                    }
+                    global_var->replace_all_use_with(global_load);
+                    if(final_store != nullptr){
+                        auto store_for_global = StoreInst::create_store(final_store, global_var, entry_block);
+                    }
+                }
+                else{
+                    // TODO: is it necessary to localization an global array?
+                }
             }
         }
     }
