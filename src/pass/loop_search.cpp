@@ -1,30 +1,46 @@
 #include "pass/loop_search.h"
 
+bool add_new_loop = false;
+
 void LoopSearch::run() {
     for(auto fun: m_->get_functions()){
         if(fun->get_basic_blocks().size() == 0) continue;
-        std::set<BasicBlock *> visit;
-        std::vector<BasicBlock *> work_list;
-        work_list.push_back(fun->get_entry_block());
-        while(!work_list.empty()){
-            auto bb = work_list.back();
-            work_list.pop_back();
-            for(auto succ_bb: bb->get_succ_basic_blocks()){
-                edges.insert(std::pair<BasicBlock *, BasicBlock *>(bb, succ_bb));
-                if(visit.find(succ_bb) == visit.end()){
-                    work_list.push_back(succ_bb);
-                }
-            }
-            visit.insert(bb);
-        }
         cur_fun = fun;
         index = 0;
-        Tarjan(fun->get_entry_block());
+        std::set<BasicBlock *> bb_set;
+        for(auto bb: fun->get_basic_blocks()){
+            bb_set.insert(bb);
+        }
+        Tarjan(fun->get_entry_block(), bb_set);
+        add_new_loop = false;
+        // find inner loop
+        while(!work_list.empty()){
+            auto loop = work_list.back();
+            work_list.pop_back();
+            if(loop->get_loop().size() == 1) continue;
+            std::set<BasicBlock *> loop_bb;
+            for(auto bb: loop->get_loop()){
+                loop_bb.insert(bb);
+            }
+            loop_bb.erase(loop->get_loop_entry());
+            index = 0;
+            DFN.clear();Low.clear();in_stack.clear();visited.clear();
+            for(auto succ: loop->get_loop_entry()->get_succ_basic_blocks()){
+                if(loop_bb.find(succ) != loop_bb.end()){
+                    Tarjan(succ, loop_bb);
+                    break;
+                }
+            }
+        }
+        for(auto loop: fun_loop[cur_fun]){
+            build_pre_succ_relation(loop);
+        }
     }
-    print_loop();
+//    print_loop();
 }
 
 void LoopSearch::print_loop(){
+    auto white_space = "      ";
     for(auto x: fun_loop){
         int i = 0;
         std::cout<< "in function: " << x.first->get_name() << std::endl;
@@ -33,29 +49,38 @@ void LoopSearch::print_loop(){
             std::cout << "entry block: " << loop->get_loop_entry()->get_name() << std::endl;
             for(auto bb: loop->get_loop()){
                 std::cout<< bb->get_name() << std::endl;
+                std::cout<< "pre: " << std::endl;
+                for(auto pre: loop->get_loop_bb_pre(bb)){
+                    std::cout<< white_space << pre->get_name() << std::endl;
+                }
+                std::cout<< "succ: " << std::endl;
+                for(auto succ: loop->get_loop_bb_succ(bb)){
+                    std::cout<< white_space << succ->get_name() << std::endl;
+                }
             }
             i++;
         }
     }
 }
 
-void LoopSearch::Tarjan(BasicBlock *bb) {
+void LoopSearch::Tarjan(BasicBlock *bb, std::set<BasicBlock *> blocks) {
+    // find loop in blocks
     DFN[bb] = index;
     Low[bb] = index;
     index ++;
     loop_stack.push(bb);
     in_stack.insert(bb);
     visited.insert(bb);
-    for(auto edge: edges){
-        if(edge.first != bb) continue;
-        if(visited.find(edge.second) == visited.end()){
+    for(auto succ_bb: bb->get_succ_basic_blocks()){
+        if(blocks.find(succ_bb) == blocks.end()) continue;
+        if(visited.find(succ_bb) == visited.end()) {
             // not visited
-            Tarjan(edge.second);
-            Low[bb] = std::min(Low[bb], Low[edge.second]);
+            Tarjan(succ_bb, blocks);
+            Low[bb] = std::min(Low[bb], Low[succ_bb]);
         }
-        else if(in_stack.find(edge.second) != in_stack.end()){
+        else if(in_stack.find(succ_bb) != in_stack.end()){
             // still in stack
-            Low[bb] = std::min(Low[bb], DFN[edge.second]);
+            Low[bb] = std::min(Low[bb], DFN[succ_bb]);
         }
     }
     if(DFN[bb] == Low[bb]){
@@ -70,9 +95,38 @@ void LoopSearch::Tarjan(BasicBlock *bb) {
             loop_stack.pop();
             in_stack.erase(v);
             new_loop->add_loop_block(v);
-            std::cout << v->get_name() << std::endl;
         }
         new_loop->set_entry_block(bb);
-        fun_loop[cur_fun].insert(new_loop);
+        if(new_loop->get_loop().size() > 1){
+            fun_loop[cur_fun].insert(new_loop);
+            work_list.push_back(new_loop);
+            add_new_loop = true;
+        }
+        else if(new_loop->get_loop().size() == 1){
+            for(auto succ_bb: bb->get_succ_basic_blocks()){
+                if(succ_bb == bb){
+                    fun_loop[cur_fun].insert(new_loop);
+                    work_list.push_back(new_loop);
+                    add_new_loop = true;
+                    break;
+                }
+            }
+        }
+    }
+}
+
+void LoopSearch::build_pre_succ_relation(Loop *loop) {
+    auto bb_set = loop->get_loop();
+    for(auto bb: bb_set){
+        for(auto succ_bb: bb->get_succ_basic_blocks()){
+            if(bb_set.find(succ_bb) != bb_set.end()){
+                loop->add_loop_bb_succ(bb, succ_bb);
+            }
+        }
+        for(auto pre_bb: bb->get_pre_basic_blocks()){
+            if(bb_set.find(pre_bb) != bb_set.end()){
+                loop->add_loop_bb_pre(bb, pre_bb);
+            }
+        }
     }
 }
