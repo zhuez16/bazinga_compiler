@@ -2,7 +2,7 @@
 
 ###　本阶段工作完成情况
 
-* 完成IRbuilder的调试工作（除掉数组初始化）
+* 完成IRbuilder的调试工作
 * 编写完成SSA并正在调试
 * 查阅了CodeGenerator的相关资料（ARM指令集、寄存器线性分配算法）
 

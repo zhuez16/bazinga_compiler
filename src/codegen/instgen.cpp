@@ -72,7 +72,7 @@ std::string gen_pop(const std::vector<Reg> &reg_list) {
     return code;
 }
 
-std::string gen_mov(const Reg &target, const Value &source, const CmpOp &cond) {
+std::string gen_mov(const Reg &target, const RegValue &source, const CmpOp &cond) {
     std::string code;
     if (source.is_reg() && target.getName() == source.getName())
         return code;
@@ -87,7 +87,7 @@ std::string gen_mov(const Reg &target, const Value &source, const CmpOp &cond) {
     return code;
 }
 
-std::string gen_mvn(const Reg &target, const Value &source, const CmpOp &cond) {
+std::string gen_mvn(const Reg &target, const RegValue &source, const CmpOp &cond) {
     std::string code;
     code += tab;
     code += "mvn";
@@ -100,7 +100,7 @@ std::string gen_mvn(const Reg &target, const Value &source, const CmpOp &cond) {
     return code;
 }
 
-std::string gen_movw(const Reg &target, const Value &source, const CmpOp &cond) {
+std::string gen_movw(const Reg &target, const RegValue &source, const CmpOp &cond) {
     std::string code;
     code += tab;
     code += "movw";
@@ -113,7 +113,7 @@ std::string gen_movw(const Reg &target, const Value &source, const CmpOp &cond) 
     return code;
 }
 
-std::string gen_movt(const Reg &target, const Value &source, const CmpOp &cond) {
+std::string gen_movt(const Reg &target, const RegValue &source, const CmpOp &cond) {
     std::string code;
     code += tab;
     code += "movt";
@@ -279,7 +279,7 @@ std::string gen_bl(const std::string &target_func) {
     return code;
 }
 
-std::string gen_add(const Reg &target, const Reg &op1, const Value &op2) {
+std::string gen_add(const Reg &target, const Reg &op1, const RegValue &op2) {
     std::string code;
     code += tab;
     code += "add";
@@ -293,7 +293,7 @@ std::string gen_add(const Reg &target, const Reg &op1, const Value &op2) {
     return code;
 }
 
-std::string gen_sub(const Reg &target, const Reg &op1, const Value &op2) {
+std::string gen_sub(const Reg &target, const Reg &op1, const RegValue &op2) {
     std::string code;
     code += tab;
     code += "sub";
@@ -307,7 +307,7 @@ std::string gen_sub(const Reg &target, const Reg &op1, const Value &op2) {
     return code;
 }
 
-std::string gen_rsb(const Reg &target, const Reg &op1, const Value &op2) {
+std::string gen_rsb(const Reg &target, const Reg &op1, const RegValue &op2) {
     std::string code;
     code += tab;
     code += "rsb";
@@ -321,7 +321,7 @@ std::string gen_rsb(const Reg &target, const Reg &op1, const Value &op2) {
     return code;
 }
 
-std::string gen_and(const Reg &target, const Reg &op1, const Value &op2) {
+std::string gen_and(const Reg &target, const Reg &op1, const RegValue &op2) {
     std::string code;
     code += tab;
     code += "and";
@@ -335,7 +335,7 @@ std::string gen_and(const Reg &target, const Reg &op1, const Value &op2) {
     return code;
 }
 
-std::string gen_orr(const Reg &target, const Reg &op1, const Value &op2) {
+std::string gen_orr(const Reg &target, const Reg &op1, const RegValue &op2) {
     std::string code;
     code += tab;
     code += "orr";
@@ -349,7 +349,7 @@ std::string gen_orr(const Reg &target, const Reg &op1, const Value &op2) {
     return code;
 }
 
-std::string gen_eor(const Reg &target, const Reg &op1, const Value &op2) {
+std::string gen_eor(const Reg &target, const Reg &op1, const RegValue &op2) {
     std::string code;
     code += tab;
     code += "eor";
@@ -375,7 +375,7 @@ std::string gen_clz(const Reg &target, const Reg &op1) {
     return code;
 }
 
-std::string gen_lsl(const Reg &target, const Reg &op1, const Value &op2) {
+std::string gen_lsl(const Reg &target, const Reg &op1, const RegValue &op2) {
     std::string code;
     code += tab;
     code += "lsl";
@@ -389,7 +389,7 @@ std::string gen_lsl(const Reg &target, const Reg &op1, const Value &op2) {
     return code;
 }
 
-std::string gen_asl(const Reg &target, const Reg &op1, const Value &op2) {
+std::string gen_asl(const Reg &target, const Reg &op1, const RegValue &op2) {
     std::string code;
     code += tab;
     code += "asl";
@@ -403,7 +403,7 @@ std::string gen_asl(const Reg &target, const Reg &op1, const Value &op2) {
     return code;
 }
 
-std::string gen_lsr(const Reg &target, const Reg &op1, const Value &op2) {
+std::string gen_lsr(const Reg &target, const Reg &op1, const RegValue &op2) {
     std::string code;
     code += tab;
     code += "lsr";
@@ -417,7 +417,7 @@ std::string gen_lsr(const Reg &target, const Reg &op1, const Value &op2) {
     return code;
 }
 
-std::string gen_asr(const Reg &target, const Reg &op1, const Value &op2) {
+std::string gen_asr(const Reg &target, const Reg &op1, const RegValue &op2) {
     std::string code;
     code += tab;
     code += "asr";
@@ -556,7 +556,7 @@ std::string gen_udiv(const Reg &target, const Reg &op1, const Reg &op2) {
 }
 
 
-std::string gen_cmp(const Reg &lhs, const Value &rhs) {
+std::string gen_cmp(const Reg &lhs, const RegValue &rhs) {
     std::string code;
     code += tab;
     code += "cmp";
@@ -580,7 +580,7 @@ std::string gen_b(const Label &target, const CmpOp &cond) {
 }
 /*
 std::string instConst(std::string (*inst)(const Reg &target, const Reg &op1,
-                                          const Value &op2),
+                                          const RegValue &op2),
                       const Reg &target, const Reg &op1, const Constant &op2) {
     std::string code;
     int val = op2.getValue();
@@ -595,7 +595,7 @@ std::string instConst(std::string (*inst)(const Reg &target, const Reg &op1,
     return code;
 }
 
-std::string instConst(std::string (*inst)(const Reg &op1, const Value &op2),
+std::string instConst(std::string (*inst)(const Reg &op1, const RegValue &op2),
                       const Reg &op1, const Constant &op2) {
     std::string code;
     int val = op2.getValue();
@@ -642,7 +642,7 @@ std::string gen_swi(const Constant &id) {
     return code;
 }
 
-std::string gen_bic(const Reg &target, const Reg &op1, const Value &op2) {
+std::string gen_bic(const Reg &target, const Reg &op1, const RegValue &op2) {
     std::string code;
     code += tab;
     code += "bic";

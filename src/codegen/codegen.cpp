@@ -4,6 +4,7 @@
 
 #include "include/codegen/codegen.h"
 #include "include/codegen/instgen.h"
+#include "include/codegen/regAlloc.h"
 const std::string tab="    ";
 const std::string newline="\n";
 std::string codegen::generateModuleCode(std::map<Value *, int> register_mapping, bool auto_alloc) {
@@ -32,6 +33,7 @@ std::string codegen::generateModuleCode(std::map<Value *, int> register_mapping,
 std::string codegen::generateFunctionCode(Function *func) {
     std::string asm_code;
     asm_code+=codegen::allocate_stack(func);
+    reg_mapping=regAlloc(func);
     int counter=0;
     for (auto &bb: func->get_basic_blocks()){
         if (bb->getName().empty()){
@@ -39,14 +41,15 @@ std::string codegen::generateFunctionCode(Function *func) {
         }
     }
     asm_code+=func->get_name()+":"+newline;
-    asm_code+=codegen::comment("stack_size="+std::to_string(this->stack_size));
-    asm_code+=codegen::generateFunctionEntryCode();
+    asm_code+=codegen::comment("stack_size="+std::to_string(this->stack_size))+newline;
+    asm_code+=codegen::generateFunctionEntryCode()+newline;
 
     for (auto &bb: func->get_basic_blocks()){
         asm_code+=codegen::generateBasicBlockCode(bb);
     }
 
-    asm_code+=codegen::generateFunctionExitCode();
+    asm_code+=codegen::generateFunctionExitCode()+newline;
+    return asm_code;
 }
 
 std::string codegen::allocate_stack(Function *func){
@@ -88,6 +91,7 @@ std::string codegen::generateFunctionEntryCode(Function *func) {
     // save callee register and lr
     asm_code+=InstGen::gen_add(InstGen::Reg(13),this->stack_size);
     // allocate stack space and process function args
+    return asm_code;
 }
 
 std::string codegen::generateFunctionExitCode(Function *func) {
@@ -117,12 +121,34 @@ std::string codegen::generateInstructionCode(Instruction *instr) {
     auto &ops=instr->get_operands();
     if (instr->is_ret()){
         if (ops.size()==0){
-            asm_code+=codegen::assignSpecificReg(ops.at(0),0);
+            asm_code+=codegen::assignSpecificReg(ops.at(0),0)+newline;
         }
-        asm_code+=codegen::generateFunctionExitCode(instr->get_function());
+        asm_code+=codegen::generateFunctionExitCode(instr->get_function())+newline;
     }
     else if (instr->is_load()){
-
+        if (codegen::reg_value_table[codegen::reg_mapping[instr]]!=nullptr &&
+            codegen::reg_value_table[codegen::reg_mapping[instr]]!=instr){
+            asm_code+=InstGen::gen_str(codegen::reg_value_table[codegen::reg_mapping[instr]], stack_mapping[instr])+newline;
+        }
+        asm_code+=InstGen::gen_ldr(codegen::reg_mapping[instr],codegen::stack_mapping[instr])+newline;
+    }
+    else if(instr->is_store()){
+        asm_code+=InstGen::gen_str(codegen::reg_mapping[instr],stack_mapping[instr])+newline;
+    }
+    else if(instr->isBinary()){
+        auto target=codegen::reg_mapping[instr];
+        auto lval=reg_mapping[instr->get_operand(0)]
+        auto op1=codegen::reg_mapping[lval];
+        auto st1=stack_mapping[lval];
+        auto rval=instr->get_operand(1);
+        if (rval->get_type()->is_integer_type()){
+            if (reg_value_table[op1]== nullptr){
+                asm_code+=InstGen::gen_ldr(op1,st1);
+            }
+            else if (reg_value_table[op1]!=lval){
+                asm_code+=InstGen::gen_str(op1,stack_mapping[])
+            }
+        }
     }
 }
 
@@ -139,9 +165,10 @@ std::string codegen::getFunctionLabelName(Function *func, int type) {
 }
 
 
-codegen::generateFunctionCall(Instruction *instr, std::string func_name, std::vector<Value *> oprands, int return_reg,
+std::string codegen::generateFunctionCall(Instruction *instr, std::string func_name, std::vector<Value *> oprands, int return_reg,
                               int sp_ofs) {
-    return std::string();
+    std::string asm_code;
+
 }
 
 std::vector<InstGen::Reg> codegen::getAllRegisters(Function *func) {
@@ -197,7 +224,7 @@ std::string codegen::generateInitializerCode() {
     return std::string();
 }
 
-std::pair<int, bool> codegen::constIntVal(Value *val) {
+std::pair<int, bool> codegen::constIntVal(instgen::Value *val) {
     return std::pair<int, bool>();
 }
 

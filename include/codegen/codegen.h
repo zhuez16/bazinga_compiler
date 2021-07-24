@@ -34,10 +34,12 @@ const int L1_cache_size=32*(1<<10);
 const int L2_cache_size=1*(1<<<20);
 const int clone_flag=CLONE_VM | SIGCHLD;
 
+
 const int stack_top_address=0x1000-4096;
 const int stack_top_reg=13;
 class codegen {
 private:
+    Value *reg_value_table[InstGen::max_reg_id];
     Module *module;
     std::map<Value *,int> reg_mapping;
     std::map<Value *,int> stack_mapping;

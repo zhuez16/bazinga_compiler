@@ -35,7 +35,7 @@ enum CmpOp {
   NOP
 };
 
-class Value {
+class RegValue {
 public:
   virtual bool is_reg() const = 0;
   virtual bool is_constant() const = 0;
@@ -43,7 +43,7 @@ public:
   virtual std::string getName() const = 0;
 };
 
-class Reg : public Value {
+class Reg : public RegValue {
   int id;
 
 public:
@@ -63,7 +63,7 @@ public:
   const bool operator!=(const Reg &rhs) const { return this->id != rhs.id; }
 };
 
-class RegShift : public Value {
+class RegShift : public RegValue {
 public:
   enum ShiftType { lsl, lsr, asl, asr };
 
@@ -134,16 +134,16 @@ public:
   }
 };
 
-class Constant : public Value {
-  int value;
+class Constant : public RegValue {
+  int RegValue;
 
 public:
-  explicit Constant(int value) : value(value) {}
+  explicit Constant(int RegValue) : RegValue(RegValue) {}
   bool is_reg() const { return false; }
   bool is_constant() const { return true; }
   bool has_shift() const { return false; }
-  int getValue() const { return this->value; }
-  std::string getName() const { return "#" + std::to_string(this->value); }
+  int getRegValue() const { return this->RegValue; }
+  std::string getName() const { return "#" + std::to_string(this->RegValue); }
 };
 
 class Label {
@@ -160,11 +160,11 @@ public:
 std::string condCode(const CmpOp &cond);
 std::string gen_push(const std::vector<Reg> &reg_list);
 std::string gen_pop(const std::vector<Reg> &reg_list);
-std::string gen_mov(const Reg &target, const Value &source, const CmpOp &cond = NOP);
-std::string gen_mvn(const Reg &target, const Value &source, const CmpOp &cond = NOP);
-std::string gen_movw(const Reg &target, const Value &source, const CmpOp &cond = NOP);
-std::string gen_movt(const Reg &target, const Value &source, const CmpOp &cond = NOP);
-//std::string setValue(const Reg &target, const Constant &source);
+std::string gen_mov(const Reg &target, const RegValue &source, const CmpOp &cond = NOP);
+std::string gen_mvn(const Reg &target, const RegValue &source, const CmpOp &cond = NOP);
+std::string gen_movw(const Reg &target, const RegValue &source, const CmpOp &cond = NOP);
+std::string gen_movt(const Reg &target, const RegValue &source, const CmpOp &cond = NOP);
+//std::string setRegValue(const Reg &target, const Constant &source);
 std::string gen_adrl(const Reg &target, const Label &source);
 std::string gen_ldr(const Reg &target, const Addr &source);
 std::string gen_ldr(const Reg &target, const Label &source);
@@ -178,18 +178,18 @@ std::string gen_str(const Reg &target, const Reg &base, const Reg &offset,
                 const Constant &shift);
 //std::string store(const Reg &source, const Reg &base, const Reg &offset);
 std::string gen_bl(const std::string &target_func_name);
-std::string gen_add(const Reg &target, const Reg &op1, const Value &op2);
-std::string gen_sub(const Reg &target, const Reg &op1, const Value &op2);
-std::string gen_rsb(const Reg &target, const Reg &op1, const Value &op2);
-std::string gen_and(const Reg &target, const Reg &op1, const Value &op2);
-std::string gen_orr(const Reg &target, const Reg &op1, const Value &op2);
-std::string gen_eor(const Reg &target, const Reg &op1, const Value &op2);
+std::string gen_add(const Reg &target, const Reg &op1, const RegValue &op2);
+std::string gen_sub(const Reg &target, const Reg &op1, const RegValue &op2);
+std::string gen_rsb(const Reg &target, const Reg &op1, const RegValue &op2);
+std::string gen_and(const Reg &target, const Reg &op1, const RegValue &op2);
+std::string gen_orr(const Reg &target, const Reg &op1, const RegValue &op2);
+std::string gen_eor(const Reg &target, const Reg &op1, const RegValue &op2);
 std::string gen_clz(const Reg &target, const Reg &op1);
-std::string gen_lsl(const Reg &target, const Reg &op1, const Value &op2);
+std::string gen_lsl(const Reg &target, const Reg &op1, const RegValue &op2);
 std::string gen_asl(const Reg &target, const Reg &op1,
-                const Value &op2); // same as lsl
-std::string gen_lsr(const Reg &target, const Reg &op1, const Value &op2);
-std::string gen_asr(const Reg &target, const Reg &op1, const Value &op2);
+                const RegValue &op2); // same as lsl
+std::string gen_lsr(const Reg &target, const Reg &op1, const RegValue &op2);
+std::string gen_asr(const Reg &target, const Reg &op1, const RegValue &op2);
 std::string gen_mul(const Reg &target, const Reg &op1, const Reg &op2);
 std::string gen_smmul(const Reg &target, const Reg &op1, const Reg &op2);
 std::string gen_mla(const Reg &target, const Reg &op1, const Reg &op2,
@@ -201,19 +201,19 @@ std::string gen_mls(const Reg &target, const Reg &op1, const Reg &op2,
 std::string gen_smull(const Reg &target, const Reg &op1, const Reg &op2,
                   const Reg &op3);
 std::string gen_sdiv(const Reg &target, const Reg &op1, const Reg &op2);
-std::string gen_cmp(const Reg &lhs, const Value &rhs);
+std::string gen_cmp(const Reg &lhs, const RegValue &rhs);
 std::string gen_b(const Label &target, const CmpOp &op = NOP);
 /*
 std::string instConst(std::string (*inst)(const Reg &target, const Reg &op1,
-                                          const Value &op2),
+                                          const RegValue &op2),
                       const Reg &target, const Reg &op1, const Constant &op2);
-std::string instConst(std::string (*inst)(const Reg &op1, const Value &op2),
+std::string instConst(std::string (*inst)(const Reg &op1, const RegValue &op2),
                       const Reg &op1, const Constant &op2);
 std::string load(const Reg &target, const Addr &source);
 std::string store(const Reg &source, const Addr &target);
 */
 std::string gen_swi(const Constant &id);
-std::string gen_bic(const Reg &target, const Reg &op1, const Value &op2);
+std::string gen_bic(const Reg &target, const Reg &op1, const RegValue &op2);
 
 /*
 std::string bic(const Reg &target, const Reg &v1, const Reg &v2, const Reg &v3);
