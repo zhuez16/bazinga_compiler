@@ -41,13 +41,16 @@ ADD_EXECUTABLE(parser
 ADD_EXECUTABLE(builder
         src/pass/dominator.cpp
         src/pass/mem2reg.cpp
+        src/pass/loop_search.cpp
+        src/pass/global2local.cpp
         src/IRbuilder/bzcompiler.cpp
         src/IRbuilder/bzcompiler_builder.cpp
         ${FLEX_lexer2_OUTPUTS}
         ${BISON_parser_OUTPUTS}
         src/ast.cpp
         src/pass_manager.cpp
-        src/pass/active_vars.cpp)
+        src/pass/active_vars.cpp
+        src/pass/combining.cpp)
 TARGET_LINK_LIBRARIES(
         builder IR_lib
 )

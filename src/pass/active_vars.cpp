@@ -46,29 +46,6 @@ void active_vars::run()
                         }
                         def[bb].insert(instr);
                     }
-                    else if (instr->is_fadd()
-                             || instr->is_fsub()
-                             || instr->is_fmul()
-                             || instr->is_fdiv()
-                            ){
-                        auto lval=static_cast<StoreInst*>(instr)->get_lval();
-                        auto rval=static_cast<StoreInst*>(instr)->get_rval();
-                        auto constant_ptr=dynamic_cast<ConstantFP *>(lval);
-                        if (!constant_ptr){
-                            if (def[bb].find(lval)==def[bb].end()) use[bb].insert(lval);
-                            for (auto prevbb:bb->get_pre_basic_blocks()){
-                                active[prevbb].insert(lval);
-                            }
-                        }
-                        constant_ptr=dynamic_cast<ConstantFP *>(lval);
-                        if (!constant_ptr){
-                            if (def[bb].find(rval)==def[bb].end()) use[bb].insert(rval);
-                            for (auto prevbb:bb->get_pre_basic_blocks()){
-                                active[prevbb].insert(lval);
-                            }
-                        }
-                        def[bb].insert(instr);
-                    }
                     else if (instr->is_ret()){
                         if (instr->get_num_operand()){
                             auto tmp=instr->get_operand(0);
@@ -129,29 +106,6 @@ void active_vars::run()
                             use[bb].insert(tmp);
                             for (auto prevbb:bb->get_pre_basic_blocks()){
                                 active[prevbb].insert(tmp);
-                            }
-                        }
-                        def[bb].insert(instr);
-                    }
-                    else if (instr->is_fp2si()){
-                        auto tmp=instr->get_operand(0);
-                        auto constant_fp_ptr=dynamic_cast<ConstantFP *>(tmp);
-                        if (!constant_fp_ptr){
-                            if (def[bb].find(tmp)==def[bb].end()){
-                                use[bb].insert(tmp);
-                            }
-                        }
-                        def[bb].insert(instr);
-                    }
-                    else if (instr->is_si2fp()){
-                        auto tmp=instr->get_operand(0);
-                        auto constant_int_ptr=dynamic_cast<ConstantInt *>(tmp);
-                        if (!constant_int_ptr){
-                            if (def[bb].find(tmp)==def[bb].end()){
-                                use[bb].insert(tmp);
-                                for (auto prevbb:bb->get_pre_basic_blocks()){
-                                    active[prevbb].insert(tmp);
-                                }
                             }
                         }
                         def[bb].insert(instr);

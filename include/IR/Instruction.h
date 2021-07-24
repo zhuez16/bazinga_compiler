@@ -3,6 +3,7 @@
 
 #include "User.h"
 #include "Type.h"
+#include "cassert"
 #include "BasicBlock.h"
 #include <map>
 
@@ -37,7 +38,7 @@ public:
         fcmp,
         phi,
         call,
-        getelementptr, 
+        getelementptr,
         zext, // zero extend
         fptosi,
         sitofp,
@@ -56,6 +57,19 @@ public:
     // Return the function this instruction belongs to.
     Function *get_function();
     Module *get_module();
+
+    /// ============= FUNCTION CONTEXT IN SUBROUTINE ================
+    ///              维护一个基本块内的指令关系链，用于优化处理
+
+private:
+    Instruction *_prev_inst = nullptr;
+    Instruction *_next_inst = nullptr;
+public:
+    Instruction *getPrevInst() const { return _prev_inst; }
+    Instruction *getSuccInst() const { return _next_inst; }
+    void setPrevInst(Instruction *inst) { _prev_inst = inst; }
+    void setSuccInst(Instruction *inst) { _next_inst = inst; }
+
 
     /// ============= INLINE OPTIMIZATION HELPER FUNCTIONS ==============
 
@@ -84,7 +98,7 @@ public:
             }
             it1++;
         }
-        
+
     };
 
     /// ============= INLINE OPTIMIZATION HELPER FUNCTIONS ==============
@@ -115,7 +129,7 @@ public:
             case zext: return "zext"; break;
             case fptosi: return "fptosi"; break;
             case sitofp: return "sitofp"; break;
-        
+
         default: return ""; break;
         }
     }
@@ -135,14 +149,7 @@ public:
     bool is_sub() { return op_id_ == sub; }
     bool is_mul() { return op_id_ == mul; }
     bool is_div() { return op_id_ == sdiv; }
-    
-    
-    bool is_fadd() { return op_id_ == fadd; }
-    bool is_fsub() { return op_id_ == fsub; }
-    bool is_fmul() { return op_id_ == fmul; }
-    bool is_fdiv() { return op_id_ == fdiv; }
-    bool is_fp2si() { return op_id_ == fptosi; }
-    bool is_si2fp() { return op_id_ == sitofp; }
+
 
     bool is_cmp() { return op_id_ == cmp; }
     bool is_fcmp() { return op_id_ == fcmp; }
@@ -150,14 +157,18 @@ public:
     bool is_call() { return op_id_ == call; }
     bool is_gep() { return op_id_ == getelementptr; }
     bool is_zext() { return op_id_ == zext; }
-    
+
 
     bool isBinary()
     {
-        return (is_add() || is_sub() || is_mul() || is_div() ||
-                is_fadd() || is_fsub() || is_fmul() || is_fdiv()) &&
+        return (is_add() || is_sub() || is_mul() || is_div()) &&
                (get_num_operand() == 2);
     }
+
+    virtual bool isStaticCalculable();
+
+
+    virtual int calculate()  { return 0; }
 
     bool isTerminator() { return is_br() || is_ret(); }
 
@@ -231,6 +242,10 @@ public:
 
     virtual std::string print() override;
 
+    int calculate() final;
+
+    bool isStaticCalculable() final;
+
 private:
     void assertValid();
 };
@@ -258,6 +273,10 @@ public:
                                BasicBlock *bb, Module *m);
 
     CmpOp get_cmp_op() { return cmp_op_; }
+
+    bool isStaticCalculable() final;
+
+    int calculate() final;
 
     virtual CmpInst* deepcopy(BasicBlock* parent) override{
         // 复制基本信息
@@ -381,7 +400,7 @@ public:
                 *it1 = ptMap[o];
             }
         }
-        
+
     };
 };
 
@@ -399,6 +418,14 @@ public:
     static BranchInst *create_br(BasicBlock *if_true, BasicBlock *bb);
 
     bool is_cond_br() const;
+
+    Value *get_condition() const {
+        assert(is_cond_br() && "Only condition branch have a condition");
+        return get_operand(0);
+    }
+
+    BasicBlock *getTrueBB() const;
+    BasicBlock *getFalseBB() const;
 
     virtual std::string print() override;
 
@@ -688,6 +715,13 @@ public:
     {
         this->add_operand(val);
         this->add_operand(pre_bb);
+    }
+    void remove_source(BasicBlock *bb) {
+        for (int i = 1; i < get_num_operand(); i+=2) {
+            if ((Value *)bb == get_operand(i)) {
+                remove_operands(i - 1, i);
+            }
+        }
     }
     virtual std::string print() override;
 
