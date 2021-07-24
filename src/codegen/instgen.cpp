@@ -126,8 +126,8 @@ std::string gen_movt(const Reg &target, const RegValue &source, const CmpOp &con
     return code;
 }
 
-/*
-std::string setValue(const Reg &target, const Constant &source) {
+
+std::string gen_set_Value(const Reg &target, const Constant &source) {
     std::string code;
     auto val = source.getValue();
     if (0 <= val && val <= imm_16_max)
@@ -155,7 +155,7 @@ std::string setValue(const Reg &target, const Constant &source) {
     }
     return code;
 }
-*/
+
 
 std::string gen_adrl(const Reg &target, const Label &source) {
     std::string code;

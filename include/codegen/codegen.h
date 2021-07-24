@@ -74,7 +74,8 @@ public:
     std::string assignSpecificReg(Reg *val, int target);
     std::string getSpecificReg(Value *val, int source);
     std::string generateGlobalVarsCode();
-    std::string generateInitializerCode();
+    std::string generateInitializerCode(Constant *init);
+    int getGlobalAddress(Value *val);
     std::pair<int,bool> constIntVal(Value *val);
     std::string comment(std::string s);
     std::map<Value *, int> regAlloc();
