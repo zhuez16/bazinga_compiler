@@ -81,25 +81,6 @@ void active_vars::run()
                         }
                         def[bb].insert(instr);
                     }
-                    else if (instr->is_fcmp()){
-                        auto lval=static_cast<StoreInst*>(instr)->get_lval();
-                        auto rval=static_cast<StoreInst*>(instr)->get_rval();
-                        auto constant_ptr=dynamic_cast<ConstantFP *>(lval);
-                        if (!constant_ptr){
-                            if (def[bb].find(lval)==def[bb].end()) use[bb].insert(lval);
-                            for (auto prevbb:bb->get_pre_basic_blocks()){
-                                active[prevbb].insert(lval);
-                            }
-                        }
-                        constant_ptr=dynamic_cast<ConstantFP *>(lval);
-                        if (!constant_ptr){
-                            if (def[bb].find(rval)==def[bb].end()) use[bb].insert(rval);
-                            for (auto prevbb:bb->get_pre_basic_blocks()){
-                                active[prevbb].insert(rval);
-                            }
-                        }
-                        def[bb].insert(instr);
-                    }
                     else if (instr->is_zext()){
                         auto tmp=instr->get_operand(0);
                         if (def[bb].find(tmp)==def[bb].end()){

@@ -56,31 +56,3 @@ std::string print_cmp_type( CmpInst::CmpOp op )
     }
     return "wrong cmpop";
 }
-
-std::string print_fcmp_type( FCmpInst::CmpOp op )
-{
-    switch (op)
-    {
-    case FCmpInst::GE:
-        return "uge";
-        break;
-    case FCmpInst::GT:
-        return "ugt";
-        break;
-    case FCmpInst::LE:
-        return "ule";
-        break;
-    case FCmpInst::LT:
-        return "ult";
-        break;
-    case FCmpInst::EQ:
-        return "ueq";
-        break;
-    case FCmpInst::NE:
-        return "une";
-        break;
-    default:
-        break;
-    }
-    return "wrong fcmpop";
-}
