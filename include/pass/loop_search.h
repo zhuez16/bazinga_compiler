@@ -30,6 +30,7 @@ public:
     void print_loop();
     LoopSearch(Module *m) : Pass(m){}
     ~LoopSearch(){};
+    std::set<Loop *> get_loop(Function *fun) { return fun_loop[fun]; }
     void Tarjan(BasicBlock *bb, std::set<BasicBlock *> blocks);
     void run() override;
 };
