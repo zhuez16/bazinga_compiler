@@ -347,43 +347,53 @@ std::string codegen::generateInstructionCode(Instruction *instr) {
                 else 
                 {
                     const int mp = op1_const->get_value();
-                    // add sub rsb lsl inst * 1
+                    for (int inst_1 = 0; inst_1 < 4; inst_1++) 
                     {
-                        for (int inst_1 = 0; inst_1 < 4; inst_1++) 
+                        for (int lsl_1 = 0; lsl_1 < 32; lsl_1++) 
                         {
-                            for (int lsl_1 = 0; lsl_1 < 32; lsl_1++) 
+                            int x = 1;
+                            int y;
+                            if (inst_1 == 0)
                             {
-                                int x = 1;
-                                int y;
-                                if (inst_1 == 0)
-                                    y = (x + (x << lsl_1));
-                                if (inst_1 == 1)
-                                    y = (x - (x << lsl_1));
-                                if (inst_1 == 2)
-                                    y = ((x << lsl_1) - x);
-                                if (inst_1 == 3) 
-                                    y = (x << lsl_1);
-                                if (y == mp) {
-                                    if (inst_1 == 0) {
-                                        asm_code += InstGen::gen_add(InstGen::Reg(alu_ret),
-                                                                InstGen::Reg(alu_op0),
-                                                                InstGen::RegShift(alu_op0, lsl_1));
-                                    }
-                                    if (inst_1 == 1) {
-                                        asm_code += InstGen::gen_sub(InstGen::Reg(alu_ret),
-                                                                InstGen::Reg(alu_op0),
-                                                                InstGen::RegShift(alu_op0, lsl_1));
-                                    }
-                                    if (inst_1 == 2) {
-                                        asm_code += InstGen::gen_rsb(InstGen::Reg(alu_ret),
-                                                                InstGen::Reg(alu_op0),
-                                                                InstGen::RegShift(alu_op0, lsl_1));
-                                    }
-                                    if (inst_1 == 3) {
-                                        asm_code += InstGen::gen_lsl(InstGen::Reg(alu_ret),
-                                                                InstGen::Reg(alu_op0),
-                                                                InstGen::Constant(lsl_1));
-                                    }
+                                y = (x + (x << lsl_1));
+                                if (y == mp) 
+                                {
+                                    asm_code += InstGen::gen_add(InstGen::Reg(alu_ret),
+                                                            InstGen::Reg(alu_op0),
+                                                            InstGen::RegShift(alu_op0, lsl_1));    
+                                    goto mul_end;
+                                }
+                            }
+                            if (inst_1 == 1)
+                            {
+                                y = (x - (x << lsl_1));
+                                if (y == mp) 
+                                {
+                                    asm_code += InstGen::gen_add(InstGen::Reg(alu_ret),
+                                                            InstGen::Reg(alu_op0),
+                                                            InstGen::RegShift(alu_op0, lsl_1));    
+                                    goto mul_end;
+                                }
+                            }
+                            if (inst_1 == 2)
+                            {
+                                y = ((x << lsl_1) - x);
+                                if (y == mp) 
+                                {
+                                    asm_code += InstGen::gen_sub(InstGen::Reg(alu_ret),
+                                                            InstGen::Reg(alu_op0),
+                                                            InstGen::RegShift(alu_op0, lsl_1));  
+                                    goto mul_end;
+                                }
+                            }
+                            if (inst_1 == 3) 
+                            {
+                                y = (x << lsl_1);
+                                if (y == mp) 
+                                {
+                                    asm_code += InstGen::gen_lsl(InstGen::Reg(alu_ret),
+                                                            InstGen::Reg(alu_op0),
+                                                            InstGen::Constant(lsl_1));
                                     goto mul_end;
                                 }
                             }
@@ -395,7 +405,8 @@ std::string codegen::generateInstructionCode(Instruction *instr) {
                             for (int inst_2 = 0; inst_2 < 4; inst_2++) {
                                 for (int lsl_2 = 0; lsl_2 < 32; lsl_2++) {
                                     for (int i2o1 = 0; i2o1 < 2; i2o1++) {
-                                        for (int i2o2 = 0; i2o2 < 2; i2o2++) {
+                                        for (int i2o2 = 0; i2o2 < 2; i2o2++) 
+                                        {
                                             int x = 1;
                                             int y;
                                             int z;
@@ -468,7 +479,6 @@ std::string codegen::generateInstructionCode(Instruction *instr) {
                             }
                         }
                     }
-                    // fallback to mul
                     asm_code += codegen::assignSpecificReg(ops.at(1), alu_op1);
                     asm_code +=
                             InstGen::gen_mul(InstGen::Reg(alu_ret), InstGen::Reg(alu_op0),
