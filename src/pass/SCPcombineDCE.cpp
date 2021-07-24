@@ -2,7 +2,7 @@
 // Created by 顾超 on 2021/7/22.
 //
 
-#include "pass/combining.h"
+#include "pass/SCPcombineDCE.h"
 
 int sp_add(int l, int r) { return l + r; }
 int sp_sub(int l, int r) { return l - r; }

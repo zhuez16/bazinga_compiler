@@ -43,6 +43,45 @@ void BasicBlock::add_instr_begin(Instruction *instr)
     instr_list_.push_front(instr);
 }
 
+void BasicBlock::add_instr_after_phi(Instruction *instr) {
+    instr->set_parent(this);
+    auto it = instr_list_.begin();
+    for (; it != instr_list_.end(); ++it) {
+        if (!(*it)->is_phi()) {
+            break;
+        }
+    }
+    Instruction *front = nullptr, *back = nullptr;
+    if (it != instr_list_.begin())  {
+        front = *(--it);
+        ++it;
+    }
+    if (it != instr_list_.end()) {
+        back = *it;
+    }
+    if (front != nullptr) {
+        front->setSuccInst(instr);
+    }
+    if (back != nullptr) {
+        back->setPrevInst(instr);
+    }
+    instr->setPrevInst(front);
+    instr->setSuccInst(back);
+    instr_list_.insert(it, instr);
+}
+
+void BasicBlock::delete_instr_simple(Instruction *instr) {
+    instr_list_.remove(instr);
+    Instruction *prev = instr->getPrevInst();
+    Instruction *succ = instr->getSuccInst();
+    if (prev != nullptr) {
+        prev->setSuccInst(succ);
+    }
+    if (succ != nullptr) {
+        succ->setPrevInst(prev);
+    }
+}
+
 void BasicBlock::delete_instr( Instruction *instr )
 {
     instr_list_.remove(instr);

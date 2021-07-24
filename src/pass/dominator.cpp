@@ -25,9 +25,9 @@ void dominator::run(){
         for (auto bb : f->get_basic_blocks() ){
             if(bb->is_fake_block()) continue;
 //            std::cout << bb->get_name() << std::endl;
-            immediate_dominance.insert({bb ,{}});
-            dominannce_frontier.insert({bb ,{}});
-            dom_tree_succ_blocks.insert({bb ,{}});
+            _iDomMap.insert({bb , {}});
+            _frontierMap.insert({bb , {}});
+            _successorMap.insert({bb , {}});
         }
 //        std::cout << "dom debug 1" << std::endl;
         create_reverse_post_order(f);
@@ -43,28 +43,26 @@ void dominator::run(){
 }
 
 void dominator::create_reverse_post_order(Function *f){
-    reverse_post_order_.clear();
-    post_order_id_.clear();
+    _reversedPostOrderQueue.clear();
+    _postOrderID.clear();
     std::set<BasicBlock *> visited;
-    post_order_visit(f->get_entry_block(), visited);
-    reverse_post_order_.reverse();
+    int id = 0;
+    dfs(f->get_entry_block(), visited, id);
+    _reversedPostOrderQueue.reverse();
 }
 
-void dominator::post_order_visit(BasicBlock *bb, std::set<BasicBlock *> &visited){
+void dominator::dfs(BasicBlock *bb, std::set<BasicBlock *> &visited, int &id){
     visited.insert(bb);
-    for (auto b : bb->get_succ_basic_blocks()) {
-//        std::cout << "++++++++++" << std::endl;
-//        std::cout << bb->get_name() << std::endl;
-//        std::cout<< bb->get_succ_basic_blocks().size() << std::endl;
-//        std::cout<< (b->is_fake_block() ? "fake block" : " true block") << std::endl;
-//        std::cout << "++++++++++" << std::endl;
-        if(b->is_fake_block()) continue;
-//        std::cout << bb->get_name() << "--->" << b->get_name() << std::endl;
-        if (visited.find(b) == visited.end())
-            post_order_visit(b, visited);
+    for (auto _bb : bb->get_succ_basic_blocks()) {
+        // 跳过假块
+        if(_bb->is_fake_block()) continue;
+        // 若没有访问过则对其访问，否则跳过
+        if (visited.find(_bb) == visited.end()) {
+            dfs(_bb, visited, id);
+        }
     }
-    post_order_id_[bb] = reverse_post_order_.size();
-    reverse_post_order_.push_back(bb);
+    _postOrderID[bb] = id++;
+    _reversedPostOrderQueue.push_back(bb);
 }
 
 void dominator::create_immediate_dominance(Function *f){
@@ -80,7 +78,7 @@ void dominator::create_immediate_dominance(Function *f){
     bool changed = true;
     while (changed) {
         changed = false;
-        for (auto bb : this->reverse_post_order_) {
+        for (auto bb : this->_reversedPostOrderQueue) {
 //            std::cout << "-----------"<<std::endl;
 //            for(auto bb: this->reverse_post_order_){
 //                std::cout<<bb->get_name()<<std::endl;
@@ -101,7 +99,7 @@ void dominator::create_immediate_dominance(Function *f){
 //                    std::cout<<pre->get_name()<<std::endl;
 //                }
 //                std::cout << "-----------"<<std::endl;
-                if (get_immediate_dominance(p)) {
+                if (getImmediateDominance(p)) {
                     pred = p;
                     break;
                 }
@@ -113,11 +111,11 @@ void dominator::create_immediate_dominance(Function *f){
                 if(p->is_fake_block()) continue;
                 if (p == pred)
                     continue;
-                if (get_immediate_dominance(p)) {
+                if (getImmediateDominance(p)) {
                     new_idom = intersect(p, new_idom);
                 }
             }
-            if (get_immediate_dominance(bb) != new_idom) {
+            if (getImmediateDominance(bb) != new_idom) {
                 set_immediate_dominance(bb, new_idom);
                 changed = true;
             }
@@ -128,13 +126,13 @@ void dominator::create_immediate_dominance(Function *f){
 // find closest parent of b1 and b2
 BasicBlock *dominator::intersect(BasicBlock *b1, BasicBlock *b2){
     while (b1 != b2) {
-        while (post_order_id_[b1] < post_order_id_[b2]) {
-            assert(get_immediate_dominance(b1));
-            b1 = get_immediate_dominance(b1);
+        while (_postOrderID[b1] < _postOrderID[b2]) {
+            assert(getImmediateDominance(b1));
+            b1 = getImmediateDominance(b1);
         }
-        while (post_order_id_[b2] < post_order_id_[b1]) {
-            assert(get_immediate_dominance(b2));
-            b2 = get_immediate_dominance(b2);
+        while (_postOrderID[b2] < _postOrderID[b1]) {
+            assert(getImmediateDominance(b2));
+            b2 = getImmediateDominance(b2);
         }
     }
     return b1;
@@ -146,9 +144,9 @@ void dominator::create_dominance_frontier(Function *f){
         if (bb->get_pre_basic_blocks().size() >= 2) {
             for (auto p : bb->get_pre_basic_blocks()) {
                 auto runner = p;
-                while (runner != get_immediate_dominance(bb)) {
+                while (runner != getImmediateDominance(bb)) {
                     add_dominance_frontier(runner, bb);
-                    runner = get_immediate_dominance(runner);
+                    runner = getImmediateDominance(runner);
                 }
             }
         }
@@ -158,23 +156,19 @@ void dominator::create_dominance_frontier(Function *f){
 void dominator::create_dom_tree_succ(Function *f){
     for (auto bb : f->get_basic_blocks()) {
         if(bb->is_fake_block()) continue;
-        auto idom = get_immediate_dominance(bb);
+        auto idom = getImmediateDominance(bb);
         if(!idom || idom->is_fake_block()) continue;
         // e.g, entry bb
         if (idom != bb) {
             add_dom_tree_succ_block(idom, bb);
-//            std::cout<<"in add succ bb"<<std::endl;
-//            std::cout<< bb->get_name()<<std::endl;
-//            std::cout << idom->get_name() << std::endl;
-//            std::cout << "" << std::endl;
         }
     }
 }
 
 void dominator::print_dom_tree() {
     std::cout <<"======="<<std::endl;
-    std::cout << dom_tree_succ_blocks.size() << std::endl;
-    for(auto x: dom_tree_succ_blocks){
+    std::cout << _successorMap.size() << std::endl;
+    for(auto x: _successorMap){
         if(x.first->is_fake_block()) continue;
         std::cout << x.first->get_name() << std::endl;
         for(auto s: x.second){

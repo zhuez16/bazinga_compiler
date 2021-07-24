@@ -66,6 +66,8 @@ public:
 
     void add_instruction(Instruction *instr);
     void add_instr_begin(Instruction *instr);
+    void add_instr_after_phi(Instruction *instr);
+    void delete_instr_simple(Instruction *instr);
 
     void delete_instr(Instruction *instr);
 
