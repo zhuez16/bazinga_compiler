@@ -96,7 +96,7 @@ int main(int argc, char **argv) {
     PassManager PM(m);
     mem2reg = true;
     PM.add_pass<Global2Local>();
-    PM.add_pass<LoopSearch>();
+
     m->set_print_name();
 //    printf("start running pass manager\n");
     if( mem2reg )
@@ -106,6 +106,7 @@ int main(int argc, char **argv) {
     if ( const_propagation ) {
         PM.add_pass<ConstFoldingDCEliminating>();
     }
+    PM.add_pass<LoopSearch>();
 //    if( loop_search ){
 //        PM.add_pass<LoopSearch>();
 //    }

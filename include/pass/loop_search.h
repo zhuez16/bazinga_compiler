@@ -23,6 +23,7 @@ private:
     std::set<BasicBlock *> in_stack;
     std::set<BasicBlock *> visited;
     std::set<std::pair<BasicBlock *, BasicBlock *>> edges;
+    std::map<Loop *, std::set<Loop *>> child_loop;
     int index = 0;
     Function *cur_fun;
     void build_pre_succ_relation(Loop *loop);
@@ -30,6 +31,7 @@ public:
     void print_loop();
     LoopSearch(Module *m) : Pass(m){}
     ~LoopSearch(){};
+    std::set<Loop *> get_child_loop(Loop *loop) { return child_loop[loop]; }
     std::set<Loop *> get_loop(Function *fun) { return fun_loop[fun]; }
     void Tarjan(BasicBlock *bb, std::set<BasicBlock *> blocks);
     void run() override;

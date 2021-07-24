@@ -1,7 +1,7 @@
 #include "pass/loop_search.h"
 
 bool add_new_loop = false;
-
+Loop *curloop = nullptr;
 void LoopSearch::run() {
     for(auto fun: m_->get_functions()){
         if(fun->get_basic_blocks().size() == 0) continue;
@@ -11,11 +11,13 @@ void LoopSearch::run() {
         for(auto bb: fun->get_basic_blocks()){
             bb_set.insert(bb);
         }
+        curloop = nullptr;
         Tarjan(fun->get_entry_block(), bb_set);
         add_new_loop = false;
         // find inner loop
         while(!work_list.empty()){
             auto loop = work_list.back();
+            curloop = loop;
             work_list.pop_back();
             if(loop->get_loop().size() == 1) continue;
             std::set<BasicBlock *> loop_bb;
@@ -100,14 +102,18 @@ void LoopSearch::Tarjan(BasicBlock *bb, std::set<BasicBlock *> blocks) {
         if(new_loop->get_loop().size() > 1){
             fun_loop[cur_fun].insert(new_loop);
             work_list.push_back(new_loop);
-            add_new_loop = true;
+            if(curloop != nullptr){
+                child_loop[curloop].insert(new_loop);
+            }
         }
         else if(new_loop->get_loop().size() == 1){
             for(auto succ_bb: bb->get_succ_basic_blocks()){
                 if(succ_bb == bb){
                     fun_loop[cur_fun].insert(new_loop);
                     work_list.push_back(new_loop);
-                    add_new_loop = true;
+                    if(curloop != nullptr){
+                        child_loop[curloop].insert(new_loop);
+                    }
                     break;
                 }
             }
