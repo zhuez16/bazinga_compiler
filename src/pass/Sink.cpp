@@ -6,6 +6,7 @@
 
 void CodeSinking::run() {
     dom->run();
+    lp->run();
     for (auto f: m_->get_functions()) {
         if (!f->is_declaration())
             iterSinkInstruction(f);
@@ -47,9 +48,9 @@ bool CodeSinking::processBB(BasicBlock *bb) {
 }
 
 
-static bool isSafeToMove(Instruction *Inst) {
+static bool isSafeToMove(Instruction *inst) {
     // Skip instructions that may have side-effects
-    if (Inst->is_store() || Inst->is_call() || Inst->is_load()) {
+    if (inst->is_store() || inst->is_call() || inst->is_load()) {
         return false;
     }
 
@@ -63,7 +64,7 @@ static bool isSafeToMove(Instruction *Inst) {
     }
     */
 
-    if (Inst->isTerminator() || Inst->is_phi())
+    if (inst->isTerminator() || inst->is_phi())
         return false;
     return true;
 }
@@ -88,14 +89,12 @@ bool CodeSinking::IsAcceptableTarget(Instruction *Inst, BasicBlock *SuccToSinkTo
         // successor. We could be introducing calculations to new code paths.
         if (!dom->isDominatedBy(SuccToSinkTo, Inst->get_parent()))
             return false;
-//TODO: Wait for loop analysis pass
-/*
+
         // Don't sink instructions into a loop.
-        Loop *succ = LI.getLoopFor(SuccToSinkTo);
-        Loop *cur = LI.getLoopFor(Inst->getParent());
+        Loop *succ = lp->get_smallest_loop(SuccToSinkTo);
+        Loop *cur = lp->get_smallest_loop(Inst->get_parent());
         if (succ != nullptr && succ != cur)
             return false;
-            */
     }
 
     return true;
@@ -123,42 +122,42 @@ bool CodeSinking::SinkInstruction(Instruction *Inst) {
 
     // SuccToSinkTo - This is the successor to sink this instruction to, once we
     // decide.
-    BasicBlock *SuccToSinkTo = nullptr;
+    BasicBlock *sink_target = nullptr;
 
     // Find the nearest common dominator of all users as the candidate.
-    BasicBlock *BB = Inst->get_parent();
+    BasicBlock *bb = Inst->get_parent();
     for (Use &U : Inst->get_use_list()) {
         auto *UseInst = dynamic_cast<Instruction *>(U.val_);
-        BasicBlock *UseBlock = UseInst->get_parent();
+        BasicBlock *use_ = UseInst->get_parent();
         if (auto PN = dynamic_cast<PhiInst *>(UseInst)) {
             // PHI nodes use the operand in the predecessor block, not the block with
             // the PHI.
-            UseBlock = dynamic_cast<BasicBlock *>(PN->get_operand(U.arg_no_));
+            use_ = dynamic_cast<BasicBlock *>(PN->get_operand(U.arg_no_));
         }
-        if (SuccToSinkTo)
-            SuccToSinkTo = dom->intersect(SuccToSinkTo, UseBlock); // DT.findNearestCommonDominator(SuccToSinkTo, UseBlock);
+        if (sink_target)
+            sink_target = dom->intersect(sink_target, use_); // DT.findNearestCommonDominator(SuccToSinkTo, UseBlock);
         else
-            SuccToSinkTo = UseBlock;
+            sink_target = use_;
         // The current basic block needs to dominate the candidate.
-        if (!dom->isDominatedBy(SuccToSinkTo, BB))
+        if (!dom->isDominatedBy(sink_target, bb))
             return false;
     }
 
-    if (SuccToSinkTo) {
+    if (sink_target) {
         // The nearest common dominator may be in a parent loop of BB, which may not
         // be beneficial. Find an ancestor.
-        while (SuccToSinkTo != BB && !IsAcceptableTarget(Inst, SuccToSinkTo))
-            SuccToSinkTo = dom->getImmediateDominance(SuccToSinkTo);// DT.getNode(SuccToSinkTo)->getIDom()->getBlock();
-        if (SuccToSinkTo == BB)
-            SuccToSinkTo = nullptr;
+        while (sink_target != bb && !IsAcceptableTarget(Inst, sink_target))
+            sink_target = dom->getImmediateDominance(sink_target);// DT.getNode(SuccToSinkTo)->getIDom()->getBlock();
+        if (sink_target == bb)
+            sink_target = nullptr;
     }
 
     // If we couldn't find a block to sink to, ignore this instruction.
-    if (!SuccToSinkTo)
+    if (!sink_target)
         return false;
     // Move the instruction.
     Inst->get_parent()->delete_instr_simple(Inst);
-    SuccToSinkTo->add_instr_after_phi(Inst);
+    sink_target->add_instr_after_phi(Inst);
     // Inst->moveBefore(&*SuccToSinkTo->getFirstInsertionPt());
     return true;
 }

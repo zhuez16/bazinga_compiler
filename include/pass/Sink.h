@@ -8,12 +8,13 @@
 #include "pass.h"
 #include "CFG.h"
 #include "dominator.h"
+#include "loop_search.h"
 #include "IR/Instruction.h"
 
 class CodeSinking: public Pass {
 
 public:
-    explicit CodeSinking(Module *m) : Pass(m), cfg(new CFG(m)), dom(new dominator(m)) {}
+    explicit CodeSinking(Module *m) : Pass(m), cfg(new CFG(m)), dom(new dominator(m)), lp(new LoopSearch(m)) {}
 
     void run() override;
 
@@ -22,6 +23,8 @@ private:
     CFG *cfg;
 
     dominator *dom;
+
+    LoopSearch *lp;
 
     bool SinkInstruction(Instruction *i);
 
