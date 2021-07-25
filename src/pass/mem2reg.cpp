@@ -43,7 +43,7 @@ void Mem2Reg::run() {
             while(!work_list.empty()){
                 auto bb = work_list.back();
                 work_list.pop_back();
-                for(auto dominance_frontier_bb: dom->get_dominance_frontier(bb)){
+                for(auto dominance_frontier_bb: dom->getDominanceFrontier(bb)){
                     auto new_pair = std::make_pair(dominance_frontier_bb, alloca);
                     if(block_own_phi.find(new_pair) == block_own_phi.end()){
                         auto phi = PhiInst::create_phi(alloca->get_type()->get_pointer_element_type(), dominance_frontier_bb);
@@ -86,8 +86,6 @@ void Mem2Reg::rename(BasicBlock *bb) {
             if (!dynamic_cast<GlobalVariable *>(l_val) &&
                 !dynamic_cast<GetElementPtrInst *>(l_val)){
                 if ( var_val_stack.find(l_val)!=var_val_stack.end()){
-                    assert(var_val_stack[l_val].back());
-                    instr->print();
                     instr->replace_all_use_with(var_val_stack[l_val].back());
                     wait_delete.push_back(instr);
                 }
@@ -115,7 +113,7 @@ void Mem2Reg::rename(BasicBlock *bb) {
         }
     }
 
-    for ( auto dom_succ_bb : dom->get_dom_tree_succ_blocks(bb) ){
+    for ( auto dom_succ_bb : dom->getDomTreeSuccessorBlocks(bb) ){
         if(dom_succ_bb->is_fake_block()) { continue; }
         rename(dom_succ_bb);
     }

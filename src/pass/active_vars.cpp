@@ -6,6 +6,10 @@
 
 void active_vars::run()
 {
+    live_in.clear();
+    live_out.clear();
+    use.clear();
+    def.clear();
     for (auto &func : this->m_->get_functions()) {
         if (func->get_basic_blocks().empty()) {
             continue;
@@ -15,21 +19,22 @@ void active_vars::run()
             func_ = func;
 
             func_->set_instr_name();
-            live_in.clear();
-            live_out.clear();
-            use.clear();
-            def.clear();
+            // live_in.clear();
+            // live_out.clear();
+            // use.clear();
+            // def.clear();
             // 在此分析 func_ 的每个bb块的活跃变量，并存储在 live_in live_out 结构内
             for (auto bb:func_->get_basic_blocks()){
-                std::cout<< "current bb is "<< bb->get_name() << std::endl;
                 for (auto instr:bb->get_instructions()){
                     if (instr->is_add()
                         || instr->is_sub()
                         || instr->is_mul()
                         || instr->is_div()
+                        || instr->is_rem()
                             ){
-                        auto lval=static_cast<StoreInst*>(instr)->get_lval();
-                        auto rval=static_cast<StoreInst*>(instr)->get_rval();
+                        // TODO: BinaryInst ?
+                        auto lval=dynamic_cast<StoreInst*>(instr)->get_lval();
+                        auto rval=dynamic_cast<StoreInst*>(instr)->get_rval();
                         auto constant_ptr=dynamic_cast<ConstantInt *>(lval);
                         if (!constant_ptr){
                             if (def[bb].find(lval)==def[bb].end()) use[bb].insert(lval);
@@ -63,8 +68,8 @@ void active_vars::run()
                         def[bb].insert(instr);
                     }
                     else if (instr->is_cmp()){
-                        auto lval=static_cast<StoreInst*>(instr)->get_lval();
-                        auto rval=static_cast<StoreInst*>(instr)->get_rval();
+                        auto lval=dynamic_cast<StoreInst*>(instr)->get_lval();
+                        auto rval=dynamic_cast<StoreInst*>(instr)->get_rval();
                         auto constant_ptr=dynamic_cast<ConstantInt *>(lval);
                         if (!constant_ptr){
                             if (def[bb].find(lval)==def[bb].end()) use[bb].insert(lval);
@@ -73,25 +78,6 @@ void active_vars::run()
                             }
                         }
                         constant_ptr=dynamic_cast<ConstantInt *>(rval);
-                        if (!constant_ptr){
-                            if (def[bb].find(rval)==def[bb].end()) use[bb].insert(rval);
-                            for (auto prevbb:bb->get_pre_basic_blocks()){
-                                active[prevbb].insert(rval);
-                            }
-                        }
-                        def[bb].insert(instr);
-                    }
-                    else if (instr->is_fcmp()){
-                        auto lval=static_cast<StoreInst*>(instr)->get_lval();
-                        auto rval=static_cast<StoreInst*>(instr)->get_rval();
-                        auto constant_ptr=dynamic_cast<ConstantFP *>(lval);
-                        if (!constant_ptr){
-                            if (def[bb].find(lval)==def[bb].end()) use[bb].insert(lval);
-                            for (auto prevbb:bb->get_pre_basic_blocks()){
-                                active[prevbb].insert(lval);
-                            }
-                        }
-                        constant_ptr=dynamic_cast<ConstantFP *>(lval);
                         if (!constant_ptr){
                             if (def[bb].find(rval)==def[bb].end()) use[bb].insert(rval);
                             for (auto prevbb:bb->get_pre_basic_blocks()){
@@ -176,6 +162,7 @@ void active_vars::run()
                         def[bb].insert(instr);
                     }
                 }
+                /*
                 std::cout << "use ";
                 for (auto &it:use[bb]){
                     std::cout << it->get_name() << " ";
@@ -186,8 +173,9 @@ void active_vars::run()
                     std::cout << it->get_name() << " ";
                 }
                 std::cout << std::endl;
+                 */
             }
-            live_out.clear();
+            // live_out.clear();
             bool flag=true;
             while (flag){
                 flag=false;
@@ -221,5 +209,4 @@ void active_vars::run()
             }
         }
     }
-    return ;
 }

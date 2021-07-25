@@ -55,20 +55,6 @@ public:
     AllocaInst *create_alloca(Type *ty) { return AllocaInst::create_alloca(ty, this->BB_); }
     ZextInst *create_zext(Value *val, Type *ty) { return ZextInst::create_zext(val, ty, this->BB_); }
 
-    SiToFpInst *create_sitofp( Value *val, Type *ty) { return SiToFpInst::create_sitofp(val, ty, this->BB_); }
-    FpToSiInst *create_fptosi( Value *val, Type *ty) { return FpToSiInst::create_fptosi(val, ty, this->BB_); }
-    
-    FCmpInst *create_fcmp_ne( Value *lhs, Value *rhs) { return FCmpInst::create_fcmp(FCmpInst::NE, lhs, rhs, this->BB_, m_); } 
-    FCmpInst *create_fcmp_lt( Value *lhs, Value *rhs) { return FCmpInst::create_fcmp(FCmpInst::LT, lhs, rhs, this->BB_, m_); }
-    FCmpInst *create_fcmp_le( Value *lhs, Value *rhs) { return FCmpInst::create_fcmp(FCmpInst::LE, lhs, rhs, this->BB_, m_); }
-    FCmpInst *create_fcmp_ge( Value *lhs, Value *rhs) { return FCmpInst::create_fcmp(FCmpInst::GE, lhs, rhs, this->BB_, m_); }
-    FCmpInst *create_fcmp_gt( Value *lhs, Value *rhs) { return FCmpInst::create_fcmp(FCmpInst::GT, lhs, rhs, this->BB_, m_); }
-    FCmpInst *create_fcmp_eq( Value *lhs, Value *rhs) { return FCmpInst::create_fcmp(FCmpInst::EQ, lhs, rhs, this->BB_, m_); }
-
-    BinaryInst *create_fadd( Value *lhs, Value *rhs){ return BinaryInst::create_fadd( lhs, rhs, this->BB_, m_);}
-    BinaryInst *create_fsub( Value *lhs, Value *rhs){ return BinaryInst::create_fsub( lhs, rhs, this->BB_, m_);}
-    BinaryInst *create_fmul( Value *lhs, Value *rhs){ return BinaryInst::create_fmul( lhs, rhs, this->BB_, m_);}
-    BinaryInst *create_fdiv( Value *lhs, Value *rhs){ return BinaryInst::create_fdiv( lhs, rhs, this->BB_, m_);}
 };
 
 #endif // SYSYC_IRBUILDER_H

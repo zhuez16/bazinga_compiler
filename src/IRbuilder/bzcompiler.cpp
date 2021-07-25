@@ -4,7 +4,13 @@
 #include "pass/mem2reg.h"
 #include "pass/global2local.h"
 #include "pass/combining.h"
+#include "pass/loop_expansion.h"
+#include "pass/SCPcombineDCE.h"
+#include "pass/CFG.h"
+#include "pass/Sink.h"
 #include "pass/loop_search.h"
+#include "pass/active_vars.h"
+#include "pass/CodeElimination.h"
 #include <cstring>
 #include <iostream>
 #include <fstream>
@@ -26,6 +32,8 @@ int main(int argc, char **argv) {
     bool loop_inv_hoist = false;
     bool loop_search = false;
     bool availableexpression = false;
+    bool code_sink = false;
+    bool global2local = false;
 
     for (int i = 1;i < argc;++i) {
         if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
@@ -55,6 +63,10 @@ int main(int argc, char **argv) {
             activevars = true;
         } else if (strcmp(argv[i], "-available-expression") == 0){
             availableexpression = true;
+        } else if (strcmp(argv[i], "-code-sink") == 0){
+            code_sink = true;
+        } else if (strcmp(argv[i], "-global2local") == 0){
+            global2local = true;
         } else {
             if (input_path.empty()) {
                 input_path = argv[i];
@@ -95,18 +107,31 @@ int main(int argc, char **argv) {
 
     PassManager PM(m);
     mem2reg = true;
-    PM.add_pass<Global2Local>();
-
+//    PM.add_pass<Global2Local>();
     m->set_print_name();
 //    printf("start running pass manager\n");
+    if (global2local) {
+        PM.add_pass<Global2Local>();
+    }
     if( mem2reg )
     {
         PM.add_pass<Mem2Reg>();
     }
     if ( const_propagation ) {
         PM.add_pass<ConstFoldingDCEliminating>();
+        PM.add_pass<CodeElimination>();
     }
+    if ( code_sink ) {
+        PM.add_pass<CodeSinking>();
+    }
+    if (activevars) {
+        PM.add_pass<active_vars>();
+    }
+<<<<<<< HEAD
     PM.add_pass<LoopSearch>();
+//    PM.add_pass<LoopExpansion>();
+=======
+>>>>>>> 1328213363fa5ccb7b0782cb299db97547616f7b
 //    if( loop_search ){
 //        PM.add_pass<LoopSearch>();
 //    }

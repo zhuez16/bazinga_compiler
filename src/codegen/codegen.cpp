@@ -147,44 +147,469 @@ std::string codegen::generateBasicBlockCode(BasicBlock *bb) {
 std::string codegen::generateInstructionCode(Instruction *instr) {
     std::string asm_code;
     auto &ops=instr->get_operands();
-    if (instr->is_ret()){
-        if (ops.size()==0){
-            asm_code+=codegen::assignSpecificReg(ops[0],0,0);
-        }
-        else{
-           // asm_code+=codegen::assignSpecificReg(ops[0],ops[0]);
-        }
-        asm_code+=codegen::generateFunctionExitCode(instr->get_function());
+    //  asm_code += CodeGen::comment(inst->CommentPrint());
+    if (instr->get_instr_type()==Instruction::ret)
+    {
+        if(ops.size()!=0)
+            asm_code += codegen::assignSpecificReg(ops.at(0),0);
+        asm_code += codegen::generateFunctionExitCode(instr->get_function());
     }
-    else if (instr->is_load()){
-        if (codegen::reg_value_table[codegen::reg_mapping[instr]]!=nullptr &&
-            codegen::reg_value_table[codegen::reg_mapping[instr]]!=instr){
-            //asm_code+=InstGen::gen_str(codegen::reg_value_table[codegen::reg_mapping[instr]], stack_mapping[instr]);
-        }
-        //asm_code+=InstGen::gen_ldr(codegen::reg_mapping[instr],codegen::stack_mapping[instr]);
-    }
-    else if(instr->is_store()){
-        //asm_code+=InstGen::gen_str(codegen::reg_mapping[instr],stack_mapping[instr]);
-    }
-    else if(instr->isBinary()){
-        auto target=codegen::reg_mapping[instr];
-        auto lval=reg_mapping[instr->get_operand(0)];
-        //auto op1=codegen::reg_mapping[lval];
-        ///auto st1=stack_mapping[lval];
-        auto rval=instr->get_operand(1);
-        /*if (rval->get_type()->is_integer_type()){
-            if (reg_value_table[op1]== nullptr){
-                asm_code+=InstGen::gen_ldr(op1,st1);
+    else if (instr->get_instr_type()==Instruction::load){
+        int alu_op0 = this->reg_mapping.count(ops.at(0))
+                        ? this->reg_mapping.at(ops.at(0))
+                        : op_reg_0;
+        int alu_ret = this->reg_mapping.count(instr)
+                        ? this->reg_mapping.at(instr)
+                        : op_reg_1;
+        asm_code += codegen::assignSpecificReg(ops.at(0), alu_op0);
+        if (ops.size() >= 2) {
+            ConstantInt *op1_const = dynamic_cast<ConstantInt *>(ops.at(1));
+            int shift = 0;
+            if (ops.size() >= 3) {
+                ConstantInt *op2_const = dynamic_cast<ConstantInt *>(ops.at(2));
+                //exit_ifnot(_op2Const_generateInstructionCode_CodeGen,op2_const != nullptr);
+                shift = op2_const->get_value();
+                //exit_ifnot(_shift_generateInstructionCode_CodeGen,0 <= shift && shift <= 31);
             }
-            else if (reg_value_table[op1]!=lval){
-                asm_code+=InstGen::gen_str(op1,stack_mapping[])
+            if (op1_const)
+            {
+                asm_code += InstGen::gen_load(InstGen::Reg(alu_ret),
+                                InstGen::gen_adrl(
+                                    InstGen::Reg(alu_op0),
+                                    op1_const->get_value() << shift));
             }
-        }*/
+            else
+            {
+                int alu_op1 = this->reg_mapping.count(ops.at(1))
+                                ? this->reg_mapping.at(ops.at(1))
+                                : op_reg_1;
+                asm_code += codegen::assignSpecificReg(ops.at(1), alu_op1);
+                asm_code += InstGen::gen_ldr(
+                                InstGen::Reg(alu_ret), InstGen::Reg(alu_op0),
+                                InstGen::Reg(alu_op1), InstGen::Constant(shift));
+            }
+        }
+        else
+        {
+            asm_code += InstGen::gen_load(
+                            InstGen::Reg(alu_ret),
+                            InstGen::gen_addr(InstGen::Reg(alu_op0), 0));
+        }
+        asm_code += codegen::getSpecificReg(instr, alu_ret);
     }
+    else if(instr->get_instr_type()==Instruction::store){
+        int alu_op0 = this->reg_mapping.count(ops.at(0))
+                        ? this->reg_mapping.at(ops.at(0))
+                        : op_reg_0;
+        int alu_op1 = this->reg_mapping.count(ops.at(1))
+                        ? this->reg_mapping.at(ops.at(1))
+                        : op_reg_1;
+        asm_code += codegen::assignSpecificReg(ops.at(0), alu_op0);
+        asm_code += codegen::assignSpecificReg(ops.at(1), alu_op1);
+        if (ops.size() >= 3) {
+            ConstantInt *op2_const = dynamic_cast<ConstantInt *>(ops.at(2));
+            int shift = 0;
+            if (ops.size() >= 4) {
+                ConstantInt *op3_const = dynamic_cast<ConstantInt *>(ops.at(3));
+                //exit_ifnot(_op3Const_generateInstructionCode_CodeGen,op3_const != nullptr);
+                shift = op3_const->get_value();
+                //exit_ifnot(_shift3_generateInstructionCode_CodeGen,0 <= shift && shift <= 31);
+            }
+            if (op2_const) {
+                asm_code +=
+                    InstGen::gen_store(InstGen::Reg(alu_op0),
+                                InstGen::gen_adrl(InstGen::Reg(alu_op1),
+                                                op2_const->get_value() << shift));
+            } else {
+                int alu_op2 = this->reg_mapping.count(ops.at(2))
+                                ? this->reg_mapping.at(ops.at(2))
+                                : op_reg_2;
+                asm_code += codegen::assignSpecificReg(ops.at(2), alu_op2);
+                asm_code += InstGen::gen_str(
+                                InstGen::Reg(alu_op0), InstGen::Reg(alu_op1),
+                                InstGen::Reg(alu_op2), InstGen::Constant(shift));
+            }
+        }
+        else
+            asm_code += InstGen::gen_str(
+                                    InstGen::Reg(alu_op0),
+                                    InstGen::Addr(InstGen::Reg(alu_op1), 0));
+    }
+//TODO
+    else if (instr->getInstrType() == Instruction::alloca) {
+        if (this->reg_mapping.count(instr)) {
+            auto offset = stack_mapping.at(instr);
+            int target = this->reg_mapping.at(instr);
+            asm_code += InstGen::instConst(InstGen::gen_add, InstGen::Reg(target),
+                                            InstGen::sp, InstGen::Constant(offset));
+        }
+        int init_val = 0;
+        int sz = instr->get_type()->get_size();
+        if (sz > 0) {
+            Type integer_type(Type::IntegerTy32ID);
+            std::vector<Value *> args = {
+                instr, ConstantInt::get(init_val, this->module.get()),
+                ConstantInt::get(sz, this->module.get())};
+            asm_code += codegen::generateFunctionCall(instr, "memset", args, -1);
+        }
+        else
+        {
+            asm_code += InstGen::gen_mov(InstGen::Reg(op_reg_0), InstGen::Constant(0));
+            asm_code += codegen::assignSpecificReg(instr, op_reg_1);
+            for (int i = 0; i < sz; i += 4) {
+                asm_code +=
+                    InstGen::tab + "str" + " " + InstGen::Reg(op_reg_0).getName() +
+                    ", " + "[" + InstGen::Reg(op_reg_1).getName() + ", " +
+                    InstGen::Constant(4).getName() + "]" + "!" + InstGen::newline;
+            }
+        }
+    }
+    else if (//inst->getInstrType() == Instruction::VV ||
+             instr->getInstrType() == Instruction::add ||
+             instr->getInstrType() == Instruction::sub ||
+             instr->getInstrType() == Instruction::mul ||
+             instr->getInstrType() == Instruction::cmp ||
+             instr->getInstrType() == Instruction::zext ||
+             (instr->getInstrType() == Instruction::getelementptr &&
+              instr->getOperands().size() == 2) ||
+             instr->getInstrType() == Instruction::sdiv ||
+             instr->getInstrType() == Instruction::mod)
+    {
+        ConstantInt *op1_const =
+            (ops.size() >= 2) ? (dynamic_cast<ConstantInt *>(ops.at(1))) : nullptr;
+        int alu_op0 = this->reg_mapping.count(ops.at(0))
+                        ? this->reg_mapping.at(ops.at(0))
+                        : op_reg_0;
+        int alu_op1 = -1;
+        if (ops.size() >= 2) {
+        alu_op1 = this->reg_mapping.count(ops.at(1))
+                        ? this->reg_mapping.at(ops.at(1))
+                        : op_reg_1;
+        }
+        int alu_ret = this->reg_mapping.count(instr)
+                        ? this->reg_mapping.at(instr)
+                        : op_reg_0;
+        // flexible operand2
+        int shift = 0;
+        if (ops.size() >= 3 && (instr->getInstrType() == Instruction::add ||
+                                instr->getInstrType() == Instruction::sub ||
+                                instr->getInstrType() == Instruction::cmp)) {
+        ConstantInt *op2_const = dynamic_cast<ConstantInt *>(ops.at(2));
+        assert(op2_const != nullptr);
+        shift = op2_const->get_value();
+        assert(0 <= shift && shift <= 31);
+        }
+        // must not change value of alu_op0 alu_op1
+        asm_code += codegen::assignSpecificReg(ops.at(0), alu_op0);
+        if (instr->get_instr_type() == Instruction::cmp) {
+            InstGen::CmpOp asmCmpOp;
+            CmpInst::CmpOp getCmpOp = static_cast<CmpInst *>(instr)->get_cmp_op();
+            switch (getCmpOp) {
+                case CmpInst::CmpOp::EQ:
+                asmCmpOp = InstGen::CmpOp::EQ;
+                break;
+                case CmpInst::CmpOp::NE:
+                asmCmpOp = InstGen::CmpOp::NE;
+                break;
+                case CmpInst::CmpOp::GT:
+                asmCmpOp = InstGen::CmpOp::GT;
+                break;
+                case CmpInst::CmpOp::GE:
+                asmCmpOp = InstGen::CmpOp::GE;
+                break;
+                case CmpInst::CmpOp::LT:
+                asmCmpOp = InstGen::CmpOp::LT;
+                break;
+                case CmpInst::CmpOp::LE:
+                asmCmpOp = InstGen::CmpOp::LE;
+                break;
+                default:
+                std::cerr << "CmpOp type not valid" << std::endl;
+                abort();
+            }
+            if (op1_const) {
+                asm_code += InstGen::instConst(
+                    InstGen::gen_cmp, InstGen::Reg(alu_op0),
+                    InstGen::Constant(op1_const->get_value() << shift));
+            } else {
+                asm_code += codegen::assignSpecificReg(ops.at(1), alu_op1);
+                asm_code += InstGen::gen_cmp(InstGen::Reg(alu_op0),
+                                        InstGen::RegShift(alu_op1, shift));
+            }
+            asm_code += InstGen::gen_mov(InstGen::Reg(alu_ret), InstGen::Constant(0));
+            asm_code +=
+                InstGen::gen_mov(InstGen::Reg(alu_ret), InstGen::Constant(1), asmCmpOp);
+        }
+        else
+        {
+        bool flag = false;
+        switch (instr->get_instr_type()) {
+            case Instruction::add:
+                if (op1_const) {
+                    asm_code += InstGen::instConst(
+                        InstGen::gen_add, InstGen::Reg(alu_ret), InstGen::Reg(alu_op0),
+                        InstGen::Constant(op1_const->getValue() << shift));
+                } else {
+                    asm_code += codegen::assignSpecificReg(ops.at(1), alu_op1);
+                    asm_code += InstGen::gen_add(InstGen::Reg(alu_ret), InstGen::Reg(alu_op0),
+                                            InstGen::RegShift(alu_op1, shift));
+                }
+                break;
+            case Instruction::sub:
+                if (op1_const) {
+                    asm_code += InstGen::instConst(
+                        InstGen::gen_sub, InstGen::Reg(alu_ret), InstGen::Reg(alu_op0),
+                        InstGen::Constant(op1_const->getValue() << shift));
+                } else {
+                    asm_code += codegen::assignSpecificReg(ops.at(1), alu_op1);
+                    asm_code += InstGen::gen_sub(InstGen::Reg(alu_ret), InstGen::Reg(alu_op0),
+                                            InstGen::RegShift(alu_op1, shift));
+                }
+                break;
+            case Instruction::mul:
+                if (!op1_const) {
+                    asm_code += codegen::assignSpecificReg(ops.at(1), alu_op1);
+                    asm_code += InstGen::gen_mul(InstGen::Reg(alu_ret), InstGen::Reg(alu_op0),
+                                            InstGen::Reg(alu_op1));
+                }
+                else
+                {
+                    const int mp = op1_const->get_value();
+                    for (int inst_1 = 0; inst_1 < 4; inst_1++)
+                    {
+                        for (int lsl_1 = 0; lsl_1 < 32; lsl_1++)
+                        {
+                            int x = 1;
+                            int y;
+                            if (inst_1 == 0)
+                            {
+                                y = (x + (x << lsl_1));
+                                if (y == mp)
+                                {
+                                    asm_code += InstGen::gen_add(InstGen::Reg(alu_ret),
+                                                            InstGen::Reg(alu_op0),
+                                                            InstGen::RegShift(alu_op0, lsl_1));
+                                    goto mul_end;
+                                }
+                            }
+                            if (inst_1 == 1)
+                            {
+                                y = (x - (x << lsl_1));
+                                if (y == mp)
+                                {
+                                    asm_code += InstGen::gen_add(InstGen::Reg(alu_ret),
+                                                            InstGen::Reg(alu_op0),
+                                                            InstGen::RegShift(alu_op0, lsl_1));
+                                    goto mul_end;
+                                }
+                            }
+                            if (inst_1 == 2)
+                            {
+                                y = ((x << lsl_1) - x);
+                                if (y == mp)
+                                {
+                                    asm_code += InstGen::gen_sub(InstGen::Reg(alu_ret),
+                                                            InstGen::Reg(alu_op0),
+                                                            InstGen::RegShift(alu_op0, lsl_1));
+                                    goto mul_end;
+                                }
+                            }
+                            if (inst_1 == 3)
+                            {
+                                y = (x << lsl_1);
+                                if (y == mp)
+                                {
+                                    asm_code += InstGen::gen_lsl(InstGen::Reg(alu_ret),
+                                                            InstGen::Reg(alu_op0),
+                                                            InstGen::Constant(lsl_1));
+                                    goto mul_end;
+                                }
+                            }
+                        }
+                    }
+                    // add sub rsb lsl inst * 2
+                    for (int inst_1 = 0; inst_1 < 4; inst_1++) {
+                        for (int lsl_1 = 0; lsl_1 < 32; lsl_1++) {
+                            for (int inst_2 = 0; inst_2 < 4; inst_2++) {
+                                for (int lsl_2 = 0; lsl_2 < 32; lsl_2++) {
+                                    for (int i2o1 = 0; i2o1 < 2; i2o1++) {
+                                        for (int i2o2 = 0; i2o2 < 2; i2o2++)
+                                        {
+                                            int x = 1;
+                                            int y;
+                                            int z;
+                                            if (inst_1 == 0)
+                                                y = (x + (x << lsl_1));
+                                            if (inst_1 == 1)
+                                                y = (x - (x << lsl_1));
+                                            if (inst_1 == 2)
+                                                y = ((x << lsl_1) - x);
+                                            if (inst_1 == 3)
+                                                y = (x << lsl_1);
+                                            int o1 = i2o1 == 0 ? x : y;
+                                            int o2 = i2o2 == 0 ? x : y;
+                                            if (inst_2 == 0)
+                                                z = (o1 + (o2 << lsl_2));
+                                            if (inst_2 == 1)
+                                                z = (o1 - (o2 << lsl_2));
+                                            if (inst_2 == 2)
+                                                z = ((o2 << lsl_2) - o1);
+                                            if (inst_2 == 3)
+                                                z = (o1 << lsl_2);
+                                            if (z == mp) {
+                                                if (inst_1 == 0) {
+                                                    asm_code += InstGen::gen_add(
+                                                        InstGen::Reg(op_reg_2), InstGen::Reg(alu_op0),
+                                                        InstGen::RegShift(alu_op0, lsl_1));
+                                                }
+                                                if (inst_1 == 1) {
+                                                    asm_code += InstGen::gen_sub(
+                                                        InstGen::Reg(op_reg_2), InstGen::Reg(alu_op0),
+                                                        InstGen::RegShift(alu_op0, lsl_1));
+                                                }
+                                                if (inst_1 == 2) {
+                                                    asm_code += InstGen::gen_rsb(
+                                                        InstGen::Reg(op_reg_2), InstGen::Reg(alu_op0),
+                                                        InstGen::RegShift(alu_op0, lsl_1));
+                                                }
+                                                if (inst_1 == 3) {
+                                                    asm_code += InstGen::gen_lsl(InstGen::Reg(op_reg_2),
+                                                                            InstGen::Reg(alu_op0),
+                                                                            InstGen::Constant(lsl_1));
+                                                }
+                                                int r1 = i2o1 == 0 ? alu_op0 : op_reg_2;
+                                                int r2 = i2o2 == 0 ? alu_op0 : op_reg_2;
+                                                if (inst_2 == 0) {
+                                                    asm_code += InstGen::gen_add(
+                                                        InstGen::Reg(alu_ret), InstGen::Reg(r1),
+                                                        InstGen::RegShift(r2, lsl_2));
+                                                }
+                                                if (inst_2 == 1) {
+                                                    asm_code += InstGen::gen_sub(
+                                                        InstGen::Reg(alu_ret), InstGen::Reg(r1),
+                                                        InstGen::RegShift(r2, lsl_2));
+                                                }
+                                                if (inst_2 == 2) {
+                                                    asm_code += InstGen::gen_rsb(
+                                                        InstGen::Reg(alu_ret), InstGen::Reg(r1),
+                                                        InstGen::RegShift(r2, lsl_2));
+                                                }
+                                                if (inst_2 == 3) {
+                                                    asm_code += InstGen::gen_lsl(InstGen::Reg(alu_ret),
+                                                                            InstGen::Reg(r1),
+                                                                            InstGen::Constant(lsl_2));
+                                                }
+                                                goto mul_end;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    asm_code += codegen::assignSpecificReg(ops.at(1), alu_op1);
+                    asm_code +=
+                            InstGen::gen_mul(InstGen::Reg(alu_ret), InstGen::Reg(alu_op0),
+                                        InstGen::Reg(alu_op1));
+                    goto mul_end;
+                }
+            mul_end:
+                break;
+            case Instruction::sdiv:
+                if (op1_const) {
+                    asm_code +=
+                        InstGen::divConst(InstGen::Reg(alu_ret), InstGen::Reg(alu_op0),
+                                            InstGen::Constant(op1_const->getValue()));
+                }
+                else
+                {
+                    if (arch_version >= 8) {
+                        asm_code += codegen::assignSpecificReg(ops.at(1), alu_op1);
+                        asm_code +=
+                            InstGen::gen_sdiv(InstGen::Reg(alu_ret), InstGen::Reg(alu_op0),
+                                        InstGen::Reg(alu_op1));
+                    } else {
+                        asm_code +=
+                            codegen::generateFunctionCall(instr, "__aeabi_idiv", ops, 0);
+                    }
+                }
+                break;
+            case Instruction::mod:
+                asm_code += codegen::assignSpecificReg(ops.at(1), alu_op1);
+                if (arch_version >= 8) {
+                asm_code +=
+                    InstGen::gen_sdiv(InstGen::Reg(op_reg_2), InstGen::Reg(alu_op0),
+                                    InstGen::Reg(alu_op1));
+                asm_code +=
+                    InstGen::gen_mul(InstGen::Reg(op_reg_2), InstGen::Reg(op_reg_2),
+                                InstGen::Reg(alu_op1));
+                asm_code += InstGen::gen_sub(InstGen::Reg(alu_ret), InstGen::Reg(alu_op0),
+                                        InstGen::Reg(op_reg_2));
+                } else {
+                asm_code +=
+                    codegen::generateFunctionCall(inst, "__aeabi_idivmod", ops, 1);
+                }
+                break;
+            case Instruction::zext:
+                asm_code += InstGen::gen_mov(InstGen::Reg(alu_ret), InstGen::Reg(alu_op0));
+                break;
+            case Instruction::getelementptr:
+                asm_code += codegen::assignSpecificReg(ops.at(1), alu_op1);
+                asm_code += InstGen::setRegValue(
+                    InstGen::Reg(op_reg_2),
+                    InstGen::Constant(instr->get_type()->get_pointer_element_type()->get_size());
+                asm_code += InstGen::gen_mul(InstGen::Reg(op_reg_2), InstGen::Reg(op_reg_2),
+                                        InstGen::Reg(alu_op1));
+                asm_code += InstGen::gen_add(InstGen::Reg(alu_ret), InstGen::Reg(alu_op0),
+                                        InstGen::Reg(op_reg_2));
+                break;
+            default:
+                std::cerr << "error" << std::endl;
+                abort();
+                break;
+            }
+        }
+        asm_code += codegen::getSpecificReg(instr, alu_ret);
+    }
+    /*
+    else if (inst->getInstrType() == Instruction::BIC) {
+    std::cerr << "IR instruction BIC is deprecated" << std::endl;
+    abort();
+    assert(this->register_mapping.count(ops.at(2)));
+    int alu_op0 = this->register_mapping.count(ops.at(0))
+                      ? this->register_mapping.at(ops.at(0))
+                      : op_reg_0;
+    int alu_op1 = this->register_mapping.count(ops.at(1))
+                      ? this->register_mapping.at(ops.at(1))
+                      : op_reg_1;
+    int alu_op2 = this->register_mapping.count(ops.at(2))
+                      ? this->register_mapping.at(ops.at(2))
+                      : op_reg_2;
+    int alu_ret = this->register_mapping.count(inst)
+                      ? this->register_mapping.at(inst)
+                      : op_reg_0;
+    asm_code += assignToSpecificReg(ops.at(0), alu_op0);
+    asm_code += assignToSpecificReg(ops.at(1), alu_op1);
+    asm_code += assignToSpecificReg(ops.at(2), alu_op2);
+    asm_code += InstGen::bic(InstGen::Reg(alu_ret), InstGen::Reg(alu_op0),
+                             InstGen::Reg(alu_op1), InstGen::Reg(alu_op2));
+    asm_code += getFromSpecificReg(inst, alu_ret);
+    }
+    */
+    else {
+        std::cerr << "Cannot translate this function:" << std::endl;
+        inst->getFunction()->print();
+        std::cerr << std::endl;
+        std::cerr << "Cannot translate this instruction:" << std::endl;
+        inst->print();
+        std::cerr << std::endl;
+        abort();
+    }
+    return asm_code;
 }
 
 std::string codegen::globalVariable(std::string name) {
-    return tab+".global "+name;
+    return tab+".global "+name+newline;
 }
 
 std::string codegen::getBasicBlockLabelName(BasicBlock *bb) {

@@ -1,9 +1,7 @@
 import os
 import subprocess
-start_from = 97
-skip_list = [6, 7, 11, 42, 73, 78, 70, 71,
-             80,                             # 栈溢出，alloca外提
-             ]
+start_from = 0
+skip_list = []
 os.chdir('cmake-build-debug')
 l = os.listdir('../functional_test')
 os.getcwdb()
@@ -19,7 +17,7 @@ for item in l:
             output_path = os.path.abspath('../functional_test/' + item[:-3] + '.out')
             if os.path.exists(executable_path):
                 os.remove(executable_path)
-            ret = os.system('./builder ' + os.path.abspath('../functional_test/' + item))
+            ret = os.system('./builder ' + os.path.abspath('../functional_test/' + item) + ' -const-propagation -code-sink')
             if ret != 0:
                 print('Error occurred in building testcase ' + item)
                 break
@@ -31,13 +29,9 @@ for item in l:
             with open(output_path, 'rb') as f:
                 correct = f.read()
                 res = result.stdout
-                if not res:
-                    res = (str(result.returncode) + '\n').encode('utf8')
-                else:
-                    if res.endswith(b'\n'):
-                        res += (str(result.returncode) + '\n').encode('utf8')
-                    else:
-                        res += ('\n' + str(result.returncode) + '\n').encode('utf8')
+                res += str(result.returncode).encode('utf8')
+                res = res.replace(b'\n', b'')
+                correct = correct.replace(b'\n', b'')
                 if res != correct:
                     print(f'Testcase {item} failed.[{res} != {correct}]')
                     break

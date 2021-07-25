@@ -2,8 +2,8 @@
 // Created by 顾超 on 2021/7/22.
 //
 
-#ifndef BAZINGA_COMPILER_COMBINING_H
-#define BAZINGA_COMPILER_COMBINING_H
+#ifndef BAZINGA_COMPILER_SCPCOMBINEDCE_H
+#define BAZINGA_COMPILER_SCPCOMBINEDCE_H
 
 #include <map>
 #include <queue>
@@ -326,4 +326,4 @@ public:
     void run() final;
 };
 
-#endif //BAZINGA_COMPILER_COMBINING_H
+#endif //BAZINGA_COMPILER_SCPCOMBINEDCE_H

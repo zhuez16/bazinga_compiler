@@ -38,7 +38,29 @@ void LoopSearch::run() {
             build_pre_succ_relation(loop);
         }
     }
-//    print_loop();
+    build_map();
+}
+
+Loop *LoopSearch::get_inner_loop(const std::set<Loop *>& loops, BasicBlock *bb) {
+    if (loops.empty()) return nullptr;
+    for (auto loop: loops) {
+        if (loop->contain_bb(bb)) {
+            auto inner_loop = get_inner_loop(get_child_loop(loop), bb);
+            if (inner_loop != nullptr) return inner_loop;
+            else return loop;
+        }
+    }
+    return nullptr;
+}
+
+void LoopSearch::build_map() {
+    for (auto f: m_->get_functions()) {
+        if (f->is_declaration()) continue;
+        std::map<BasicBlock *, Loop *> _sub_map;
+        for (auto bb: f->get_basic_blocks()) {
+            _sub_map[bb] = get_inner_loop(get_loop(f), bb);
+        }
+    }
 }
 
 void LoopSearch::print_loop(){
@@ -91,7 +113,6 @@ void LoopSearch::Tarjan(BasicBlock *bb, std::set<BasicBlock *> blocks) {
         in_stack.erase(v);
         Loop *new_loop = new Loop();
         new_loop->add_loop_block(v);
-        std::cout<< v->get_name() <<std::endl;
         while(bb != v){
             v = loop_stack.top();
             loop_stack.pop();
