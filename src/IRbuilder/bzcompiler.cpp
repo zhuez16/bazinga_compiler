@@ -3,7 +3,6 @@
 #include "ast.h"
 #include "pass/mem2reg.h"
 #include "pass/global2local.h"
-#include "pass/combining.h"
 #include "pass/loop_expansion.h"
 #include "pass/SCPcombineDCE.h"
 #include "pass/CFG.h"
@@ -98,18 +97,15 @@ int main(int argc, char **argv) {
             }
         }
     }
-//    printf("start build ast\n");
     SyntaxTree *tree = parse(input_path.c_str());
     auto *ast = new ASTProgram(tree);
     BZBuilder builder;
     ast->accept(builder);
     auto m = builder.getModule();
-
     PassManager PM(m);
     mem2reg = true;
 //    PM.add_pass<Global2Local>();
     m->set_print_name();
-//    printf("start running pass manager\n");
     if (global2local) {
         PM.add_pass<Global2Local>();
     }
@@ -121,17 +117,14 @@ int main(int argc, char **argv) {
         PM.add_pass<ConstFoldingDCEliminating>();
         PM.add_pass<CodeElimination>();
     }
-    if ( code_sink ) {
-        PM.add_pass<CodeSinking>();
-    }
-    if (activevars) {
-        PM.add_pass<active_vars>();
-    }
-<<<<<<< HEAD
+//    if ( code_sink ) {
+//        PM.add_pass<CodeSinking>();
+//    }
+//    if (activevars) {
+//        PM.add_pass<active_vars>();
+//    }
     PM.add_pass<LoopSearch>();
-//    PM.add_pass<LoopExpansion>();
-=======
->>>>>>> 1328213363fa5ccb7b0782cb299db97547616f7b
+    PM.add_pass<LoopExpansion>();
 //    if( loop_search ){
 //        PM.add_pass<LoopSearch>();
 //    }
