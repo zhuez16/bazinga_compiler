@@ -33,8 +33,8 @@ void active_vars::run()
                         || instr->is_rem()
                             ){
                         // TODO: BinaryInst ?
-                        auto lval=dynamic_cast<StoreInst*>(instr)->get_lval();
-                        auto rval=dynamic_cast<StoreInst*>(instr)->get_rval();
+                        auto lval=instr->get_operand(0);
+                        auto rval=instr->get_operand(1);
                         auto constant_ptr=dynamic_cast<ConstantInt *>(lval);
                         if (!constant_ptr){
                             if (def[bb].find(lval)==def[bb].end()) use[bb].insert(lval);
@@ -68,8 +68,8 @@ void active_vars::run()
                         def[bb].insert(instr);
                     }
                     else if (instr->is_cmp()){
-                        auto lval=dynamic_cast<StoreInst*>(instr)->get_lval();
-                        auto rval=dynamic_cast<StoreInst*>(instr)->get_rval();
+                        auto lval=instr->get_operand(0);
+                        auto rval=instr->get_operand(1);
                         auto constant_ptr=dynamic_cast<ConstantInt *>(lval);
                         if (!constant_ptr){
                             if (def[bb].find(lval)==def[bb].end()) use[bb].insert(lval);
