@@ -26,6 +26,7 @@ const int arch_version=8;
 
 const int op_reg_0=12;
 const int op_reg_1=14;
+const int op_reg_2=11;
 
 const int cache_line_bits=7;
 const int cache_line_size=1<<cache_line_bits;

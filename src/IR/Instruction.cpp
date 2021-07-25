@@ -73,39 +73,9 @@ BinaryInst *BinaryInst::create_sdiv(Value *v1, Value *v2, BasicBlock *bb, Module
     return new BinaryInst(Type::get_int32_type(m), Instruction::sdiv, v1, v2, bb);
 }
 
-BinaryInst *BinaryInst::create_fadd(Value *v1, Value *v2, BasicBlock *bb, Module *m)
-{
-    return new BinaryInst(Type::get_float_type(m), Instruction::fadd, v1, v2, bb);
-}
-
-BinaryInst *BinaryInst::create_fsub(Value *v1, Value *v2, BasicBlock *bb, Module *m)
-{
-    return new BinaryInst(Type::get_float_type(m), Instruction::fsub, v1, v2, bb);
-}
-
-BinaryInst *BinaryInst::create_fmul(Value *v1, Value *v2, BasicBlock *bb, Module *m)
-{
-    return new BinaryInst(Type::get_float_type(m), Instruction::fmul, v1, v2, bb);
-}
-
-BinaryInst *BinaryInst::create_fdiv(Value *v1, Value *v2, BasicBlock *bb, Module *m)
-{
-    return new BinaryInst(Type::get_float_type(m), Instruction::fdiv, v1, v2, bb);
-}
-
 BinaryInst *BinaryInst::create_mod(Value *v1, Value *v2, BasicBlock *bb, Module *m)
 {
     return new BinaryInst(Type::get_int32_type(m), Instruction::mod, v1, v2, bb);
-}
-
-BinaryInst *BinaryInst::create_iand(Value *v1, Value *v2, BasicBlock *bb, Module *m)
-{
-    return new BinaryInst(Type::get_int1_type(m), Instruction::land, v1, v2, bb);
-}
-
-BinaryInst *BinaryInst::create_ior(Value *v1, Value *v2, BasicBlock *bb, Module *m)
-{
-    return new BinaryInst(Type::get_int1_type(m), Instruction::lor, v1, v2, bb);
 }
 
 bool BinaryInst::isStaticCalculable() {
@@ -258,52 +228,6 @@ int CmpInst::calculate() {
         default:
             assert(0 && "Invalid instr type");
     }
-}
-
-FCmpInst::FCmpInst(Type *ty, CmpOp op, Value *lhs, Value *rhs, 
-            BasicBlock *bb)
-    : Instruction(ty, Instruction::fcmp, 2, bb), cmp_op_(op)
-{
-    set_operand(0, lhs);
-    set_operand(1, rhs);
-    // assertValid();
-}
-
-void FCmpInst::assert_valid()
-{
-    assert(get_operand(0)->get_type()->is_float_type());
-    assert(get_operand(1)->get_type()->is_float_type());
-}
-
-FCmpInst *FCmpInst::create_fcmp(CmpOp op, Value *lhs, Value *rhs, 
-                        BasicBlock *bb, Module *m)
-{
-    return new FCmpInst(m->get_int1_type(), op, lhs, rhs, bb);
-}
-
-std::string FCmpInst::print()
-{
-    std::string instr_ir;
-    instr_ir += "%";
-    instr_ir += this->get_name();
-    instr_ir += " = ";
-    instr_ir += this->get_module()->get_instr_op_name( this->get_instr_type() );
-    instr_ir += " ";
-    instr_ir += print_fcmp_type(this->cmp_op_);
-    instr_ir += " ";
-    instr_ir += this->get_operand(0)->get_type()->print();
-    instr_ir += " ";
-    instr_ir += print_as_op(this->get_operand(0), false);
-    instr_ir += ",";
-    if (Type::is_eq_type(this->get_operand(0)->get_type(), this->get_operand(1)->get_type()))
-    {
-        instr_ir += print_as_op(this->get_operand(1), false);
-    }
-    else
-    {
-        instr_ir += print_as_op(this->get_operand(1), true);
-    }
-    return instr_ir;
 }
 
 CallInst::CallInst(Function *func, std::vector<Value *> args, BasicBlock *bb)
@@ -623,70 +547,6 @@ Type *ZextInst::get_dest_type() const
 }
 
 std::string ZextInst::print()
-{
-    std::string instr_ir;
-    instr_ir += "%";
-    instr_ir += this->get_name();
-    instr_ir += " = ";
-    instr_ir += this->get_module()->get_instr_op_name( this->get_instr_type() );
-    instr_ir += " ";
-    instr_ir += this->get_operand(0)->get_type()->print();
-    instr_ir += " ";
-    instr_ir += print_as_op(this->get_operand(0), false);
-    instr_ir += " to ";
-    instr_ir += this->get_dest_type()->print();
-    return instr_ir; 
-}
-
-FpToSiInst::FpToSiInst(OpID op, Value *val, Type *ty, BasicBlock *bb)
-    : Instruction(ty, op, 1, bb), dest_ty_(ty)
-{
-    set_operand(0, val);
-}
-
-FpToSiInst *FpToSiInst::create_fptosi(Value *val, Type *ty, BasicBlock *bb)
-{
-    return new FpToSiInst(Instruction::fptosi, val, ty, bb);
-}
-
-Type *FpToSiInst::get_dest_type() const
-{
-    return dest_ty_;
-}
-
-std::string FpToSiInst::print()
-{
-    std::string instr_ir;
-    instr_ir += "%";
-    instr_ir += this->get_name();
-    instr_ir += " = ";
-    instr_ir += this->get_module()->get_instr_op_name( this->get_instr_type() );
-    instr_ir += " ";
-    instr_ir += this->get_operand(0)->get_type()->print();
-    instr_ir += " ";
-    instr_ir += print_as_op(this->get_operand(0), false);
-    instr_ir += " to ";
-    instr_ir += this->get_dest_type()->print();
-    return instr_ir; 
-}
-
-SiToFpInst::SiToFpInst(OpID op, Value *val, Type *ty, BasicBlock *bb)
-    : Instruction(ty, op, 1, bb), dest_ty_(ty)
-{
-    set_operand(0, val);
-}
-
-SiToFpInst *SiToFpInst::create_sitofp(Value *val, Type *ty, BasicBlock *bb)
-{
-    return new SiToFpInst(Instruction::sitofp, val, ty, bb);
-}
-
-Type *SiToFpInst::get_dest_type() const
-{
-    return dest_ty_;
-}
-
-std::string SiToFpInst::print()
 {
     std::string instr_ir;
     instr_ir += "%";

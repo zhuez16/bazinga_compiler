@@ -126,16 +126,15 @@ std::string gen_movt(const Reg &target, const RegValue &source, const CmpOp &con
     return code;
 }
 
-/*
-std::string setValue(const Reg &target, const Constant &source) {
+std::string setRegValue(const Reg &target, const Constant &source) {
     std::string code;
-    auto val = source.getValue();
+    auto val = source.getRegValue();
     if (0 <= val && val <= imm_16_max)
-        code += mov(target, Constant(val));
+        code += gen_mov(target, Constant(val));
     else if (-imm_8_max <= val && val <= 0)
-        code += mvn(target, Constant(-val - 1));
+        code += gen_mvn(target, Constant(-val - 1));
     else {
-        uint32_t imm = source.getValue();
+        uint32_t imm = source.getRegValue;
         uint32_t imm_low = imm & ((1 << 16) - 1);
         uint32_t imm_high = imm >> 16;
         code += tab;
@@ -155,7 +154,6 @@ std::string setValue(const Reg &target, const Constant &source) {
     }
     return code;
 }
-*/
 
 std::string gen_adrl(const Reg &target, const Label &source) {
     std::string code;
@@ -578,18 +576,17 @@ std::string gen_b(const Label &target, const CmpOp &cond) {
     code += newline;
     return code;
 }
-/*
 std::string instConst(std::string (*inst)(const Reg &target, const Reg &op1,
                                           const RegValue &op2),
                       const Reg &target, const Reg &op1, const Constant &op2) {
     std::string code;
-    int val = op2.getValue();
-    if (target == op1 && op2.getValue() == 0 && (inst == add || inst == sub)) {
+    int val = op2.getRegValue();
+    if (target == op1 && op2.getRegValue() == 0 && (inst == gen_add || inst == gen_sub)) {
         return code;
     } else if (0 <= val && val <= imm_8_max) {
         code += inst(target, op1, op2);
     } else {
-        code += setValue(vinst_temp_reg, op2);
+        code += setRegValue(vinst_temp_reg, op2);
         code += inst(target, op1, vinst_temp_reg);
     }
     return code;
@@ -598,40 +595,41 @@ std::string instConst(std::string (*inst)(const Reg &target, const Reg &op1,
 std::string instConst(std::string (*inst)(const Reg &op1, const RegValue &op2),
                       const Reg &op1, const Constant &op2) {
     std::string code;
-    int val = op2.getValue();
+    int val = op2.getRegValue();
     if (0 <= val && val <= imm_8_max) {
         code += inst(op1, op2);
     } else {
-        code += setValue(vinst_temp_reg, op2);
+        code += setRegValue(vinst_temp_reg, op2);
         code += inst(op1, vinst_temp_reg);
     }
     return code;
 }
 
-std::string load(const Reg &target, const Addr &source) {
+
+std::string gen_load(const Reg &target, const Addr &source) {
     std::string code;
     int offset = source.getOffset();
     if (offset > imm_12_max || offset < -imm_12_max) {
         code += InstGen::setValue(vinst_temp_reg, Constant(offset));
-        code += InstGen::ldr(target, source.getReg(), vinst_temp_reg);
+        code += InstGen::gen_ldr(target, source.getReg(), vinst_temp_reg);
     } else 
-        code += InstGen::ldr(target, source);
+        code += InstGen::gen_ldr(target, source);
     return code;
 }
 
-std::string store(const Reg &source, const Addr &target) {
+std::string gen_store(const Reg &source, const Addr &target) {
     assert(source != vinst_temp_reg);
     std::string code;
     int offset = target.getOffset();
     if (offset > imm_12_max || offset < -imm_12_max) {
         code += InstGen::setValue(vinst_temp_reg, Constant(offset));
-        code += InstGen::str(source, target.getReg(), vinst_temp_reg);
+        code += InstGen::gen_str(source, target.getReg(), vinst_temp_reg);
     } else {
-        code += InstGen::str(source, target);
+        code += InstGen::gen_str(source, target);
     }
     return code;
 }
-*/
+
 std::string gen_swi(const Constant &id) {
     std::string code;
     code += tab;
@@ -671,6 +669,7 @@ std::string bic(const Reg &target, const Reg &v1, const Reg &v2,
                 " " + v2.getName() + newline;
     return code;
 }
+*/
 
 std::tuple<int, int, int> choose_multiplier(int d, int N) {
     assert(d >= 1);
@@ -696,34 +695,34 @@ std::string divConst(const Reg &target, const Reg &source,
     int m, sh_post, l;
     std::tie(m, sh_post, l) = choose_multiplier(abs(d), N - 1);
     if (abs(d) == 1) {
-        code += mov(target, source);
+        code += gen_mov(target, source);
     } else if (abs(d) == (1 << l)) {
         // q = SRA(n + SRL(SRA(n, l - 1), N - l), l);
-        code += asr(vinst_temp_reg, source, Constant(l - 1));
-        code += lsr(vinst_temp_reg, vinst_temp_reg, Constant(N - l));
-        code += add(vinst_temp_reg, vinst_temp_reg, source);
-        code += asr(target, vinst_temp_reg, Constant(l));
+        code += gen_asr(vinst_temp_reg, source, Constant(l - 1));
+        code += gen_lsr(vinst_temp_reg, vinst_temp_reg, Constant(N - l));
+        code += gen_add(vinst_temp_reg, vinst_temp_reg, source);
+        code += gen_asr(target, vinst_temp_reg, Constant(l));
     } else if (m >= 0) {
         // q = SRA(MULSH(m, n), sh_post) - XSIGN(n);
-        code += setValue(vinst_temp_reg, Constant(m));
-        code += smmul(vinst_temp_reg, vinst_temp_reg, source);
-        code += asr(vinst_temp_reg, vinst_temp_reg, Constant(sh_post));
+        code += setRegValue(vinst_temp_reg, Constant(m));
+        code += gen_smmul(vinst_temp_reg, vinst_temp_reg, source);
+        code += gen_asr(vinst_temp_reg, vinst_temp_reg, Constant(sh_post));
         code +=
-            add(target, vinst_temp_reg,
+            gen_add(target, vinst_temp_reg,
                 RegShift(source.getID(), 31, InstGen::RegShift::ShiftType::lsr));
     } else {
         // q = SRA(n + MULSH(m - 2^N , n), sh_post) - XSIGN(n);
-        code += setValue(vinst_temp_reg, Constant(m));
-        code += smmla(vinst_temp_reg, vinst_temp_reg, source, source);
-        code += asr(vinst_temp_reg, vinst_temp_reg, Constant(sh_post));
+        code += setRegValue(vinst_temp_reg, Constant(m));
+        code += gen_smmla(vinst_temp_reg, vinst_temp_reg, source, source);
+        code += gen_asr(vinst_temp_reg, vinst_temp_reg, Constant(sh_post));
         code +=
-            add(target, vinst_temp_reg,
+            gen_add(target, vinst_temp_reg,
                 RegShift(source.getID(), 31, InstGen::RegShift::ShiftType::lsr));
     }
     if (d < 0) {
-        code += rsb(target, target, Constant(0));
+        code += gen_rsb(target, target, Constant(0));
     }
     return code;
 }
-*/
+
 }; // namespace InstGen

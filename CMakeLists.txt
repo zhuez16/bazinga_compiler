@@ -51,7 +51,10 @@ ADD_EXECUTABLE(builder
         src/ast.cpp
         src/pass_manager.cpp
         src/pass/active_vars.cpp
-        src/pass/combining.cpp)
+        src/pass/SCPcombineDCE.cpp
+        src/pass/CFG.cpp
+        src/pass/Sink.cpp
+        src/pass/CodeElimination.cpp)
 TARGET_LINK_LIBRARIES(
         builder IR_lib
 )

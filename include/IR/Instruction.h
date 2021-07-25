@@ -24,27 +24,17 @@ public:
         mul,
         sdiv,
         mod,
-        // float binary operators
-        fadd,
-        fsub,
-        fmul,
-        fdiv,
         // Memory operators
         alloca,
         load,
         store,
         // Other operators
         cmp,
-        fcmp,
         phi,
         call,
         getelementptr,
         zext, // zero extend
-        fptosi,
-        sitofp,
         // float binary operators Logical operators
-        lor,
-        land
     };
     // create instruction, auto insert to bb
     // ty here is result type
@@ -114,21 +104,14 @@ public:
             case sub: return "sub"; break;
             case mul: return "mul"; break;
             case sdiv: return "sdiv"; break;
-            case fadd: return "fadd"; break;
-            case fsub: return "fsub"; break;
-            case fmul: return "fmul"; break;
-            case fdiv: return "fdiv"; break;
             case alloca: return "alloca"; break;
             case load: return "load"; break;
             case store: return "store"; break;
             case cmp: return "cmp"; break;
-            case fcmp: return "fcmp"; break;
             case phi: return "phi"; break;
             case call: return "call"; break;
             case getelementptr: return "getelementptr"; break;
             case zext: return "zext"; break;
-            case fptosi: return "fptosi"; break;
-            case sitofp: return "sitofp"; break;
 
         default: return ""; break;
         }
@@ -149,10 +132,10 @@ public:
     bool is_sub() { return op_id_ == sub; }
     bool is_mul() { return op_id_ == mul; }
     bool is_div() { return op_id_ == sdiv; }
+    bool is_rem() { return op_id_ == mod; }
 
 
     bool is_cmp() { return op_id_ == cmp; }
-    bool is_fcmp() { return op_id_ == fcmp; }
 
     bool is_call() { return op_id_ == call; }
     bool is_gep() { return op_id_ == getelementptr; }
@@ -200,28 +183,8 @@ public:
 
     static BinaryInst *create_mod(Value *v1, Value *v2, BasicBlock *bb, Module *m);
 
-    // create fadd instruction, auto insert to bb
-    static BinaryInst *create_fadd(Value *v1, Value *v2, BasicBlock *bb, Module *m);
-
-    // create fsub instruction, auto insert to bb
-    static BinaryInst *create_fsub(Value *v1, Value *v2, BasicBlock *bb, Module *m);
-
-    // create fmul instruction, auto insert to bb
-    static BinaryInst *create_fmul(Value *v1, Value *v2, BasicBlock *bb, Module *m);
-
-    // create fDiv instruction, auto insert to bb
-    static BinaryInst *create_fdiv(Value *v1, Value *v2, BasicBlock *bb, Module *m);
-
-    static BinaryInst *create_iand(Value *v1, Value *v2, BasicBlock *bb, Module *m);
-
-    static BinaryInst *create_ior(Value *v1, Value *v2, BasicBlock *bb, Module *m);
-
     static BinaryInst *create_s_bin(Value *v1, Value *v2, OpID op, BasicBlock *bb, Module *m){
         return new BinaryInst(Type::get_int32_type(m), op, v1, v2, bb);
-    };
-
-    static BinaryInst *create_f_bin(Value *v1, Value *v2, OpID op, BasicBlock *bb, Module *m){
-        return new BinaryInst(Type::get_float_type(m), op, v1, v2, bb);
     };
 
     virtual BinaryInst* deepcopy(BasicBlock* parent) override{
@@ -300,54 +263,6 @@ private:
     CmpOp cmp_op_;
 
     void assertValid();
-};
-
-class FCmpInst : public Instruction
-{
-public:
-    enum CmpOp
-    {
-        EQ, // ==
-        NE, // !=
-        GT, // >
-        GE, // >=
-        LT, // <
-        LE  // <=
-    };
-
-private:
-    FCmpInst(Type *ty, CmpOp op, Value *lhs, Value *rhs,
-             BasicBlock *bb);
-    FCmpInst(Type *ty, CmpOp op, BasicBlock *bb) : Instruction(ty, Instruction::fcmp, 2, bb), cmp_op_(op){};
-
-public:
-    static FCmpInst *create_fcmp(CmpOp op, Value *lhs, Value *rhs,
-                                 BasicBlock *bb, Module *m);
-
-    CmpOp get_cmp_op() { return cmp_op_; }
-
-    virtual std::string print() override;
-
-    virtual FCmpInst* deepcopy(BasicBlock* parent) override{
-        // 复制基本信息
-        FCmpInst* newInst = new FCmpInst(type_, cmp_op_, parent);
-        // 复制UseList
-        newInst->use_list_.clear();
-        for(auto u: use_list_){
-            newInst->use_list_.push_back(u);
-        }
-        // 复制Operands
-        newInst->operands_.clear();
-        for(auto o: operands_){
-            newInst->operands_.push_back(o);
-        }
-        return newInst;
-    };
-
-private:
-    CmpOp cmp_op_;
-
-    void assert_valid();
 };
 
 class CallInst : public Instruction
@@ -617,71 +532,6 @@ public:
     virtual ZextInst* deepcopy(BasicBlock* parent) override{
         // 复制基本信息
         ZextInst* newInst = new ZextInst(type_, parent);
-        // 复制UseList
-        newInst->use_list_.clear();
-        for(auto u: use_list_){
-            newInst->use_list_.push_back(u);
-        }
-        // 复制Operands
-        newInst->operands_.clear();
-        for(auto o: operands_){
-            newInst->operands_.push_back(o);
-        }
-        return newInst;
-    };
-
-private:
-    Type *dest_ty_;
-};
-
-class FpToSiInst : public Instruction
-{
-private:
-    FpToSiInst(OpID op, Value *val, Type *ty, BasicBlock *bb);
-    FpToSiInst(Type *ty, BasicBlock *bb): Instruction(ty, Instruction::fptosi, 1, bb), dest_ty_(ty){};
-
-public:
-    static FpToSiInst *create_fptosi(Value *val, Type *ty, BasicBlock *bb);
-
-    Type *get_dest_type() const;
-
-    virtual std::string print() override;
-
-    virtual FpToSiInst* deepcopy(BasicBlock* parent) override{
-        // 复制基本信息
-        FpToSiInst* newInst = new FpToSiInst(type_, parent);
-        // 复制UseList
-        newInst->use_list_.clear();
-        for(auto u: use_list_){
-            newInst->use_list_.push_back(u);
-        }
-        // 复制Operands
-        newInst->operands_.clear();
-        for(auto o: operands_){
-            newInst->operands_.push_back(o);
-        }
-        return newInst;
-    };
-
-private:
-    Type *dest_ty_;
-};
-
-class SiToFpInst : public Instruction
-{
-private:
-    SiToFpInst(OpID op, Value *val, Type *ty, BasicBlock *bb);
-    SiToFpInst(Type *ty, BasicBlock *bb): Instruction(ty, Instruction::sitofp, 1, bb), dest_ty_(ty){};
-public:
-    static SiToFpInst *create_sitofp(Value *val, Type *ty, BasicBlock *bb);
-
-    Type *get_dest_type() const;
-
-    virtual std::string print() override;
-
-    virtual SiToFpInst* deepcopy(BasicBlock* parent) override{
-        // 复制基本信息
-        SiToFpInst* newInst = new SiToFpInst(type_, parent);
         // 复制UseList
         newInst->use_list_.clear();
         for(auto u: use_list_){

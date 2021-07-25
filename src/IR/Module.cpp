@@ -19,23 +19,16 @@ Module::Module(std::string name)
     instr_id2string_.insert({ Instruction::mul, "mul" });
     instr_id2string_.insert({ Instruction::sdiv, "sdiv" });
     instr_id2string_.insert({Instruction::mod, "srem"});
-    
-    instr_id2string_.insert({ Instruction::fadd, "fadd" });
-    instr_id2string_.insert({ Instruction::fsub, "fsub" });
-    instr_id2string_.insert({ Instruction::fmul, "fmul" });
-    instr_id2string_.insert({ Instruction::fdiv, "fdiv" });
+
+    instr_id2string_.insert({Instruction::cmp, "icmp"});
 
     instr_id2string_.insert({ Instruction::alloca, "alloca" });
     instr_id2string_.insert({ Instruction::load, "load" });
     instr_id2string_.insert({ Instruction::store, "store" });
-    instr_id2string_.insert({ Instruction::cmp, "icmp" });
-    instr_id2string_.insert({ Instruction::fcmp, "fcmp" });
     instr_id2string_.insert({ Instruction::phi, "phi" });
     instr_id2string_.insert({ Instruction::call, "call" });
     instr_id2string_.insert({ Instruction::getelementptr, "getelementptr" });
     instr_id2string_.insert({ Instruction::zext, "zext" });
-    instr_id2string_.insert({ Instruction::sitofp, "sitofp" });
-    instr_id2string_.insert({ Instruction::fptosi, "fptosi" });
 }
 
 Module::~Module()
