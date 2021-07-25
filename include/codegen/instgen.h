@@ -23,6 +23,8 @@ const std::string reg_name[] = {"r0",  "r1", "r2", "r3", "r4",  "r5",
                                 "r6",  "r7", "r8", "r9", "r10", "r11",
                                 "r12", "sp", "lr", "pc"};
 
+const int imm_16_max=1<<16-1;
+
 const int max_reg_id = 15;
 
 enum CmpOp {
@@ -164,7 +166,7 @@ std::string gen_mov(const Reg &target, const RegValue &source, const CmpOp &cond
 std::string gen_mvn(const Reg &target, const RegValue &source, const CmpOp &cond = NOP);
 std::string gen_movw(const Reg &target, const RegValue &source, const CmpOp &cond = NOP);
 std::string gen_movt(const Reg &target, const RegValue &source, const CmpOp &cond = NOP);
-//std::string setRegValue(const Reg &target, const Constant &source);
+std::string gen_set_value(const Reg &target, const Constant &source);
 std::string gen_adrl(const Reg &target, const Label &source);
 std::string gen_ldr(const Reg &target, const Addr &source);
 std::string gen_ldr(const Reg &target, const Label &source);
@@ -209,9 +211,9 @@ std::string instConst(std::string (*inst)(const Reg &target, const Reg &op1,
                       const Reg &target, const Reg &op1, const Constant &op2);
 std::string instConst(std::string (*inst)(const Reg &op1, const RegValue &op2),
                       const Reg &op1, const Constant &op2);
+*/
 std::string load(const Reg &target, const Addr &source);
 std::string store(const Reg &source, const Addr &target);
-*/
 std::string gen_swi(const Constant &id);
 std::string gen_bic(const Reg &target, const Reg &op1, const RegValue &op2);
 

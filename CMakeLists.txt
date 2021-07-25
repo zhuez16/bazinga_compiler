@@ -24,6 +24,7 @@ BISON_TARGET(parser ${CMAKE_SOURCE_DIR}/src/parser/parser.y ${MID_LEVEL_DIR}/bs_
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR})
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/include)
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/IR)
+INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/codegen)
 INCLUDE_DIRECTORIES(${MID_LEVEL_DIR}/include)
 ADD_SUBDIRECTORY(src/IR)
 ADD_SUBDIRECTORY(src/runtime)
@@ -39,6 +40,21 @@ ADD_EXECUTABLE(parser
         ${FLEX_lexer2_OUTPUTS}
         ${BISON_parser_OUTPUTS})
 ADD_EXECUTABLE(builder
+        src/pass/dominator.cpp
+        src/pass/mem2reg.cpp
+        src/pass/loop_search.cpp
+        src/pass/global2local.cpp
+        src/IRbuilder/bzcompiler.cpp
+        src/IRbuilder/bzcompiler_builder.cpp
+        ${FLEX_lexer2_OUTPUTS}
+        ${BISON_parser_OUTPUTS}
+        src/ast.cpp
+        src/pass_manager.cpp
+        src/pass/active_vars.cpp
+        src/pass/combining.cpp)
+ADD_EXECUTABLE(codegen
+        src/codegen/codegen.cpp
+        src/codegen/instgen.cpp
         src/pass/dominator.cpp
         src/pass/mem2reg.cpp
         src/pass/loop_search.cpp

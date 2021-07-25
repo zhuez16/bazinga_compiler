@@ -129,13 +129,13 @@ std::string gen_movt(const Reg &target, const RegValue &source, const CmpOp &con
 
 std::string gen_set_Value(const Reg &target, const Constant &source) {
     std::string code;
-    auto val = source.getValue();
+    auto val = source.getRegValue();
     if (0 <= val && val <= imm_16_max)
-        code += mov(target, Constant(val));
-    else if (-imm_8_max <= val && val <= 0)
-        code += mvn(target, Constant(-val - 1));
+        code += gen_mov(target, Constant(val));
+    else if (-imm_16_max/2 <= val && val <= 0)
+        code += gen_mvn(target, Constant(-val - 1));
     else {
-        uint32_t imm = source.getValue();
+        uint32_t imm = source.getRegValue();
         uint32_t imm_low = imm & ((1 << 16) - 1);
         uint32_t imm_high = imm >> 16;
         code += tab;
