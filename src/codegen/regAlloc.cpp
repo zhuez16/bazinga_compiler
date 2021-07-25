@@ -4,11 +4,71 @@
 #include <string>
 #include <vector>
 
-#include "CodeGen.hh"
-#include "InstructionsGen.hh"
-#include "LoopFind.h"
+#include "codegen.h"
+#include "instgen.h"
 
-std::map<Value *, int> CodeGen::regAlloc() {
+#define R 12
+
+bool phyregs[R];
+
+class LiveInterval {
+
+private:
+  int begin_;
+  int end_;
+  int reg_;
+  Value * v_;
+
+public:
+  explicit LiveInterval(int begin, int end, int reg,Value *v)
+      : begin_(begin), end_(end), reg_(reg), v_(v){}
+
+    bool overlapsFrom(LiveInterval *I)
+    {
+        if(begin_ > I->end || end_ < I->begin)
+            return false;
+        return true;
+    }
+
+    int get_begin()
+    {
+        return begin_;
+    }
+    int get_end()
+    {
+        return end_;
+    }
+    void set_reg(unsigned reg)
+    {
+        reg_ = reg;
+    }
+    int get_reg()
+    {
+        return reg_;
+    }
+    Value * get_value()
+    {
+        return v_;
+    }
+    void set_value(Value * v)
+    {
+        v_ = v;
+    }
+};
+
+std::vector<LiveInterval*> unhandled;
+std::vector<LiveInterval*> active;
+
+bool increase(const LiveInterval *v1, const LiveInterval *v2)
+{
+    return v1->get_begin() < v2->get_begin();
+}
+bool decrease(const LiveInterval *v1, const LiveInterval *v2)
+{
+    return v1->get_end() > v2->get_end();
+}
+
+std::map<Value *, int> codegen::regAlloc() {
     this->spill_cost_total = 0;
     this->color_bonus_total = 0;
     this->context_active_vars.clear();
@@ -17,33 +77,53 @@ std::map<Value *, int> CodeGen::regAlloc() {
     const double alloca_cost = 2;
     const double mov_cost = 1;
     const double loop_scale = 100;
-    std::map<Value *, int> mapping;
-    LoopFind lf(this->module.get());
-    lf.run();
-    for (auto &func : this->module->getFunctions()) {
+
+    std::map<Value *,int> reg_mapping;
+    //LoopFind lf(this->module.get());
+    //lf.run();
+    for (auto &func : this->module->get_functions()) {
         std::map<Value *, std::set<Value *>> IG;
         std::map<Value *, double> spill_cost;
         std::map<Value *, std::map<Value *, double>> phi_bonus;
         std::map<Value *, std::map<int, double>> abi_bonus;
         std::map<Value *, double> weight;
+        std::map<Instruction *, int> pos;
+        int cur_pos = 1;
         std::map<BasicBlock *, std::set<Value *>> live_in, live_out;
+        std::map<Value *, int> interval_begin,interval_end;
         std::set<Value *> values;
-        bool mt_inside = CodeGen::is_mt_inside(func);
         // not a declaration
-        if (func->getBasicBlocks().empty()) {
-        continue;
-        }
-        // find all vars
-        for (auto &args : func->getArgs()) {
-        values.insert(args);
-        }
-        for (auto &bb : func->getBasicBlocks()) {
-        for (auto &inst : bb->getInstructions()) {
-            if (inst->getType()->getSize() > 0) {
-            values.insert(inst);
+        if (func->get_basic_blocks().empty())
+            continue;
+        std::vector<BasicBlock *> S;
+        std::map<BasicBlock *,int>visit;
+        S.push_back(func->get_entry_block());
+        while(!S.empty())
+        {
+            auto &bb = S.back();
+            S.pop_back();
+            for (auto &inst : bb->get_instructions())
+            {
+                inst[inst] = cur_pos;
+                cur_pos++;
+            }
+            for (auto &succ_bb : bb->get_succ_basic_blocks()) {
+                if(visit[succ_bb]==0)
+                {
+                    S.push_back(succ_bb);
+                    visit[succ_bb]=1;
+                }
             }
         }
+        // find all vars
+        for (auto &args : func->get_args())
+            values.insert(args);
+        for (auto &bb : func->get_basic_blocks()) {
+            for (auto &inst : bb->get_instructions())
+                if (inst->get_type()->get_size() > 0)
+                    values.insert(inst);
         }
+        /*
         // calc live in
         {
         for (auto &v : values) {
@@ -136,5 +216,63 @@ std::map<Value *, int> CodeGen::regAlloc() {
             }
         }
         }
+        */
+
+        LinearScanRegisterAllocation();
+        for(LiveInterval cur = unhandled.begin(),  e = unhandled.end(); i != e; ++i)
+            if(cur.get_reg()!=-1)
+                reg_mapping[cur.get_value()]=cur.get_reg();
     }
+}
+
+void LinearScanRegisterAllocation()
+{
+    std::sort(unhandled.begin(), unhandled.end(), increase);
+    reg_mapping.clear();
+    active.clear();
+    for(int i=0;i<R;i++)
+        regs[i]=true;
+    for(LiveInterval cur = unhandled.begin(),  e = unhandled.end(); i != e; ++i)
+    {
+        ExpireOldIntervals(&cur);
+        if(active.size()==R)
+            SpillAtInterval(&cur);
+        else
+        {
+           active.push_back(&cur);
+            for(int i=0;i<R;i++)
+                if(regs[i])
+                {
+                    cur.set_reg(i);
+                    break;
+                }
+        }
+    }
+}
+
+void ExpireOldIntervals(LiveInterval *cur)
+{
+    std::sort(active.begin(), active.end(), decrease);
+    for(LiveInterval i = active.begin(),  e = active.end(); i != e; ++i)
+    {
+        if(i.get_end()>=cur->get_begin())
+            return;
+        regs[i.get_reg()]=true;
+        active.erase(i);
+    }
+}
+void SpillAtInterval(LiveInterval * cur)
+{
+    std::sort(active.begin(), active.end(), decrease);
+    LiveInterval* spill = unhandled.back();
+    if(spill->get_end()>cur->get_end())
+    {
+        cur->set_reg(spill->get_reg());
+        spill->set_reg(-1);
+        get_stack(spill);
+        active.push_back(spill);
+        active.push_back(cur);
+    }
+    else
+        get_stack(cur);
 }
