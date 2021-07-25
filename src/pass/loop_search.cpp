@@ -113,7 +113,6 @@ void LoopSearch::Tarjan(BasicBlock *bb, std::set<BasicBlock *> blocks) {
         in_stack.erase(v);
         Loop *new_loop = new Loop();
         new_loop->add_loop_block(v);
-        std::cout<< v->get_name() <<std::endl;
         while(bb != v){
             v = loop_stack.top();
             loop_stack.pop();

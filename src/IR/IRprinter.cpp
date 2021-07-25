@@ -35,22 +35,16 @@ std::string print_cmp_type( CmpInst::CmpOp op )
     {
     case CmpInst::GE:
         return "sge";
-        break;
     case CmpInst::GT:
         return "sgt";
-        break;
     case CmpInst::LE:
         return "sle";
-        break;
     case CmpInst::LT:
         return "slt";
-        break;
     case CmpInst::EQ:
         return "eq";
-        break;
     case CmpInst::NE:
         return "ne";
-        break;
     default:
         break;
     }

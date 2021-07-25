@@ -132,7 +132,7 @@ bool CodeSinking::SinkInstruction(Instruction *Inst) {
         if (auto PN = dynamic_cast<PhiInst *>(UseInst)) {
             // PHI nodes use the operand in the predecessor block, not the block with
             // the PHI.
-            use_ = dynamic_cast<BasicBlock *>(PN->get_operand(U.arg_no_));
+            use_ = dynamic_cast<BasicBlock *>(PN->get_operand(((int)(U.arg_no_ / 2)) * 2 + 1));
         }
         if (sink_target)
             sink_target = dom->intersect(sink_target, use_); // DT.findNearestCommonDominator(SuccToSinkTo, UseBlock);

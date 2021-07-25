@@ -20,6 +20,8 @@ Module::Module(std::string name)
     instr_id2string_.insert({ Instruction::sdiv, "sdiv" });
     instr_id2string_.insert({Instruction::mod, "srem"});
 
+    instr_id2string_.insert({Instruction::cmp, "icmp"});
+
     instr_id2string_.insert({ Instruction::alloca, "alloca" });
     instr_id2string_.insert({ Instruction::load, "load" });
     instr_id2string_.insert({ Instruction::store, "store" });

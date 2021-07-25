@@ -29,6 +29,7 @@ int main(int argc, char **argv) {
     bool loop_search = false;
     bool availableexpression = false;
     bool code_sink = false;
+    bool global2local = false;
 
     for (int i = 1;i < argc;++i) {
         if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
@@ -60,6 +61,8 @@ int main(int argc, char **argv) {
             availableexpression = true;
         } else if (strcmp(argv[i], "-code-sink") == 0){
             code_sink = true;
+        } else if (strcmp(argv[i], "-global2local") == 0){
+            global2local = true;
         } else {
             if (input_path.empty()) {
                 input_path = argv[i];
@@ -100,9 +103,12 @@ int main(int argc, char **argv) {
 
     PassManager PM(m);
     mem2reg = true;
-    PM.add_pass<Global2Local>();
+//    PM.add_pass<Global2Local>();
     m->set_print_name();
 //    printf("start running pass manager\n");
+    if (global2local) {
+        PM.add_pass<Global2Local>();
+    }
     if( mem2reg )
     {
         PM.add_pass<Mem2Reg>();
@@ -110,7 +116,6 @@ int main(int argc, char **argv) {
     if ( const_propagation ) {
         PM.add_pass<ConstFoldingDCEliminating>();
     }
-    PM.add_pass<LoopSearch>();
     if ( code_sink ) {
         PM.add_pass<CodeSinking>();
     }
