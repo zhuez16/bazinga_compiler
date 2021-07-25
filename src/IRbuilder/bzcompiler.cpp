@@ -7,6 +7,8 @@
 #include "pass/CFG.h"
 #include "pass/Sink.h"
 #include "pass/loop_search.h"
+#include "pass/active_vars.h"
+#include "pass/CodeElimination.h"
 #include <cstring>
 #include <iostream>
 #include <fstream>
@@ -115,9 +117,13 @@ int main(int argc, char **argv) {
     }
     if ( const_propagation ) {
         PM.add_pass<ConstFoldingDCEliminating>();
+        PM.add_pass<CodeElimination>();
     }
     if ( code_sink ) {
         PM.add_pass<CodeSinking>();
+    }
+    if (activevars) {
+        PM.add_pass<active_vars>();
     }
 //    if( loop_search ){
 //        PM.add_pass<LoopSearch>();

@@ -132,6 +132,7 @@ public:
     bool is_sub() { return op_id_ == sub; }
     bool is_mul() { return op_id_ == mul; }
     bool is_div() { return op_id_ == sdiv; }
+    bool is_rem() { return op_id_ == mod; }
 
 
     bool is_cmp() { return op_id_ == cmp; }
