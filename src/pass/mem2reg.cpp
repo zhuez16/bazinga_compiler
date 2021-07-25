@@ -86,8 +86,6 @@ void Mem2Reg::rename(BasicBlock *bb) {
             if (!dynamic_cast<GlobalVariable *>(l_val) &&
                 !dynamic_cast<GetElementPtrInst *>(l_val)){
                 if ( var_val_stack.find(l_val)!=var_val_stack.end()){
-                    assert(var_val_stack[l_val].back());
-                    instr->print();
                     instr->replace_all_use_with(var_val_stack[l_val].back());
                     wait_delete.push_back(instr);
                 }

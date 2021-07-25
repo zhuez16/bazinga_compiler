@@ -43,6 +43,7 @@ ADD_EXECUTABLE(builder
         src/pass/mem2reg.cpp
         src/pass/loop_search.cpp
         src/pass/global2local.cpp
+        src/pass/loop_expansion.cpp
         src/IRbuilder/bzcompiler.cpp
         src/IRbuilder/bzcompiler_builder.cpp
         ${FLEX_lexer2_OUTPUTS}

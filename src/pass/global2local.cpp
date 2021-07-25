@@ -124,7 +124,9 @@ void Global2Local::run() {
                     for(auto instr: entry_block->get_instructions()){
                         temp_inst_store.push_back(instr);
                     }
+                    Value *cur_global_value = nullptr;
                     Value *final_store = nullptr;
+                    std::vector<Instruction *> wait_delete;
                     // detect the last assignment
                     for(auto instr: entry_block->get_instructions()){
                         if(instr->is_store()){
@@ -132,20 +134,37 @@ void Global2Local::run() {
                             auto l_val = store_instr->get_lval();
                             auto l_val_global = dynamic_cast<GlobalVariable *>(l_val);
                             if(l_val_global && l_val_global == global_var){
-                                final_store = store_instr->get_rval();
+                                cur_global_value = store_instr->get_rval();
+                                final_store = instr;
+                                wait_delete.push_back(instr);
+                            }
+                        }
+                        if(instr->is_load()){
+                            auto load_instr = dynamic_cast<LoadInst *>(instr);
+                            auto r_val = load_instr->get_operand(0);
+                            auto r_val_global = dynamic_cast<GlobalVariable *>(r_val);
+                            if(r_val_global && r_val_global == global_var && cur_global_value != nullptr){
+                                instr->replace_all_use_with(cur_global_value);
+                                wait_delete.push_back(instr);
                             }
                         }
                     }
-                    entry_block->get_instructions().clear();
-                    auto alloca_for_global = AllocaInst::create_alloca(m_->get_int32_type(), entry_block);
-                    auto global_load = LoadInst::create_load(global_var->get_type(), global_var, entry_block);
-                    for(auto instr: temp_inst_store){
-                        entry_block->add_instruction(instr);
+                    for(auto instr: wait_delete){
+                        if(instr == final_store) continue;
+                        entry_block->delete_instr(instr);
                     }
-                    global_var->replace_all_use_with(global_load);
-                    if(final_store != nullptr){
-                        auto store_for_global = StoreInst::create_store(final_store, global_var, entry_block);
-                    }
+//                    entry_block->get_instructions().clear();
+//                    auto alloca_for_global = AllocaInst::create_alloca(m_->get_int32_type(), entry_block);
+//                    auto global_load = LoadInst::create_load(global_var->get_type()->get_pointer_element_type(), global_var, entry_block);
+//                    for(auto instr: temp_inst_store){
+//                        entry_block->add_instruction(instr);
+//                    }
+//                    global_var->replace_all_use_with(global_load);
+//                    global_load->set_operand(0, global_var);
+//                    std::cout << global_load->get_operand(0)->get_type()->is_pointer_type() << std::endl;
+//                    if(final_store != nullptr){
+//                        auto store_for_global = StoreInst::create_store(final_store, global_var, entry_block);
+//                    }
                 }
                 else{
                     // TODO: is it necessary to localization an global array?
