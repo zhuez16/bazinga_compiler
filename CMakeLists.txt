@@ -41,7 +41,12 @@ ADD_EXECUTABLE(parser
         ${BISON_parser_OUTPUTS})
 ADD_EXECUTABLE(builder
         src/pass/dominator.cpp
+        src/pass/loop_expansion.cpp
         src/pass/mem2reg.cpp
+        src/pass/SCPcombineDCE.cpp
+        src/pass/CFG.cpp
+        src/pass/Sink.cpp
+        src/pass/CodeElimination.cpp
         src/pass/loop_search.cpp
         src/pass/global2local.cpp
         src/IRbuilder/bzcompiler.cpp
@@ -50,23 +55,22 @@ ADD_EXECUTABLE(builder
         ${BISON_parser_OUTPUTS}
         src/ast.cpp
         src/pass_manager.cpp
-        src/pass/active_vars.cpp
-        src/pass/combining.cpp)
-ADD_EXECUTABLE(codegen
-        src/codegen/codegen.cpp
-        src/codegen/instgen.cpp
-        src/pass/dominator.cpp
-        src/pass/mem2reg.cpp
-        src/pass/loop_search.cpp
-        src/pass/global2local.cpp
-        src/IRbuilder/bzcompiler.cpp
-        src/IRbuilder/bzcompiler_builder.cpp
-        ${FLEX_lexer2_OUTPUTS}
-        ${BISON_parser_OUTPUTS}
-        src/ast.cpp
-        src/pass_manager.cpp
-        src/pass/active_vars.cpp
-        src/pass/combining.cpp)
+        src/pass/active_vars.cpp)
+#ADD_EXECUTABLE(codegen
+#        src/codegen/codegen.cpp
+#        src/codegen/instgen.cpp
+#        src/pass/dominator.cpp
+#        src/pass/mem2reg.cpp
+#        src/pass/loop_search.cpp
+#        src/pass/global2local.cpp
+#        src/IRbuilder/bzcompiler.cpp
+#        src/IRbuilder/bzcompiler_builder.cpp
+#        ${FLEX_lexer2_OUTPUTS}
+#        ${BISON_parser_OUTPUTS}
+#        src/ast.cpp
+#        src/pass_manager.cpp
+#        src/pass/active_vars.cpp
+#        src/pass/combining.cpp)
 TARGET_LINK_LIBRARIES(
         builder IR_lib
 )

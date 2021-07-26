@@ -7,7 +7,7 @@
 #include "IR/IRbuilder.h"
 #include "IR/BasicBlock.h"
 #include "IR/Instruction.h"
-#include "pass.h"
+#include "pass_manager.h"
 #include "stack"
 #include "loop_search.h"
 
@@ -19,11 +19,13 @@ class Loop_Node;
 class LoopExpansion : public Pass{
 private:
     std::map<Value *, Node *> ins2node;
-    std::map<Value *, Loop_Node *> loop_nodes;
+//    std::map<Value *, Loop_Node *> loop_nodes;
     std::map<Value *, int> loop_vars;
     std::map<Value *, Phi_Node *> target_phi;
     std::set<Value *> target;
+    std::vector<std::map<Value *, int>> phi_value_stack;
     std::set<Value *> base;
+    BasicBlock *unroll_loop(int expansion_time, BasicBlock *judge_bb, BasicBlock *loop_bb);
 public:
     LoopExpansion(Module *m) : Pass(m){}
     ~LoopExpansion(){};
