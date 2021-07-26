@@ -16,6 +16,13 @@
  */
 class CFG : public Pass {
 public:
+
+    typedef struct Edge {
+        BasicBlock *from;
+        BasicBlock *to;
+    } Edge;
+
+
     explicit CFG(Module *m) : Pass(m) {}
     void run() final;
     void runOnFunction(Function *f);
@@ -51,6 +58,22 @@ public:
      * @return
      */
     std::set<BasicBlock *> getTerminators() { return _term_set; }
+
+    /**
+     * 获取函数RPO遍历的所有反向边
+     * @param f
+     * @return
+     */
+    std::set<Edge *> getRPOBackwardEdges(Function *f);
+
+
+    /**
+     * 获取函数RPO遍历的顺序
+     * @param f
+     * @return
+     */
+    std::vector<BasicBlock *> getRPOTraverseQueue(Function *f);
+
 
     /**
      * 以markdown mermaid绘图方式输出
