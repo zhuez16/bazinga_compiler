@@ -34,12 +34,13 @@ void LoopExpansion::run() {
             target_phi.clear();
             base.clear();
             phi_value_stack.clear();
+            simplify = true;
             if(loop->get_loop().size() == 2){
                 // consider the simpliest case
                 auto bb_set = loop->get_loop();
                 // find judge block and loop block
                 auto judge_block = loop->get_loop_entry();
-//                std::cout << judge_block->get_name() << std::endl;
+                std::cout << judge_block->get_name() << std::endl;
                 BasicBlock* loop_block = nullptr;
                 for(auto succ: judge_block->get_succ_basic_blocks()){
                     if(bb_set.find(succ) != bb_set.end()){
@@ -47,7 +48,7 @@ void LoopExpansion::run() {
                         break;
                     }
                 }
-//                std::cout << loop_block->get_name() << std::endl;
+                std::cout << loop_block->get_name() << std::endl;
                 auto cmp_id = CmpInst::CmpOp::EQ;
                 Value *decision_val = nullptr;
                 for(auto instr: judge_block->get_instructions()){
@@ -58,6 +59,7 @@ void LoopExpansion::run() {
                             init_val = dynamic_cast<ConstantInt *>(phi_instr->get_operand(0))->get_value();
                         }
                         else{
+                            std::cout << "4444" << std::endl;
                             simplify = false;
                         }
                         if(!simplify) break;
@@ -77,6 +79,7 @@ void LoopExpansion::run() {
                         auto op2 = bin_instr->get_operand(1);
                         if((!dynamic_cast<ConstantInt *>(op1) && ins2node.find(op1) == ins2node.end())
                         || (!dynamic_cast<ConstantInt *>(op2) && ins2node.find(op2) == ins2node.end())){
+//                            std::cout << "555" << std::endl;
                             simplify = false;
                         }
                         else{
@@ -90,7 +93,11 @@ void LoopExpansion::run() {
                         auto cmp_instr = dynamic_cast<CmpInst *>(instr);
                         auto op1 = cmp_instr->get_operand(0);
                         auto op2 = cmp_instr->get_operand(1);
-                        if(ins2node.find(op1) == ins2node.end() || ins2node.find(op2) == ins2node.end()){
+                        auto const_op1 = dynamic_cast<ConstantInt *>(op1);
+                        auto const_op2 = dynamic_cast<ConstantInt *>(op2);
+                        if((!const_op1 && ins2node.find(op1) == ins2node.end())
+                        || (!const_op2 && ins2node.find(op2) == ins2node.end())){
+//                            std::cout << "555" << std::endl;
                             simplify = false;
                             break;
                         }
@@ -107,7 +114,9 @@ void LoopExpansion::run() {
                         break;
                     }
                 }
+                std::cout << "loop debug 1" << std::endl;
                 if(!simplify) continue;
+                std::cout << "loop debug 1" << std::endl;
                 for(auto instr: loop_block->get_instructions()){
                     if(instr->isBinary()){
                         auto bin_instr = dynamic_cast<BinaryInst *>(instr);
@@ -127,8 +136,8 @@ void LoopExpansion::run() {
 //                        if(!simplify) break;
                         auto new_loop_node = new Loop_Node(op1, op2);
                     }
-                    else{
-                        // TODO:??????
+                    else if(instr->is_call()){
+
                     }
                 }
                 int expansion_time = 0;
@@ -289,6 +298,10 @@ bool LoopExpansion::update_base_value(BasicBlock *loop_block) {
                     break;
                 case BinaryInst::OpID::sdiv:
                     res = op1_val / op2_val;
+                    loop_vars[instr] = res;
+                    break;
+                case BinaryInst::OpID::mod:
+                    res = op1_val % op2_val;
                     loop_vars[instr] = res;
                     break;
                 default:
@@ -460,10 +473,28 @@ BasicBlock * LoopExpansion::unroll_loop(int expansion_time, BasicBlock *judge_bb
                 loop_values.insert(instr);
                 loop_map[instr] = new_store;
             }
+            else if(instr->is_load()){
+                auto load_instr = dynamic_cast<LoadInst *>(instr);
+                auto load_ptr = load_instr->get_operand(0);
+                auto new_load = LoadInst::create_load(load_instr->get_load_type(), load_ptr, bb);
+                if(phi_val.find(load_ptr) != phi_val.end()){
+                    new_load->set_operand(0, ConstantInt::get(phi_val[load_ptr], m_));
+                }
+                else if(loop_values.find(load_ptr) != loop_values.end()){
+                    new_load->set_operand(0, loop_map[load_ptr]);
+                }
+                loop_values.insert(instr);
+                loop_map[instr] = new_load;
+            }
             else if(instr->is_br()){
                 continue;
             }
             else if(instr->is_call()){
+                auto call_instr = dynamic_cast<CallInst *>(instr);
+                for(auto op: call_instr->get_operands()){
+                    std::cout << op->get_name() << std::endl;
+                }
+//                auto new_call = CallInst::create()
                 continue;
             }
         }
