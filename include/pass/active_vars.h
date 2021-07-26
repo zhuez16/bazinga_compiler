@@ -4,7 +4,7 @@
 
 #ifndef BAZINGA_COMPILER_ACTIVE_VARS_H
 #define BAZINGA_COMPILER_ACTIVE_VARS_H
-#include "pass.h"
+#include "pass_manager.h"
 #include "IR/Constant.h"
 #include "IR/Instruction.h"
 #include "IR/Module.h"

@@ -8,7 +8,7 @@
 #include <vector>
 #include <map>
 #include <queue>
-#include "pass.h"
+#include "pass_manager.h"
 #include "IR/BasicBlock.h"
 
 /**
