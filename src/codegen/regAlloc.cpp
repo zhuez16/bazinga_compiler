@@ -1,3 +1,5 @@
+#include <iostream>
+#include <algorithm>
 #include <map>
 #include <queue>
 #include <set>
@@ -34,11 +36,19 @@ public:
     {
         return begin_;
     }
+    void set_begin(int begin)
+    {
+        begin_ = begin;
+    }
     int get_end()
     {
         return end_;
     }
-    void set_reg(unsigned reg)
+    void set_end(int end)
+    {
+        end_ = end;
+    }
+    void set_reg(int reg)
     {
         reg_ = reg;
     }
@@ -89,32 +99,12 @@ std::map<Value *, int> codegen::regAlloc() {
         std::map<Value *, double> weight;
         std::map<Instruction *, int> pos;
         int cur_pos = 1;
-        std::map<BasicBlock *, std::set<Value *>> live_in, live_out;
+        //std::map<BasicBlock *, std::set<Value *>> live_in, live_out;
         std::map<Value *, int> interval_begin,interval_end;
         std::set<Value *> values;
         // not a declaration
         if (func->get_basic_blocks().empty())
             continue;
-        std::vector<BasicBlock *> S;
-        std::map<BasicBlock *,int>visit;
-        S.push_back(func->get_entry_block());
-        while(!S.empty())
-        {
-            auto &bb = S.back();
-            S.pop_back();
-            for (auto &inst : bb->get_instructions())
-            {
-                inst[inst] = cur_pos;
-                cur_pos++;
-            }
-            for (auto &succ_bb : bb->get_succ_basic_blocks()) {
-                if(visit[succ_bb]==0)
-                {
-                    S.push_back(succ_bb);
-                    visit[succ_bb]=1;
-                }
-            }
-        }
         // find all vars
         for (auto &args : func->get_args())
             values.insert(args);
@@ -217,7 +207,115 @@ std::map<Value *, int> codegen::regAlloc() {
         }
         }
         */
-
+        std::vector<Value *> live_begin;
+        std::vector<Value *> live_end;
+        std::vector<Value *> live;
+        std::vector<BasicBlock *> S;
+        std::map<BasicBlock *,int>visit;
+        std::map<Value *,LiveInterval *>value_map;
+        auto entry_live_in = active_vars::getLiveIn(func->get_entry_block());
+        for(auto &op : entry_live_in)
+        {
+            LiveInterval tmp(0, -1, -1,op);
+            unhandled.push_back(&tmp);
+            value_map[op]=&tmp;
+        }
+        S.push_back(func->get_entry_block());
+        while(!S.empty())
+        {
+            auto &bb = S.back();
+            S.pop_back();
+            live_begin.clear();
+            live_end.clear();
+            ilve.clear();
+            auto live_in= active_vars::getLiveIn(bb);
+            auto live_out = active_vars::getLiveOut(bb);
+            for(auto &tmp : live_in)
+            {
+                if(live_out.find(tmp))
+                    live.insert(tmp);
+                else
+                    live_end.insert(tmp);
+            }
+            for(auto &tmp : live_out)
+            {
+                if(live_in.find(tmp))
+                    continue;
+                else
+                    live_begin.insert(tmp);
+            }
+            int in_pos = cur_pos;
+            for (auto &inst : bb->get_instructions())
+            {
+                inst[inst] = cur_pos;
+                cur_pos++;
+            }
+            for (auto &inst : bb->get_instructions())
+            {
+                int pos = inst[inst];
+                auto ops = inst->get_operands();
+                for(auto &op : live_begin)
+                {
+                    if(ops.find(op))
+                    {
+                        if(value_map.find(op))
+                        {
+                            LiveInterval * tmp = value_map[op];
+                            if(tmp->get_begin() > pos)
+                                tmp->set_begin(pos);
+                            else if(tmp->get_begin() == -1)
+                                tmp->set_begin(pos);
+                        }
+                        else
+                        {
+                            LiveInterval tmp(pos, -1, -1,op);
+                            unhandled.push_back(&tmp);
+                            value_map[op]=&tmp;
+                        }
+                        live_begin.erase(op);
+                    }
+                }
+                for(auto &op : live_end)
+                {
+                    LiveInterval * tmp = value_map[op];
+                    if(tmp->get_end() == -1)
+                        tmp->set_end(pos);
+                    else if(tmp->get_end()<pos)
+                        tmp->set_end(pos);
+                }
+                inst[inst] = cur_pos;
+                cur_pos++;
+            }
+            int out_pos = cur_pos-1;
+            for(auto &v : live)
+            {
+                if(value_map.find(v))
+                {
+                    LiveInterval * tmp = value_map[v];
+                    if(tmp->get_begin() > in_pos)
+                        tmp->set_begin(in_pos);
+                    else if(tmp->get_begin() == -1)
+                        tmp->set_begin(in_pos);
+                    if(tmp->get_end() == -1)
+                        tmp->set_end(out_pos);
+                    else if(tmp->get_end()<out_pos)
+                        tmp->set_end(out_pos);
+                }
+                else
+                {
+                    LiveInterval tmp(in_pos, out_pos, -1,v);
+                    unhandled.push_back(&tmp);
+                    value_map[v]=&tmp;
+                }
+            }
+            for (auto &succ_bb : bb->get_succ_basic_blocks()) {
+                if(visit[succ_bb]==0)
+                {
+                    S.push_back(succ_bb);
+                    visit[succ_bb]=1;
+                }
+            }
+        }
         LinearScanRegisterAllocation();
         for(LiveInterval cur = unhandled.begin(),  e = unhandled.end(); i != e; ++i)
             if(cur.get_reg()!=-1)
