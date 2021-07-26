@@ -53,13 +53,15 @@ void CFG::runOnFunction(Function *f) {
 }
 
 std::string CFG::printAsMermaid() {
+    _func->print();
     if (_func == nullptr || _func->is_declaration()) { return ""; }
     int i = 1;
     std::map<BasicBlock *, int> _name_map;
     std::string ret = "graph TD;\n";
     for (auto bb: _func->get_basic_blocks()) {
+        if (bb->is_fake_block()) continue;
         _name_map.insert({bb, ++i});
-        ret += "id" + std::to_string(i) + "[" + std::to_string(i) + "]\n";
+        ret += "id" + std::to_string(i) + "[" + bb->get_name() + "]\n";
     }
     for (auto bb: _func->get_basic_blocks()) {
         for (auto target_bb: _successor_map[bb]){

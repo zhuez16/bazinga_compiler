@@ -36,6 +36,7 @@ public:
      * @return
      */
     bool isDominatedBy(BasicBlock *child, BasicBlock *parent) {
+        if (child == parent) return true;
         auto sets = getDomTreeSuccessorBlocks(parent);
         return sets.find(child) != sets.end();
     }
