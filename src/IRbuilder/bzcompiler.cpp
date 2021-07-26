@@ -97,15 +97,18 @@ int main(int argc, char **argv) {
             }
         }
     }
+//    printf("start build ast\n");
     SyntaxTree *tree = parse(input_path.c_str());
     auto *ast = new ASTProgram(tree);
     BZBuilder builder;
     ast->accept(builder);
     auto m = builder.getModule();
-    PassManager PM(m);
+
+    Pass_manager PM(m);
     mem2reg = true;
 //    PM.add_pass<Global2Local>();
     m->set_print_name();
+//    printf("start running pass manager\n");
     if (global2local) {
         PM.add_pass<Global2Local>();
     }
@@ -117,12 +120,12 @@ int main(int argc, char **argv) {
         PM.add_pass<ConstFoldingDCEliminating>();
         PM.add_pass<CodeElimination>();
     }
-//    if ( code_sink ) {
-//        PM.add_pass<CodeSinking>();
-//    }
-//    if (activevars) {
-//        PM.add_pass<active_vars>();
-//    }
+    if ( code_sink ) {
+        PM.add_pass<CodeSinking>();
+    }
+    if (activevars) {
+        PM.add_pass<active_vars>();
+    }
     PM.add_pass<LoopSearch>();
     PM.add_pass<LoopExpansion>();
 //    if( loop_search ){

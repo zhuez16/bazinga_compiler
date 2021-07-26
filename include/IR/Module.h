@@ -9,6 +9,7 @@
 #include "GlobalVariable.h"
 #include "Value.h"
 #include "Function.h"
+#include "Instruction.h"
 
 class GlobalVariable;
 

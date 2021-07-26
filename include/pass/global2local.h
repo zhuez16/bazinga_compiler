@@ -7,7 +7,7 @@
 #include "IR/IRbuilder.h"
 #include "IR/BasicBlock.h"
 #include "IR/Instruction.h"
-#include "pass.h"
+#include "pass_manager.h"
 
 class Global2Local : public Pass{
 private:
