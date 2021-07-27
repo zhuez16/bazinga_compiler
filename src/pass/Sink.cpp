@@ -8,8 +8,10 @@ void CodeSinking::run() {
     dom->run();
     lp->run();
     for (auto f: m_->get_functions()) {
-        if (!f->is_declaration())
+        if (!f->is_declaration()) {
+            dom->createRPO(f);
             iterSinkInstruction(f);
+        }
     }
 }
 

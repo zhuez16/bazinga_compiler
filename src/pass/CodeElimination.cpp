@@ -26,7 +26,7 @@ void CodeElimination::run() {
                 tbd.clear();
                 for (auto inst: bb->get_instructions()) {
                     if (isSafeToDelete(inst)) {
-                        if (!act->isLiveOut(inst)) {
+                        if (!act->isLiveOut(inst) || inst->get_use_list().empty()) {
                             tbd.push_back(inst);
                         }
                     }

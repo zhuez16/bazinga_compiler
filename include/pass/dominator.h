@@ -24,8 +24,10 @@ public:
 
     BasicBlock *intersect(BasicBlock *b1, BasicBlock *b2);
 
+    void createRPO(Function *f);
+
     std::list<BasicBlock *> getRPOQueue(Function *f) {
-        create_reverse_post_order(f);
+        createRPO(f);
         return _reversedPostOrderQueue;
     }
 
@@ -47,8 +49,6 @@ private:
     void set_immediate_dominance(BasicBlock *bb, BasicBlock *imm_dom) { _iDomMap[bb] = imm_dom; }
 
     void create_dominance_frontier(Function *f);
-
-    void create_reverse_post_order(Function *f);
 
     void dfs(BasicBlock *bb, std::set<BasicBlock *> &visited, int &id);
 
