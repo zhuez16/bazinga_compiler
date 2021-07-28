@@ -20,9 +20,13 @@ const std::string reg_name[] = {"r0",  "r1", "r2", "r3", "r4",  "r5",
                                 "r6",  "r7", "r8", "r9", "r10", "r11",
                                 "r12", "sp", "lr", "pc"};
 
-const int imm_16_max=1<<16-1;
+
 
 const int max_reg_id = 15;
+
+const int imm_16_max = 65535;
+const int imm_12_max = 4095;
+const int imm_8_max = 255;
 
 enum CmpOp {
   EQ, // ==

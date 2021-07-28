@@ -30,7 +30,7 @@ void dominator::run(){
             _successorMap.insert({bb , {}});
         }
 //        std::cout << "dom debug 1" << std::endl;
-        create_reverse_post_order(f);
+        createRPO(f);
 //        std::cout << "dom debug 2" << std::endl;
         create_immediate_dominance(f);
 //        print_dom_tree();
@@ -42,7 +42,7 @@ void dominator::run(){
     }
 }
 
-void dominator::create_reverse_post_order(Function *f){
+void dominator::createRPO(Function *f){
     _reversedPostOrderQueue.clear();
     _postOrderID.clear();
     std::set<BasicBlock *> visited;
@@ -125,6 +125,7 @@ void dominator::create_immediate_dominance(Function *f){
 
 // find closest parent of b1 and b2
 BasicBlock *dominator::intersect(BasicBlock *b1, BasicBlock *b2){
+    assert(_postOrderID.find(b1) != _postOrderID.end() && _postOrderID.find(b2) != _postOrderID.end() && "Unidentified Basic Block");
     while (b1 != b2) {
         while (_postOrderID[b1] < _postOrderID[b2]) {
             assert(getImmediateDominance(b1));

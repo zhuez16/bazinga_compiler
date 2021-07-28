@@ -1,7 +1,7 @@
 #ifndef SYSYC_DOMINATORS_HPP
 #define SYSYC_DOMINATORS_HPP
 
-#include"pass.h"
+#include"pass_manager.h"
 #include "IR/BasicBlock.h"
 #include "IR/Function.h"
 #include <list>
@@ -24,6 +24,13 @@ public:
 
     BasicBlock *intersect(BasicBlock *b1, BasicBlock *b2);
 
+    void createRPO(Function *f);
+
+    std::list<BasicBlock *> getRPOQueue(Function *f) {
+        createRPO(f);
+        return _reversedPostOrderQueue;
+    }
+
     /**
      * If child is dominate by parent then return true else false
      * @param child
@@ -31,6 +38,7 @@ public:
      * @return
      */
     bool isDominatedBy(BasicBlock *child, BasicBlock *parent) {
+        if (child == parent) return true;
         auto sets = getDomTreeSuccessorBlocks(parent);
         return sets.find(child) != sets.end();
     }
@@ -41,8 +49,6 @@ private:
     void set_immediate_dominance(BasicBlock *bb, BasicBlock *imm_dom) { _iDomMap[bb] = imm_dom; }
 
     void create_dominance_frontier(Function *f);
-
-    void create_reverse_post_order(Function *f);
 
     void dfs(BasicBlock *bb, std::set<BasicBlock *> &visited, int &id);
 

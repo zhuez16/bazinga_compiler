@@ -5,7 +5,7 @@
 #ifndef BAZINGA_COMPILER_SINK_H
 #define BAZINGA_COMPILER_SINK_H
 
-#include "pass.h"
+#include "pass_manager.h"
 #include "CFG.h"
 #include "dominator.h"
 #include "loop_search.h"

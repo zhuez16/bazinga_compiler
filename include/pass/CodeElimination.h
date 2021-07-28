@@ -5,7 +5,7 @@
 #ifndef BAZINGA_COMPILER_CODEELIMINATION_H
 #define BAZINGA_COMPILER_CODEELIMINATION_H
 
-#include "pass.h"
+#include "pass_manager.h"
 #include "active_vars.h"
 
 
@@ -14,7 +14,7 @@
  */
 class CodeElimination : public Pass {
 public:
-    CodeElimination(Module *m) : Pass(m), act(new active_vars(m)) {}
+    explicit CodeElimination(Module *m) : Pass(m), act(new active_vars(m)) {}
 
     void run() final;
 

@@ -3,8 +3,7 @@
 #include "ast.h"
 #include "pass/mem2reg.h"
 #include "pass/global2local.h"
-//#include "pass/combining.h"
-//#include "pass/loop_expansion.h"
+#include "pass/loop_expansion.h"
 #include "pass/SCPcombineDCE.h"
 #include "pass/CFG.h"
 #include "pass/Sink.h"
@@ -105,7 +104,7 @@ int main(int argc, char **argv) {
     ast->accept(builder);
     auto m = builder.getModule();
 
-    PassManager PM(m);
+    Pass_manager PM(m);
     mem2reg = true;
 //    PM.add_pass<Global2Local>();
     m->set_print_name();
@@ -118,8 +117,8 @@ int main(int argc, char **argv) {
         PM.add_pass<Mem2Reg>();
     }
     if ( const_propagation ) {
-//        PM.add_pass<ConstFoldingDCEliminating>();
-//        PM.add_pass<CodeElimination>();
+        PM.add_pass<ConstFoldingDCEliminating>();
+        PM.add_pass<CodeElimination>();
     }
     if ( code_sink ) {
         PM.add_pass<CodeSinking>();
@@ -128,7 +127,7 @@ int main(int argc, char **argv) {
         PM.add_pass<active_vars>();
     }
     PM.add_pass<LoopSearch>();
-//    PM.add_pass<LoopExpansion>();
+    PM.add_pass<LoopExpansion>();
 //    if( loop_search ){
 //        PM.add_pass<LoopSearch>();
 //    }

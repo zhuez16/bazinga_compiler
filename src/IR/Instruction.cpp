@@ -614,6 +614,14 @@ std::string PhiInst::print()
     return instr_ir; 
 }
 
+std::list<std::pair<Value *, BasicBlock *>> PhiInst::getValueBBPair() {
+    std::list<std::pair<Value *, BasicBlock *>> ret;
+    for (int i = 0; i < get_num_operand(); i += 2) {
+        ret.emplace_back(get_operand(i), dynamic_cast<BasicBlock *>(get_operand(i + 1)));
+    }
+    return ret;
+}
+
 BranchInst::BranchInst(int op_num, BasicBlock *bb): Instruction(Type::get_void_type(bb->get_module()), Instruction::br, op_num, bb){}
 
 BasicBlock *BranchInst::getTrueBB() const {

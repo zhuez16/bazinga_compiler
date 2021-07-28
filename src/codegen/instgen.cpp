@@ -671,6 +671,7 @@ std::string bic(const Reg &target, const Reg &v1, const Reg &v2,
                 " " + v2.getName() + newline;
     return code;
 }
+*/
 
 std::tuple<int, int, int> choose_multiplier(int d, int N) {
     assert(d >= 1);
@@ -696,34 +697,34 @@ std::string divConst(const Reg &target, const Reg &source,
     int m, sh_post, l;
     std::tie(m, sh_post, l) = choose_multiplier(abs(d), N - 1);
     if (abs(d) == 1) {
-        code += mov(target, source);
+        code += gen_mov(target, source);
     } else if (abs(d) == (1 << l)) {
         // q = SRA(n + SRL(SRA(n, l - 1), N - l), l);
-        code += asr(vinst_temp_reg, source, Constant(l - 1));
-        code += lsr(vinst_temp_reg, vinst_temp_reg, Constant(N - l));
-        code += add(vinst_temp_reg, vinst_temp_reg, source);
-        code += asr(target, vinst_temp_reg, Constant(l));
+        code += gen_asr(vinst_temp_reg, source, Constant(l - 1));
+        code += gen_lsr(vinst_temp_reg, vinst_temp_reg, Constant(N - l));
+        code += gen_add(vinst_temp_reg, vinst_temp_reg, source);
+        code += gen_asr(target, vinst_temp_reg, Constant(l));
     } else if (m >= 0) {
         // q = SRA(MULSH(m, n), sh_post) - XSIGN(n);
-        code += setValue(vinst_temp_reg, Constant(m));
-        code += smmul(vinst_temp_reg, vinst_temp_reg, source);
-        code += asr(vinst_temp_reg, vinst_temp_reg, Constant(sh_post));
+        code += gen_set_Value(vinst_temp_reg, Constant(m));
+        code += gen_smmul(vinst_temp_reg, vinst_temp_reg, source);
+        code += gen_asr(vinst_temp_reg, vinst_temp_reg, Constant(sh_post));
         code +=
-            add(target, vinst_temp_reg,
+            gen_add(target, vinst_temp_reg,
                 RegShift(source.getID(), 31, InstGen::RegShift::ShiftType::lsr));
     } else {
         // q = SRA(n + MULSH(m - 2^N , n), sh_post) - XSIGN(n);
-        code += setValue(vinst_temp_reg, Constant(m));
-        code += smmla(vinst_temp_reg, vinst_temp_reg, source, source);
-        code += asr(vinst_temp_reg, vinst_temp_reg, Constant(sh_post));
+        code += gen_set_Value(vinst_temp_reg, Constant(m));
+        code += gen_smmla(vinst_temp_reg, vinst_temp_reg, source, source);
+        code += gen_asr(vinst_temp_reg, vinst_temp_reg, Constant(sh_post));
         code +=
-            add(target, vinst_temp_reg,
+            gen_add(target, vinst_temp_reg,
                 RegShift(source.getID(), 31, InstGen::RegShift::ShiftType::lsr));
     }
     if (d < 0) {
-        code += rsb(target, target, Constant(0));
+        code += gen_rsb(target, target, Constant(0));
     }
     return code;
 }
-*/
+
 }; // namespace InstGen
