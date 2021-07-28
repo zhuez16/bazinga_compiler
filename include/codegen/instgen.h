@@ -69,6 +69,7 @@ public:
 const Reg lr=Reg(14);
 const Reg sp=Reg(13);
 const Reg pc=Reg(15);
+const Reg vinst_temp_reg = InstGen::Reg(11);
 class RegShift : public Value {
 public:
   enum ShiftType { lsl, lsr, asl, asr };
@@ -127,8 +128,7 @@ public:
 
 
 class Addr {
-  Reg reg;
-  int offset;
+  Reg reg;  int offset;
 
 public:
   explicit Addr(Reg reg, int offset) : reg(reg), offset(offset) {}
@@ -229,7 +229,6 @@ std::string divConst(const Reg &target, const Reg &source,
 */
 }; // namespace InstGen
 
-const InstGen::Reg vinst_temp_reg = InstGen::Reg(11);
 
 
 #endif //BAZINGA_COMPILER_INSTGEN_H

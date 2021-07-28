@@ -28,7 +28,7 @@ std::string codegen::generateModuleCode(std::map<Value *, int> reg_mapping) {
     }
     asm_code += tab + ".arm" + newline;
     asm_code += tab + ".fpu neon" + newline;
-    asm_code += codegen::generateGlobalVarsCode();
+    asm_code += codegen::generateGlobalTable();
     for (auto &func : this->module->get_functions()) {
         if (func->get_basic_blocks().size()) {
             asm_code += codegen::generateFunctionCode(func);
@@ -162,64 +162,61 @@ std::string codegen::getLabelName(Function *func, int type) {
 
 std::string codegen::generateBasicBlockCode(BasicBlock *bb) {
     std::string asm_code;
-    for (auto &inst : bb->get_instructions()) {
-        asm_code += codegen::generateInstructionCode(inst);
+    for (auto &instr : bb->get_instructions()) {
+        asm_code += codegen::generateInstructionCode(instr);
     }
     return asm_code;
 }
 
-std::string codegen::generateInstructionCode(Instruction *inst) {
+std::string codegen::generateInstructionCode(Instruction *instr) {
     std::string asm_code;
-    auto &ops = inst->get_operands();
-    if (inst->get_instr_type() == Instruction::ret) {
-        if (!ops.empty()) {
-            asm_code += codegen::assignSpecificReg(ops.at(0), 0); // ABI
+    auto &oprands = instr->get_operands();
+    if (instr->get_instr_type() == Instruction::ret) {
+        if (!oprands.empty()) {
+            asm_code += codegen::assignSpecificReg(oprands.at(0), 0); // ABI
         }
-        asm_code += codegen::generateFunctionExitCode(inst->get_function());
+        asm_code += codegen::generateFunctionExitCode(instr->get_function());
     }
-    else if (inst->get_instr_type() == Instruction::alloca) {
-        if (this->reg_mapping.count(inst)) {
-            auto offset = stack_mapping.at(inst);
-            int target = this->reg_mapping.at(inst);
+    else if (instr->get_instr_type() == Instruction::alloca) {
+        if (this->reg_mapping.count(instr)) {
+            auto offset = stack_mapping.at(instr);
+            int target = this->reg_mapping.at(instr);
             asm_code += InstGen::gen_add(InstGen::Reg(target),InstGen::sp, InstGen::Constant(offset));
         }
-        bool need_init = static_cast<AllocaInst *>(inst)->get_init();
+        bool need_init = static_cast<AllocaInst *>(instr)->get_init();
         int init_val = 0;
         if (need_init) {
             const int init_threshold = 0;
-            int sz = inst->get_type()->get_size();
+            int sz = instr->get_type()->get_size();
             if (sz > init_threshold * 4) {
                 Type integer_type(Type::IntegerTy32ID, module);
                 std::vector<Value *> args = {
-                        inst, ConstantInt::get(init_val, module),
+                        instr, ConstantInt::get(init_val, module),
                         ConstantInt::get(sz, module)};
-                asm_code += codegen::generateFunctionCall(inst, "memset", args, -1);
+                asm_code += codegen::generateFunctionCall(instr, "memset", args, -1);
             }
             else {
                 asm_code += InstGen::gen_mov(InstGen::Reg(op_reg_0), InstGen::Constant(0));
-                asm_code += codegen::assignSpecificReg(inst, op_reg_1);
+                asm_code += codegen::assignSpecificReg(instr, op_reg_1);
                 for (int i = 0; i < sz; i += 4) {
-                    asm_code +=
-                            tab + "str" + " " + InstGen::Reg(op_reg_0).getName() +
-                            ", " + "[" + InstGen::Reg(op_reg_1).getName() + ", " +
-                            InstGen::Constant(4).getName() + "]" + "!" + newline;
+                    asm_code += tab + "str" + " " + InstGen::Reg(op_reg_0).getName() + ", " + "[" + InstGen::Reg(op_reg_1).getName() + ", " + InstGen::Constant(4).getName() + "]" + "!" + newline;
                 }
             }
         }
     }
-    else if (inst->get_instr_type() == Instruction::load) {
-        int alu_op0 = this->reg_mapping.count(ops.at(0))
-                      ? this->reg_mapping.at(ops.at(0))
+    else if (instr->get_instr_type() == Instruction::load) {
+        int alu_op0 = this->reg_mapping.count(oprands.at(0))
+                      ? this->reg_mapping.at(oprands.at(0))
                       : op_reg_0;
-        int alu_ret = this->reg_mapping.count(inst)
-                      ? this->reg_mapping.at(inst)
+        int alu_ret = this->reg_mapping.count(instr)
+                      ? this->reg_mapping.at(instr)
                       : op_reg_1;
-        asm_code += codegen::assignSpecificReg(ops.at(0), alu_op0);
-        if (ops.size() >= 2) {
-            ConstantInt *op1_const = dynamic_cast<ConstantInt *>(ops.at(1));
+        asm_code += codegen::assignSpecificReg(oprands.at(0), alu_op0);
+        if (oprands.size() >= 2) {
+            ConstantInt *op1_const = dynamic_cast<ConstantInt *>(oprands.at(1));
             int shift = 0;
-            if (ops.size() >= 3) {
-                ConstantInt *op2_const = dynamic_cast<ConstantInt *>(ops.at(2));
+            if (oprands.size() >= 3) {
+                ConstantInt *op2_const = dynamic_cast<ConstantInt *>(oprands.at(2));
                 shift = op2_const->get_value();
             }
             if (op1_const) {
@@ -229,10 +226,10 @@ std::string codegen::generateInstructionCode(Instruction *inst) {
                                                     op1_const->get_value() << shift));
             }
             else {
-                int alu_op1 = this->reg_mapping.count(ops.at(1))
-                              ? this->reg_mapping.at(ops.at(1))
+                int alu_op1 = this->reg_mapping.count(oprands.at(1))
+                              ? this->reg_mapping.at(oprands.at(1))
                               : op_reg_1;
-                asm_code += codegen::assignSpecificReg(ops.at(1), alu_op1);
+                asm_code += codegen::assignSpecificReg(oprands.at(1), alu_op1);
                 asm_code +=
                         InstGen::gen_ldr(InstGen::Reg(alu_ret), InstGen::Reg(alu_op0),
                                      InstGen::Reg(alu_op1), InstGen::Constant(shift));
@@ -242,22 +239,22 @@ std::string codegen::generateInstructionCode(Instruction *inst) {
             asm_code += InstGen::load(InstGen::Reg(alu_ret),
                                       InstGen::Addr(InstGen::Reg(alu_op0), 0));
         }
-        asm_code += codegen::getSpecificReg(inst, alu_ret);
+        asm_code += codegen::getSpecificReg(instr, alu_ret);
     }
-    else if (inst->get_instr_type() == Instruction::store) {
-        int alu_op0 = this->reg_mapping.count(ops.at(0))
-                      ? this->reg_mapping.at(ops.at(0))
+    else if (instr->get_instr_type() == Instruction::store) {
+        int alu_op0 = this->reg_mapping.count(oprands.at(0))
+                      ? this->reg_mapping.at(oprands.at(0))
                       : op_reg_0;
-        int alu_op1 = this->reg_mapping.count(ops.at(1))
-                      ? this->reg_mapping.at(ops.at(1))
+        int alu_op1 = this->reg_mapping.count(oprands.at(1))
+                      ? this->reg_mapping.at(oprands.at(1))
                       : op_reg_1;
-        asm_code += codegen::assignSpecificReg(ops.at(0), alu_op0);
-        asm_code += codegen::assignSpecificReg(ops.at(1), alu_op1);
-        if (ops.size() >= 3) {
-            ConstantInt *op2_const = dynamic_cast<ConstantInt *>(ops.at(2));
+        asm_code += codegen::assignSpecificReg(oprands.at(0), alu_op0);
+        asm_code += codegen::assignSpecificReg(oprands.at(1), alu_op1);
+        if (oprands.size() >= 3) {
+            ConstantInt *op2_const = dynamic_cast<ConstantInt *>(oprands.at(2));
             int shift = 0;
-            if (ops.size() >= 4) {
-                ConstantInt *op3_const = dynamic_cast<ConstantInt *>(ops.at(3));
+            if (oprands.size() >= 4) {
+                ConstantInt *op3_const = dynamic_cast<ConstantInt *>(oprands.at(3));
                 shift = op3_const->get_value();
             }
             if (op2_const) {
@@ -267,10 +264,10 @@ std::string codegen::generateInstructionCode(Instruction *inst) {
                                                      op2_const->get_value() << shift));
             }
             else {
-                int alu_op2 = this->reg_mapping.count(ops.at(2))
-                              ? this->reg_mapping.at(ops.at(2))
+                int alu_op2 = this->reg_mapping.count(oprands.at(2))
+                              ? this->reg_mapping.at(oprands.at(2))
                               : op_reg_2;
-                asm_code += codegen::assignSpecificReg(ops.at(2), alu_op2);
+                asm_code += codegen::assignSpecificReg(oprands.at(2), alu_op2);
                 asm_code +=
                         InstGen::gen_str(InstGen::Reg(alu_op0), InstGen::Reg(alu_op1),
                                      InstGen::Reg(alu_op2), InstGen::Constant(shift));
@@ -281,66 +278,80 @@ std::string codegen::generateInstructionCode(Instruction *inst) {
                                      InstGen::Addr(InstGen::Reg(alu_op1), 0));
         }
     }
-    else if (inst->get_instr_type() == Instruction::call) {
-        std::string func_name = ops.at(0)->get_name();
-        std::vector<Value *> args(ops.begin() + 1, ops.end());
-        asm_code += generateFunctionCall(inst, func_name, args);
+    else if (instr->get_instr_type() == Instruction::call) {
+        std::string func_name = oprands.at(0)->get_name();
+        std::vector<Value *> args(oprands.begin() + 1, oprands.end());
+        asm_code += generateFunctionCall(instr, func_name, args);
     }
     else if (
-               inst->get_instr_type() == Instruction::add ||
-               inst->get_instr_type() == Instruction::sub ||
-               inst->get_instr_type() == Instruction::mul ||
-               inst->get_instr_type() == Instruction::cmp ||
-               inst->get_instr_type() == Instruction::zext ||
-               (inst->get_instr_type() == Instruction::getelementptr &&
-                inst->get_operands().size() == 2) ||
-               inst->get_instr_type() == Instruction::sdiv /*||
-               inst->get_instr_type() == Instruction::rem*/) {
+               instr->get_instr_type() == Instruction::add ||
+               instr->get_instr_type() == Instruction::sub ||
+               instr->get_instr_type() == Instruction::mul ||
+               instr->get_instr_type() == Instruction::cmp ||
+               instr->get_instr_type() == Instruction::zext ||
+               (instr->get_instr_type() == Instruction::getelementptr &&
+                instr->get_operands().size() == 2) ||
+               instr->get_instr_type() == Instruction::sdiv /*||
+               instr->get_instr_type() == Instruction::rem*/) {
         ConstantInt *op1_const =
-                (ops.size() >= 2) ? (dynamic_cast<ConstantInt *>(ops.at(1))) : nullptr;
-        int alu_op0 = this->reg_mapping.count(ops.at(0))
-                      ? this->reg_mapping.at(ops.at(0))
+                (oprands.size() >= 2) ? (dynamic_cast<ConstantInt *>(oprands.at(1))) : nullptr;
+        int alu_op0 = this->reg_mapping.count(oprands.at(0))
+                      ? this->reg_mapping.at(oprands.at(0))
                       : op_reg_0;
         int alu_op1 = -1;
-        if (ops.size() >= 2) {
-            alu_op1 = this->reg_mapping.count(ops.at(1))
-                      ? this->reg_mapping.at(ops.at(1))
+        if (oprands.size() >= 2) {
+            alu_op1 = this->reg_mapping.count(oprands.at(1))
+                      ? this->reg_mapping.at(oprands.at(1))
                       : op_reg_1;
         }
-        int alu_ret = this->reg_mapping.count(inst)
-                      ? this->reg_mapping.at(inst)
+        int alu_ret = this->reg_mapping.count(instr)
+                      ? this->reg_mapping.at(instr)
                       : op_reg_0;
         // flexible operand2
         int shift = 0;
-        if (ops.size() >= 3 && (inst->get_instr_type() == Instruction::add ||
-                                inst->get_instr_type() == Instruction::sub ||
-                                inst->get_instr_type() == Instruction::cmp)) {
-            ConstantInt *op2_const = dynamic_cast<ConstantInt *>(ops.at(2));
+        if (oprands.size() >= 3 && (instr->get_instr_type() == Instruction::add ||
+                                instr->get_instr_type() == Instruction::sub ||
+                                instr->get_instr_type() == Instruction::cmp)) {
+            ConstantInt *op2_const = dynamic_cast<ConstantInt *>(oprands.at(2));
             shift = op2_const->get_value();
         }
         // must not change value of alu_op0 alu_op1
-        asm_code += codegen::assignSpecificReg(ops.at(0), alu_op0);
-        if (inst->get_instr_type() == Instruction::cmp) {
-            InstGen::CmpOp asmCmpOp = codegen::cmpConvert(static_cast<CmpInst *>(inst)->get_cmp_op(), false);
+        asm_code += codegen::assignSpecificReg(oprands.at(0), alu_op0);
+        if (instr->get_instr_type() == Instruction::cmp) {
+            InstGen::CmpOp asmCmpOp = codegen::cmpConvert(static_cast<CmpInst *>(instr)->get_cmp_op(), false);
             asm_code += InstGen::gen_mov(InstGen::Reg(alu_ret), InstGen::Constant(0));
             asm_code += InstGen::gen_mov(InstGen::Reg(alu_ret), InstGen::Constant(1), asmCmpOp);
-        } else {
+        }
+        else {
             bool flag = false;
-            switch (inst->get_instr_type()) {
+            auto temp = dynamic_cast<ConstantInt *> (instr->get_operand(1));
+            switch (instr->get_instr_type()) {
                 case Instruction::add:
-                    asm_code += codegen::assignSpecificReg(ops.at(1), alu_op1);
-                    asm_code += InstGen::gen_add(InstGen::Reg(alu_ret), InstGen::Reg(alu_op0),InstGen::RegShift(alu_op1, shift));
+                    asm_code += codegen::assignSpecificReg(oprands.at(1), alu_op1);
+                    asm_code += InstGen::gen_add(InstGen::Reg(alu_ret), InstGen::Reg(alu_op0),
+                                                     InstGen::RegShift(alu_op1, shift));
                     break;
                 case Instruction::sub:
-                    asm_code += codegen::assignSpecificReg(ops.at(1), alu_op1);
-                    asm_code += InstGen::gen_sub(InstGen::Reg(alu_ret), InstGen::Reg(alu_op0),InstGen::RegShift(alu_op1, shift));
+                    asm_code += codegen::assignSpecificReg(oprands.at(1), alu_op1);
+                    asm_code += InstGen::gen_sub(InstGen::Reg(alu_ret), InstGen::Reg(alu_op0),
+                                                     InstGen::RegShift(alu_op1, shift));
                     break;
                 case Instruction::mul:
-                    asm_code += codegen::assignSpecificReg(ops.at(1), alu_op1);
-                    asm_code += InstGen::gen_mul(InstGen::Reg(alu_ret), InstGen::Reg(alu_op0),InstGen::Reg(alu_op1));
+                    if (temp != nullptr){
+                        for (int i=1;i<=65536;i*=2){
+                            if (temp->get_value()&i){
+                                asm_code+=InstGen::gen_lsl(InstGen::vinst_temp_reg, InstGen::Reg(alu_op0), InstGen::Constant(i));
+                                asm_code+=InstGen::gen_add(InstGen::Reg(alu_ret),   InstGen::Reg(alu_op0), InstGen::vinst_temp_reg);
+                            }
+                        }
+                    }
+                    else{
+                        asm_code += codegen::assignSpecificReg(oprands.at(1), alu_op1);
+                        asm_code += InstGen::gen_mul(InstGen::Reg(alu_ret), InstGen::Reg(alu_op0),InstGen::Reg(alu_op1));
+                    }
                     break;
                 case Instruction::sdiv:
-                    asm_code += codegen::assignSpecificReg(ops.at(1), alu_op1);
+                    asm_code += codegen::assignSpecificReg(oprands.at(1), alu_op1);
                     asm_code += InstGen::gen_sdiv(InstGen::Reg(alu_ret), InstGen::Reg(alu_op0),InstGen::Reg(alu_op1));
                     break;
 
@@ -348,10 +359,10 @@ std::string codegen::generateInstructionCode(Instruction *inst) {
                     asm_code += InstGen::gen_mov(InstGen::Reg(alu_ret), InstGen::Reg(alu_op0));
                     break;
                 case Instruction::getelementptr:
-                    asm_code += codegen::assignSpecificReg(ops.at(1), alu_op1);
+                    asm_code += codegen::assignSpecificReg(oprands.at(1), alu_op1);
                     asm_code += InstGen::gen_set_value(
                             InstGen::Reg(op_reg_2),
-                            InstGen::Constant(inst->get_type()->get_pointer_element_type()->get_size()));
+                            InstGen::Constant(instr->get_type()->get_pointer_element_type()->get_size()));
                     asm_code += InstGen::gen_mul(InstGen::Reg(op_reg_2), InstGen::Reg(op_reg_2),InstGen::Reg(alu_op1));
                     asm_code += InstGen::gen_add(InstGen::Reg(alu_ret), InstGen::Reg(alu_op0),InstGen::Reg(op_reg_2));
                     break;
@@ -361,10 +372,10 @@ std::string codegen::generateInstructionCode(Instruction *inst) {
                     break;
             }
         }
-        asm_code += codegen::getSpecificReg(inst, alu_ret);
+        asm_code += codegen::getSpecificReg(instr, alu_ret);
     }
-    else if (inst->get_instr_type() == Instruction::br) {
-        auto inst_br = dynamic_cast<BranchInst *>(inst);
+    else if (instr->get_instr_type() == Instruction::br) {
+        auto inst_br = dynamic_cast<BranchInst *>(instr);
         const bool is_cond = inst_br->is_cond_br();
         const bool is_cmp = inst_br->is_cmp();
         const int i_start = is_cmp ? 2 : (is_cond ? 1 : 0);
@@ -372,13 +383,13 @@ std::string codegen::generateInstructionCode(Instruction *inst) {
         bool swap_branch = false;
         std::map<int, bool> need_resolve;
         std::map<int, bool> need_jump;
-        BasicBlock *bb_cur = inst->get_parent();
+        BasicBlock *bb_cur = instr->get_parent();
         // need phi resolve?
         {
             int branch_cnt = 0;
             BasicBlock *succ_bb = nullptr;
             bool flag = false;
-            for (auto &for_bb : inst->get_function()->get_basic_blocks()) {
+            for (auto &for_bb : instr->get_function()->get_basic_blocks()) {
                 if (flag) {
                     succ_bb = for_bb;
                     break;
@@ -389,13 +400,13 @@ std::string codegen::generateInstructionCode(Instruction *inst) {
             }
             for (int i = i_start; i <= i_end; i++) {
                 std::vector<std::pair<Value *, Value *>> phis;
-                auto bb_next = static_cast<BasicBlock *>(ops.at(i));
+                auto bb_next = static_cast<BasicBlock *>(oprands.at(i));
                 for (auto &inst_phi : bb_next->get_instructions()) {
                     if (inst_phi->is_phi()) {
                         Value *pre_op = nullptr;
                         for (auto &op_phi : inst_phi->get_operands()) {
                             if (dynamic_cast<BasicBlock *>(op_phi) &&
-                                dynamic_cast<BasicBlock *>(op_phi)->get_terminator() == inst) {
+                                dynamic_cast<BasicBlock *>(op_phi)->get_terminator() == instr) {
                                 phis.push_back({inst_phi, pre_op});
                             }
                             pre_op = op_phi;
@@ -419,27 +430,27 @@ std::string codegen::generateInstructionCode(Instruction *inst) {
                 ((!need_resolve[1] && !need_resolve[2] && !need_jump[2]) ||
                  (!need_resolve[1] && need_resolve[2]) ||
                  (need_resolve[1] && need_resolve[2] && !need_jump[1]))) {
-                std::swap(ops[i_start], ops[i_end]);
+                std::swap(oprands[i_start], oprands[i_end]);
                 std::swap(need_resolve[1], need_resolve[2]);
                 std::swap(need_jump[1], need_jump[2]);
                 swap_branch = true;
             }
         }
-        // translate Br inst
+        // translate Br instr
         std::map<int, bool> elim;
         if (is_cmp) {
-            ConstantInt *op1_const = (ops.size() >= 2)
-                                     ? (dynamic_cast<ConstantInt *>(ops.at(1)))
+            ConstantInt *op1_const = (oprands.size() >= 2)
+                                     ? (dynamic_cast<ConstantInt *>(oprands.at(1)))
                                      : nullptr;
-            int alu_op0 = this->reg_mapping.count(ops.at(0))
-                          ? this->reg_mapping.at(ops.at(0))
+            int alu_op0 = this->reg_mapping.count(oprands.at(0))
+                          ? this->reg_mapping.at(oprands.at(0))
                           : op_reg_0;
-            int alu_op1 = this->reg_mapping.count(ops.at(1))
-                          ? this->reg_mapping.at(ops.at(1))
+            int alu_op1 = this->reg_mapping.count(oprands.at(1))
+                          ? this->reg_mapping.at(oprands.at(1))
                           : op_reg_1;
-            asm_code += codegen::assignSpecificReg(ops.at(0), alu_op0);
+            asm_code += codegen::assignSpecificReg(oprands.at(0), alu_op0);
             InstGen::CmpOp asmCmpOp = InstGen::GT;
-            asm_code += codegen::assignSpecificReg(ops.at(1), alu_op1);
+            asm_code += codegen::assignSpecificReg(oprands.at(1), alu_op1);
             asm_code += InstGen::gen_cmp(InstGen::Reg(alu_op0), InstGen::Reg(alu_op1));
             if (need_resolve[2]) {
                 asm_code +=
@@ -447,7 +458,7 @@ std::string codegen::generateInstructionCode(Instruction *inst) {
                                                   "_branch_" + std::to_string(2),
                                                   0),asmCmpOp);
             } else {
-                auto bb_next = static_cast<BasicBlock *>(ops.at(i_end));
+                auto bb_next = static_cast<BasicBlock *>(oprands.at(i_end));
                 asm_code += InstGen::gen_b(
                         InstGen::Label(codegen::getLabelName(bb_next), 0), asmCmpOp);
                 elim[2] = true;
@@ -455,10 +466,10 @@ std::string codegen::generateInstructionCode(Instruction *inst) {
         }
         else if (is_cond) {
             InstGen::CmpOp asmCmpOp=InstGen::GT;
-            int alu_op0 = this->reg_mapping.count(ops.at(0))
-                          ? this->reg_mapping.at(ops.at(0))
+            int alu_op0 = this->reg_mapping.count(oprands.at(0))
+                          ? this->reg_mapping.at(oprands.at(0))
                           : op_reg_0;
-            asm_code += codegen::assignSpecificReg(ops.at(0), alu_op0);
+            asm_code += codegen::assignSpecificReg(oprands.at(0), alu_op0);
             asm_code += InstGen::gen_cmp(InstGen::Reg(alu_op0), InstGen::Constant(0));
             if (need_resolve[2]) {
                 asm_code +=
@@ -468,7 +479,7 @@ std::string codegen::generateInstructionCode(Instruction *inst) {
                                    asmCmpOp);
             }
             else {
-                auto bb_next = static_cast<BasicBlock *>(ops.at(i_end));
+                auto bb_next = static_cast<BasicBlock *>(oprands.at(i_end));
                 asm_code += InstGen::gen_b(
                         InstGen::Label(codegen::getLabelName(bb_next), 0), asmCmpOp);
                 elim[2] = true;
@@ -479,13 +490,13 @@ std::string codegen::generateInstructionCode(Instruction *inst) {
             int branch_cnt = 0;
             for (int i = i_start; i <= i_end; i++) {
                 std::vector<std::pair<Value *, Value *>> phis;
-                auto bb_next = static_cast<BasicBlock *>(ops.at(i));
+                auto bb_next = static_cast<BasicBlock *>(oprands.at(i));
                 for (auto &inst_phi : bb_next->get_instructions()) {
                     if (inst_phi->is_phi()) {
                         Value *pre_op = nullptr;
                         for (auto &op_phi : inst_phi->get_operands()) {
                             if (dynamic_cast<BasicBlock *>(op_phi) &&
-                                dynamic_cast<BasicBlock *>(op_phi)->get_terminator() == inst) {
+                                dynamic_cast<BasicBlock *>(op_phi)->get_terminator() == instr) {
                                 phis.push_back({inst_phi, pre_op});
                             }
                             pre_op = op_phi;
@@ -519,32 +530,32 @@ std::string codegen::generateInstructionCode(Instruction *inst) {
             }
         }
     }
-    else if (inst->get_instr_type() == Instruction::phi) {
+    else if (instr->get_instr_type() == Instruction::phi) {
     }
     else {
         std::cerr << "Cannot translate this function:" << std::endl;
-        inst->get_function()->print();
+        instr->get_function()->print();
         std::cerr << std::endl;
         std::cerr << "Cannot translate this instruction:" << std::endl;
-        inst->print();
+        instr->print();
         std::cerr << std::endl;
         abort();
     }
     return asm_code;
 }
 
-std::string codegen::generateFunctionCall(Instruction *inst,
+std::string codegen::generateFunctionCall(Instruction *instr,
                                           std::string func_name,
-                                          std::vector<Value *> ops,
+                                          std::vector<Value *> oprands,
                                           int return_reg, int sp_ofs) {
     std::string asm_code;
     assert(-1 <= return_reg && return_reg <= 3);
-    auto in_func = inst->get_function();
+    auto in_func = instr->get_function();
     auto save_registers = codegen::getCallerSaveRegisters(in_func);
-    if (active_vars.count(inst)) {
+    if (active_vars.count(instr)) {
         // std::cerr << "Using ABI optimization" << std::endl;
         std::set<int> regs_set;
-        for (auto &v : this->active_vars.at(inst)) {
+        for (auto &v : this->active_vars.at(instr)) {
             if (this->reg_mapping.count(v)) {
                 regs_set.insert(this->reg_mapping.at(v));
             }
@@ -554,10 +565,10 @@ std::string codegen::generateFunctionCall(Instruction *inst,
             save_registers.push_back(InstGen::Reg(r));
         }
     }
-    bool has_return_value = (return_reg >= 0) && (inst->get_type()->get_size() > 0);
+    bool has_return_value = (return_reg >= 0) && (instr->get_type()->get_size() > 0);
     // do not save returned register
-    if (has_return_value && this->reg_mapping.count(inst)) {
-        auto returned_reg = InstGen::Reg(this->reg_mapping.at(inst));
+    if (has_return_value && this->reg_mapping.count(instr)) {
+        auto returned_reg = InstGen::Reg(this->reg_mapping.at(instr));
         decltype(save_registers) new_save_registers;
         for (auto &reg : save_registers) {
             if (reg.getID() != returned_reg.getID()) {
@@ -576,26 +587,26 @@ std::string codegen::generateFunctionCall(Instruction *inst,
     {
         std::vector<Value *> source, target;
         Type dummy_type(Type::IntegerTy32ID,module);
-        std::vector<Value> dummys(ops.size(), Value(&dummy_type));
+        std::vector<Value> dummys(oprands.size(), Value(&dummy_type));
         // args 0 1 2 3
         {
-            for (int i = 0; i < std::min(ops.size(), (size_t)4); i++) {
+            for (int i = 0; i < std::min(oprands.size(), (size_t)4); i++) {
                 auto dummy = &dummys.at(i);
                 this->reg_mapping[dummy] = i;
                 this->stack_mapping.erase(dummy);
                 target.push_back(dummy);
-                source.push_back(ops.at(i));
+                source.push_back(oprands.at(i));
             }
         }
         // args 4+
         {
-            for (int i = ops.size() - 1; i >= 4; i--) {
+            for (int i = oprands.size() - 1; i >= 4; i--) {
                 total_args_size += 4;
                 auto dummy = &dummys.at(i);
                 this->reg_mapping.erase(dummy);
                 this->stack_mapping[dummy] = -(total_args_size + saved_regs_size);
                 target.push_back(dummy);
-                source.push_back(ops.at(i));
+                source.push_back(oprands.at(i));
             }
         }
         asm_code +=
@@ -608,7 +619,7 @@ std::string codegen::generateFunctionCall(Instruction *inst,
                                    InstGen::Constant(total_args_size));
     if (has_return_value) {
         asm_code +=
-                codegen::getSpecificReg(inst, return_reg, saved_regs_size + sp_ofs);
+                codegen::getSpecificReg(instr, return_reg, saved_regs_size + sp_ofs);
     }
     if (!save_registers.empty()) {
         asm_code += InstGen::gen_pop(save_registers);
@@ -625,10 +636,10 @@ std::vector<InstGen::Reg> codegen::getAllRegisters(Function *func) {
         }
     }
     for (auto &bb : func->get_basic_blocks()) {
-        for (auto &inst : bb->get_instructions()) {
-            if (this->reg_mapping.count(inst) &&
-                this->reg_mapping.at(inst) <= InstGen::max_reg_id) {
-                registers.insert(InstGen::Reg(this->reg_mapping.at(inst)));
+        for (auto &instr : bb->get_instructions()) {
+            if (this->reg_mapping.count(instr) &&
+                this->reg_mapping.at(instr) <= InstGen::max_reg_id) {
+                registers.insert(InstGen::Reg(this->reg_mapping.at(instr)));
             }
         }
     }
@@ -673,11 +684,11 @@ void codegen::allocateStackSpace(Function *func) {
     }
     // non alloca space and non alloca pointer
     for (auto &bb : func->get_basic_blocks()) {
-        for (auto &inst : bb->get_instructions()) {
-            if (this->reg_mapping.count(inst)) {
-                int map_reg_id = this->reg_mapping.at(inst);
+        for (auto &instr : bb->get_instructions()) {
+            if (this->reg_mapping.count(instr)) {
+                int map_reg_id = this->reg_mapping.at(instr);
                 if (map_reg_id > InstGen::max_reg_id) {
-                    reg_mapping.erase(inst);
+                    reg_mapping.erase(instr);
                 }
                 if (!allocate_regs.count(InstGen::Reg(map_reg_id))) {
                     std::cerr << "Reg " << map_reg_id << " should not be allocated"
@@ -685,36 +696,36 @@ void codegen::allocateStackSpace(Function *func) {
                     abort();
                 }
             }
-            if (this->reg_mapping.count(inst)) {
+            if (this->reg_mapping.count(instr)) {
                 continue;
             }
-            if (this->stack_mapping.count(inst)) {
+            if (this->stack_mapping.count(instr)) {
                 continue;
             }
-            if (inst->is_alloca()) {
+            if (instr->is_alloca()) {
                 continue;
             }
             bool extended = false;
-            auto sizeof_val = inst->get_type()->get_size(extended);
+            auto sizeof_val = instr->get_type()->get_size(extended);
             sizeof_val = ((sizeof_val + 3) / 4) * 4;
             if (sizeof_val > 0) {
-                this->stack_mapping[inst] = this->stack_size;
+                this->stack_mapping[instr] = this->stack_size;
                 this->stack_size += sizeof_val;
             }
         }
     }
     // alloca space
     for (auto &bb : func->get_basic_blocks()) {
-        for (auto &inst : bb->get_instructions()) {
-            if (!inst->is_alloca()) {
+        for (auto &instr : bb->get_instructions()) {
+            if (!instr->is_alloca()) {
                 continue;
             }
             bool extended = true;
-            this->allocated.insert(inst);
-            auto sizeof_val = inst->get_type()->get_size(extended);
+            this->allocated.insert(instr);
+            auto sizeof_val = instr->get_type()->get_size(extended);
             sizeof_val = ((sizeof_val + 3) / 4) * 4;
             if (sizeof_val > 0) {
-                this->stack_mapping[inst] = this->stack_size;
+                this->stack_mapping[instr] = this->stack_size;
                 this->stack_size += sizeof_val;
             }
         }
