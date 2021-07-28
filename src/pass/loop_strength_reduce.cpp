@@ -6,7 +6,7 @@
 
 
 
-Instruction *LoopStrengthReduce::getInferVariable(Loop *loop, Trace &t) {
+PhiInst *LoopStrengthReduce::getInferVariable(Loop *loop, Trace &t) {
     // 获取入口块，归纳变量在入口块必定出现
     auto entry = loop->get_loop_entry();
     PhiInst *inferPhi = nullptr;
@@ -34,7 +34,6 @@ Instruction *LoopStrengthReduce::getInferVariable(Loop *loop, Trace &t) {
                     Trace T;
                     while (true) {
                         auto inst = dynamic_cast<Instruction *>(v);
-                        T.queue.push_back(inst);
                         if (inst == nullptr) {
                             // 死循环，无法处理
                             valid = false;
@@ -57,11 +56,13 @@ Instruction *LoopStrengthReduce::getInferVariable(Loop *loop, Trace &t) {
                                     break;
                                 }
                                 if (loop->contain_bb(lhs->get_parent()) && !loop->contain_bb(rhs->get_parent())) {
+                                    T.var.emplace_back(rhs, inst->is_add() ? Trace::ADD : Trace::SUB);
                                     v = lhs;
                                     continue;
                                 } else if (inst->is_add() && !loop->contain_bb(lhs->get_parent()) &&
                                            loop->contain_bb(rhs->get_parent())) {
                                     v = rhs;
+                                    T.var.emplace_back(lhs, inst->is_add() ? Trace::ADD : Trace::SUB);
                                     continue;
                                 } else {
                                     // 可能导致死循环
@@ -76,9 +77,19 @@ Instruction *LoopStrengthReduce::getInferVariable(Loop *loop, Trace &t) {
                             // 常量 + 迭代量模式
                             if ((lc || la) && inst->is_add() && rhs && loop->contain_bb(rhs->get_parent())) {
                                 v = rhs;
+                                if (lc) {
+                                    T.constant += lc->get_value();
+                                } else {
+                                    T.var.emplace_back(la, Trace::ADD);
+                                }
                             }
                             else if ((rc || ra) && lhs && loop->contain_bb(lhs->get_parent())) {
                                 v = lhs;
+                                if (rc) {
+                                    T.constant += inst->is_add() ? rc->get_value() : -rc->get_value();
+                                } else {
+                                    T.var.emplace_back(la, inst->is_add() ? Trace::ADD : Trace::SUB);
+                                }
                             } else {
                                 valid = false;
                                 break;
@@ -96,7 +107,6 @@ Instruction *LoopStrengthReduce::getInferVariable(Loop *loop, Trace &t) {
                     }
                     if (valid) {
                         T.entryPhi = phi;
-                        T.queue.pop_back();
                         tracing.push_back(T);
                     } else {
                         // Fail to infer
@@ -116,7 +126,7 @@ Instruction *LoopStrengthReduce::getInferVariable(Loop *loop, Trace &t) {
             }
             if (!success) continue;
             t = tracing[0];
-            return inst;
+            return dynamic_cast<PhiInst *>(inst);
         } else break;
     }
     return nullptr;
@@ -138,12 +148,59 @@ void LoopStrengthReduce::runOnFunction(Function *f) {
     for (Loop *loop: lp->get_loop(f)) {
         Trace t;
         auto inst = getInferVariable(loop, t);
+        if (inst == nullptr) continue;
         std::cout << inst->print() << std::endl;
         std::cout << t.print_trace() << std::endl;
     }
 }
 
-void LoopStrengthReduce::modifyLowerUpperBound(Loop *loop, Instruction *inferValue) {
+void LoopStrengthReduce::modifyLowerUpperBound(Loop *loop, PhiInst *inferValue, Trace &T) {
     // 如果循环的某一条路径什么事情都没做而仅修改循环变量，且保证这条路径只在循环开始或结尾会被执行，则我们可以修改循环的上下界来优化循环
+    // 常量折叠与死代码删除可以使得这个Pass获取更好的效果
+    // 跟踪循环决定量的值变化。保证递增值为1，否则可能优化导致错误
+    if (T.constant != 1 || !T.var.empty()) return;
+    // 若归纳变量Phi只有2个入口，则直接跳过。
+    if (inferValue->get_num_operand() <= 4) return;
+    // 跟踪Phi的值与CFG的关系
+    // Entry br[cond < a1] -> br[cond > a2] -> br[no cond] -> entry => Entry[cond < min(a1, a2 + 1)] 修改上界
+    std::map<Value *, BasicBlock *> mp;
+    for (auto use: inferValue->get_use_list()) {
+        // 获取所有基于inferValue的判断语句
+        if (auto cmp = dynamic_cast<CmpInst *>(use.val_)) {
 
+        }
+    }
+}
+
+bool checkBinary(Instruction *inst, unsigned op, Loop *loop) {
+    auto val = inst->get_operand(op);
+    auto val_inst = dynamic_cast<Instruction *>(val);
+    return (dynamic_cast<ConstantInt *>(val) || (val_inst && !loop->contain_bb(val_inst->get_parent())));
+}
+
+void LoopStrengthReduce::strengthReduce(Loop *loop, PhiInst *infer, Trace &T) {
+    // 搜索循环中利用归纳变量进行计算的，除了固定增量外的变量
+    for (auto u: infer->get_use_list()) {
+        // 如果是 乘法 或 加/减法 且另一个变量与循环无关则可以优化
+        if (auto inst = dynamic_cast<Instruction *>(u.val_)) {
+            // 跳过归纳变量计算表达式
+            if (T.infer_set.find(inst) != T.infer_set.end()) continue;
+            // i +- arg || arg + i，对于 arg - i
+            if (inst->is_add()) {
+                // 获取初始量以及递增量
+                // 循环初始，i + %inc，递增也是 %inc TODO
+                continue;
+                unsigned op_no = 1 - u.arg_no_;
+                if (checkBinary(inst, op_no, loop)) {
+                    BinaryInst::create_add(inst->get_operand(op_no), infer, nullptr, m_);
+                }
+            } else if (inst->is_sub()) {
+                // TODO
+            } else if (inst->is_mul()) {
+                // 乘法
+                // BinaryInst::create_add()
+            }
+
+        }
+    }
 }
