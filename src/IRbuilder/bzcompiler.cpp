@@ -171,11 +171,11 @@ int main(int argc, char **argv) {
     for (auto val: reg_alloc){
         std::cout << val.first->get_name() << " " << val.second << std::endl;
     }
-
-    //    std::string asm_code=temp.generateModuleCode();
-//    std::ofstream output_asm_stream;
-//    auto output_asm_file=target_path+".S";
-//    output_asm_stream.open(output_file, std::ios::out);
-//    output_asm_stream << asm_code;
+    std::string asm_code=temp.generateModuleCode(reg_alloc);
+    std::ofstream output_asm_stream;
+    auto output_asm_file=target_path+".S";
+    output_asm_stream.open(output_asm_file, std::ios::out);
+    output_asm_stream << asm_code;
+    output_asm_stream.close();
     return 0;
 }

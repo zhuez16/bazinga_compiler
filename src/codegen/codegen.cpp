@@ -199,7 +199,8 @@ std::string codegen::generateInstructionCode(Instruction *instr) {
                 asm_code += InstGen::gen_mov(InstGen::Reg(op_reg_0), InstGen::Constant(0));
                 asm_code += codegen::assignSpecificReg(instr, op_reg_1);
                 for (int i = 0; i < sz; i += 4) {
-                    asm_code += tab + "str" + " " + InstGen::Reg(op_reg_0).getName() + ", " + "[" + InstGen::Reg(op_reg_1).getName() + ", " + InstGen::Constant(4).getName() + "]" + "!" + newline;
+                    asm_code += tab + "str" + " " + InstGen::Reg(op_reg_0).getName() + ", " +
+                            "[" + InstGen::Reg(op_reg_1).getName() + ", " + InstGen::Constant(4).getName() + "]" + "!" + newline; // NOLINT(performance-inefficient-string-concatenation)
                 }
             }
         }
