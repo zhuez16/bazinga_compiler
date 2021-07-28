@@ -78,7 +78,7 @@ Type *Type::get_array_element_type(){
         return nullptr;
 }
 
-int Type::get_size() 
+int Type::get_size(bool extended)
 {
     if (this->is_integer_type()) 
     {
@@ -93,7 +93,7 @@ int Type::get_size()
     }
     if (this->is_pointer_type()) 
     {
-        if (this->get_pointer_element_type()->is_array_type()) 
+        if (extended && this->get_pointer_element_type()->is_array_type())
         {
             return this->get_pointer_element_type()->get_size();
         } 
@@ -101,10 +101,6 @@ int Type::get_size()
         {
             return 4;
         }
-    }
-    if(this->is_float_type())
-    {
-        return 4;
     }
     return 0;
 }
@@ -154,6 +150,7 @@ std::string Type::print(){
     }
     return type_ir;
 }
+
 
 IntegerType::IntegerType(unsigned num_bits , Module *m)
     : Type(num_bits == 1 ? Type::IntegerTy1ID : Type::IntegerTy32ID, m), num_bits_(num_bits)

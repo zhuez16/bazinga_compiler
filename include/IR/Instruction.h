@@ -511,9 +511,12 @@ public:
         newInst->operands_.clear();
         return newInst;
     };
+    void set_init() {init=true;}
+    bool get_init() {return init;}
 
 private:
     Type *alloca_ty_;
+    bool init;
 };
 
 class ZextInst : public Instruction

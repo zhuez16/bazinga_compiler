@@ -25,6 +25,7 @@ public:
     explicit Value(Type *ty, const std::string &name = "");
     ~Value() = default;
 
+
     Type *get_type() const { return type_; }
 
     std::list<Use> &get_use_list() { return use_list_; }
@@ -44,7 +45,7 @@ public:
     void replace_all_use_with(Value *new_val);
     void remove_use(Value *val);
 
-    virtual std::string print() = 0;
+    virtual std::string print() {};
 protected:
     Type *type_;
     std::list<Use> use_list_;   // who use this value

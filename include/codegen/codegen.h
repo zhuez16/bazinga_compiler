@@ -27,6 +27,7 @@ const int arch_version=8;
 const int op_reg_0=12;
 const int op_reg_1=14;
 const int op_reg_2=11;
+const int enlarge_stack_size=256*(1<<20);
 const std::set<InstGen::Reg> caller_save_regs = {
         InstGen::Reg(0), InstGen::Reg(1),  InstGen::Reg(2),
         InstGen::Reg(3), InstGen::Reg(12), InstGen::Reg(14)};
@@ -51,6 +52,7 @@ const int stack_top_address=0x1000-4096;
 const int stack_top_reg=13;
 class codegen {
 private:
+    bool enlarge_stack;
     Value *reg_value_table[InstGen::max_reg_id];
     Module *module;
     std::map<Value *,int> reg_mapping;
@@ -58,13 +60,14 @@ private:
     std::set<Value *> allocated;
     std::map<Value *,int> global_table;
     int stack_size;
+    std::map<Instruction *, std::set<Value *>> active_vars;
 public:
     codegen(Module *module){
         this->module=module;
     }
     ~codegen(){}
 
-    std::string generateModuleCode(std::map<Value*, int> register_mapping,bool auto_alloc=true);
+    std::string generateModuleCode(std::map<Value*, int> register_mapping);
     std::string generateFunctionCode(Function *func);
     std::string generateFunctionEntryCode(Function *func);
     std::string generateFunctionExitCode(Function *func);
@@ -72,8 +75,8 @@ public:
     std::string generateBasicBlockCode(BasicBlock *bb);
     std::string generateInstructionCode(Instruction *instr);
     std::string globalVariable(std::string name);
-    std::string getBasicBlockLabelName(BasicBlock *bb);
-    std::string getFunctionLabelName(Function *func,int type);
+    std::string getLabelName(BasicBlock *bb);
+    std::string getLabelName(Function *func,int type);
     std::string generateFunctionCall(Instruction *instr,std::string func_name,
                                      std::vector<Value *>oprands,int return_reg=0,int offset=0);
     std::vector<InstGen::Reg> getAllRegisters(Function *func);
@@ -81,8 +84,8 @@ public:
     std::vector<InstGen::Reg> getCalleeSaveRegisters(Function *func);
     void allocateStackSpace(Function *func);
     bool isSameMapping(Value *a,Value *b);
-    std::string virtualRegMove(std::vector<Value*> target,std::vector<Value*> source, int offsets);
-    std::string virtualRegMove(Value *target, Value *source, int offsets);
+    std::string virtualRegMove(std::vector<Value*> target,std::vector<Value*> source, int offsets=0);
+    std::string virtualRegMove(Value *target, Value *source, int offsets=0);
     std::string assignSpecificReg(Value *val, int target, int offsets=0);
     std::string getSpecificReg(Value *val, int source, int offsets=0);
     std::string generateGlobalVarsCode();
@@ -94,6 +97,7 @@ public:
     std::string runCodeGenerate();
     std::string generateGlobalTable();
     std::string allocate_stack(Function *func);
+    InstGen::CmpOp cmpConvert(CmpInst::CmpOp temp, bool reverse);
 };
 
 

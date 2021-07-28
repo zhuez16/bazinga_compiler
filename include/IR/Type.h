@@ -72,7 +72,7 @@ public:
 
     Type *get_array_element_type();
 
-    int get_size();
+    int get_size(bool extended=true);
     
     Module *get_module();
 
