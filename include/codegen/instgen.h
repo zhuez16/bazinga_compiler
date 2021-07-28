@@ -182,7 +182,7 @@ std::string gen_str(const Reg &source, const Label &target);
 std::string gen_str(const Reg &target, const Reg &base, const Reg &offset);
 std::string gen_str(const Reg &target, const Reg &base, const Reg &offset,
                 const Constant &shift);
-//std::string store(const Reg &source, const Reg &base, const Reg &offset);
+std::string store(const Reg &source, const Reg &base, const Reg &offset);
 std::string gen_bl(const std::string &target_func_name);
 std::string gen_add(const Reg &target, const Reg &op1, const Value &op2);
 std::string gen_sub(const Reg &target, const Reg &op1, const Value &op2);

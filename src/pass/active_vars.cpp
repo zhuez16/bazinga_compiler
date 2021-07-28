@@ -4,7 +4,7 @@
 
 #include "include/pass/active_vars.h"
 
-void active_vars::run()
+void ActiveVars::run()
 {
     live_in.clear();
     live_out.clear();

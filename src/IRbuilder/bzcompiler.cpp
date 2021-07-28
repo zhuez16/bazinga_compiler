@@ -10,6 +10,8 @@
 #include "pass/loop_search.h"
 #include "pass/active_vars.h"
 #include "pass/CodeElimination.h"
+#include "codegen/codegen.h"
+#include "codegen/instgen.h"
 #include <cstring>
 #include <iostream>
 #include <fstream>
@@ -109,25 +111,18 @@ int main(int argc, char **argv) {
 //    PM.add_pass<Global2Local>();
     m->set_print_name();
 //    printf("start running pass manager\n");
-    if (global2local) {
-        PM.add_pass<Global2Local>();
-    }
-    if( mem2reg )
-    {
-        PM.add_pass<Mem2Reg>();
-    }
-    if ( const_propagation ) {
-        PM.add_pass<ConstFoldingDCEliminating>();
-        PM.add_pass<CodeElimination>();
-    }
-    if ( code_sink ) {
-        PM.add_pass<CodeSinking>();
-    }
-    if (activevars) {
-        PM.add_pass<active_vars>();
-    }
-    PM.add_pass<LoopSearch>();
-    PM.add_pass<LoopExpansion>();
+//    PM.add_pass<Global2Local>();
+    PM.add_pass<Mem2Reg>();
+//    if ( const_propagation ) {
+//        PM.add_pass<ConstFoldingDCEliminating>();
+//        PM.add_pass<CodeElimination>();
+//    }
+//    if ( code_sink ) {
+//        PM.add_pass<CodeSinking>();
+//    }
+//    PM.add_pass<active_vars>();
+//    PM.add_pass<LoopSearch>();
+//    PM.add_pass<LoopExpansion>();
 //    if( loop_search ){
 //        PM.add_pass<LoopSearch>();
 //    }
@@ -167,5 +162,17 @@ int main(int argc, char **argv) {
         else return 1;
     }
 
+
+    codegen temp=codegen(m);
+    std::map<Value *, int> reg_alloc;
+    reg_alloc=temp.regAlloc();
+    for (auto val: reg_alloc){
+        std::cout << val.first->get_name() << " " << val.second << std::endl;
+    }
+    //    std::string asm_code=temp.generateModuleCode();
+//    std::ofstream output_asm_stream;
+//    auto output_asm_file=target_path+".S";
+//    output_asm_stream.open(output_file, std::ios::out);
+//    output_asm_stream << asm_code;
     return 0;
 }

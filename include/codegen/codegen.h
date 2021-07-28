@@ -53,6 +53,7 @@ const int stack_top_reg=13;
 class codegen {
 private:
     bool enlarge_stack;
+    std::string asm_code;
     Value *reg_value_table[InstGen::max_reg_id];
     Module *module;
     std::map<Value *,int> reg_mapping;
@@ -61,9 +62,11 @@ private:
     std::map<Value *,int> global_table;
     int stack_size;
     std::map<Instruction *, std::set<Value *>> active_vars;
+
 public:
     codegen(Module *module){
         this->module=module;
+
     }
     ~codegen(){}
 

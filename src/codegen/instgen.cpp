@@ -127,7 +127,7 @@ std::string gen_movt(const Reg &target, const Value &source, const CmpOp &cond) 
 }
 
 
-std::string gen_set_Value(const Reg &target, const Constant &source) {
+std::string gen_set_value(const Reg &target, const Constant &source) {
     std::string code;
     auto val = source.getValue();
     if (0 <= val && val <= imm_16_max)
@@ -608,30 +608,33 @@ std::string instConst(std::string (*inst)(const Reg &op1, const Value &op2),
     return code;
 }
 
-std::string load(const Reg &target, const Addr &source) {
-    std::string code;
-    int offset = source.getOffset();
-    if (offset > imm_12_max || offset < -imm_12_max) {
-        code += InstGen::setValue(vinst_temp_reg, Constant(offset));
-        code += InstGen::ldr(target, source.getReg(), vinst_temp_reg);
-    } else 
-        code += InstGen::ldr(target, source);
-    return code;
-}
-
+*/
 std::string store(const Reg &source, const Addr &target) {
     assert(source != vinst_temp_reg);
     std::string code;
     int offset = target.getOffset();
     if (offset > imm_12_max || offset < -imm_12_max) {
-        code += InstGen::setValue(vinst_temp_reg, Constant(offset));
-        code += InstGen::str(source, target.getReg(), vinst_temp_reg);
+        code += InstGen::gen_set_value(vinst_temp_reg, Constant(offset));
+        code += InstGen::gen_str(source, target.getReg(), vinst_temp_reg);
     } else {
-        code += InstGen::str(source, target);
+        code += InstGen::gen_str(source, target);
     }
     return code;
 }
-*/
+
+
+std::string load(const Reg &target, const Addr &source) {
+    std::string code;
+    int offset = source.getOffset();
+    if (offset > imm_12_max || offset < -imm_12_max) {
+        code += InstGen::gen_set_value(vinst_temp_reg, Constant(offset));
+        code += InstGen::gen_ldr(target, source.getReg(), vinst_temp_reg);
+    }
+    else
+        code += InstGen::gen_ldr(target, source);
+    return code;
+}
+
 std::string gen_swi(const Constant &id) {
     std::string code;
     code += tab;
@@ -706,7 +709,7 @@ std::string divConst(const Reg &target, const Reg &source,
         code += gen_asr(target, vinst_temp_reg, Constant(l));
     } else if (m >= 0) {
         // q = SRA(MULSH(m, n), sh_post) - XSIGN(n);
-        code += gen_set_Value(vinst_temp_reg, Constant(m));
+        code += gen_set_value(vinst_temp_reg, Constant(m));
         code += gen_smmul(vinst_temp_reg, vinst_temp_reg, source);
         code += gen_asr(vinst_temp_reg, vinst_temp_reg, Constant(sh_post));
         code +=
@@ -714,7 +717,7 @@ std::string divConst(const Reg &target, const Reg &source,
                 RegShift(source.getID(), 31, InstGen::RegShift::ShiftType::lsr));
     } else {
         // q = SRA(n + MULSH(m - 2^N , n), sh_post) - XSIGN(n);
-        code += gen_set_Value(vinst_temp_reg, Constant(m));
+        code += gen_set_value(vinst_temp_reg, Constant(m));
         code += gen_smmla(vinst_temp_reg, vinst_temp_reg, source, source);
         code += gen_asr(vinst_temp_reg, vinst_temp_reg, Constant(sh_post));
         code +=

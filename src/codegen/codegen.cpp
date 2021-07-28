@@ -9,6 +9,8 @@
 #include <vector>
 
 #include "codegen/instgen.h"
+#include "include/IR/Module.h"
+
 
 extern bool disable_div_optimization; // for debug
 const std::string tab="    ";
@@ -204,7 +206,8 @@ std::string codegen::generateInstructionCode(Instruction *inst) {
                 }
             }
         }
-    } else if (inst->get_instr_type() == Instruction::load) {
+    }
+    else if (inst->get_instr_type() == Instruction::load) {
         int alu_op0 = this->reg_mapping.count(ops.at(0))
                       ? this->reg_mapping.at(ops.at(0))
                       : op_reg_0;
@@ -449,7 +452,8 @@ std::string codegen::generateInstructionCode(Instruction *inst) {
                         InstGen::Label(codegen::getLabelName(bb_next), 0), asmCmpOp);
                 elim[2] = true;
             }
-        } else if (is_cond) {
+        }
+        else if (is_cond) {
             InstGen::CmpOp asmCmpOp=InstGen::GT;
             int alu_op0 = this->reg_mapping.count(ops.at(0))
                           ? this->reg_mapping.at(ops.at(0))
@@ -462,7 +466,8 @@ std::string codegen::generateInstructionCode(Instruction *inst) {
                                                   "_branch_" + std::to_string(2),
                                                   0),
                                    asmCmpOp);
-            } else {
+            }
+            else {
                 auto bb_next = static_cast<BasicBlock *>(ops.at(i_end));
                 asm_code += InstGen::gen_b(
                         InstGen::Label(codegen::getLabelName(bb_next), 0), asmCmpOp);

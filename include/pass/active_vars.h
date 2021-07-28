@@ -17,9 +17,9 @@
 #include <map>
 #include <queue>
 
-class active_vars: public Pass {
+class ActiveVars: public Pass {
 public:
-    explicit active_vars(Module *m): Pass(m){}
+    explicit ActiveVars(Module *m): Pass(m){}
     void run() override;
     std::unordered_set<Value *> getLiveIn(BasicBlock *bb) { return live_in[bb]; }
     std::unordered_set<Value *> getLiveOut(BasicBlock *bb) { return live_out[bb]; }

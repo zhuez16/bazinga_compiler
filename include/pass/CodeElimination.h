@@ -14,12 +14,12 @@
  */
 class CodeElimination : public Pass {
 public:
-    explicit CodeElimination(Module *m) : Pass(m), act(new active_vars(m)) {}
+    explicit CodeElimination(Module *m) : Pass(m), act(new ActiveVars(m)) {}
 
     void run() final;
 
 private:
-    active_vars *act;
+    ActiveVars *act;
 };
 
 #endif //BAZINGA_COMPILER_CODEELIMINATION_H
