@@ -8,88 +8,66 @@
 #include "pass_manager.h"
 #include "pass/loop_search.h"
 
+
+/**
+ * 记录了每一步循环归纳量的变化
+ */
 struct Trace {
-    std::vector<Instruction *> queue;
-    Instruction *entryPhi;
+    enum OpType {
+        ADD,
+        SUB
+    };
+    std::vector<std::pair<Value *, OpType>> var;
+    std::set<Instruction *> infer_set;              // 记录了计算InferValue的语句，这些语句不会被重写
+    int constant = 0;
+    Instruction *entryPhi = nullptr;
 
     bool operator== (const Trace &rhs) const {
-        if (rhs.queue.size() != queue.size()) return false;
-        auto lpre = entryPhi;
-        auto rpre = rhs.entryPhi;
-        bool eq = true;
-        for (int i = queue.size() - 1; i >= 0; --i) {
-            auto l_inst = queue[i];
-            auto r_inst = rhs.queue[i];
-            if (l_inst == r_inst) continue;
-            if (l_inst->get_instr_type() == r_inst->get_instr_type()) {
-                if (l_inst->is_add()) {
-                    auto lpro = l_inst->get_operand(0);
-                    auto rpro = r_inst->get_operand(0);
-                    if (lpro == lpre) lpro = l_inst->get_operand(1);
-                    if (rpro == rpre) rpro = l_inst->get_operand(1);
-                    if (lpro == rpro) {
-                        lpre = l_inst;
-                        rpre = r_inst;
-                        continue;
-                    }
-                    auto c1 = dynamic_cast<ConstantInt *>(lpro);
-                    auto c2 = dynamic_cast<ConstantInt *>(rpro);
-                    if (c1 && c2 && c1->get_value() == c2->get_value()) {
-                        lpre = l_inst;
-                        rpre = r_inst;
-                        continue;
-                    }
-                    eq = false;
-                    break;
-                } else {
-                    auto lpro = l_inst->get_operand(1);
-                    auto rpro = r_inst->get_operand(1);
-                    if (lpro == rpro) {
-                        lpre = l_inst;
-                        rpre = r_inst;
-                        continue;
-                    }
-                    auto c1 = dynamic_cast<ConstantInt *>(lpro);
-                    auto c2 = dynamic_cast<ConstantInt *>(rpro);
-                    if (c1 && c2 && c1->get_value() == c2->get_value()) {
-                        lpre = l_inst;
-                        rpre = r_inst;
-                        continue;
-                    }
-                    eq = false;
-                    break;
-                }
-            }
-        }
-        return eq;
+        if (constant != rhs.constant) return false;
+        return var == rhs.var;
     }
 
     std::string print_trace() {
         std::string ret = "Phi = Phi ";
-        Instruction *preInst = entryPhi;
-        for (int i = queue.size() - 1; i >= 0; --i) {
-            Instruction *inst = queue[i];
-            if (inst->is_add()) {
-                auto op = inst->get_operand(0);
-                if (op == preInst) {
-                    op = inst->get_operand(1);
-                }
-                if (auto c = dynamic_cast<ConstantInt *>(op)) {
-                    ret += "+ Constant[" + std::to_string(c->get_value()) + "] ";
-                } else {
-                    ret += "+ %" + op->get_name();
-                }
+        for (auto item: var) {
+            if (item.second == ADD) {
+                ret += "+ ";
             } else {
-                auto op = inst->get_operand(1);
-                if (auto c = dynamic_cast<ConstantInt *>(op)) {
-                    ret += "- Constant[" + std::to_string(c->get_value()) + "] ";
-                } else {
-                    ret += "- %" + op->get_name();
-                }
+                ret += "- ";
             }
+            ret += item.first->get_name() + " ";
         }
+        ret += std::to_string(constant);
         return ret;
     }
+};
+
+struct CondCFGNode {
+    enum Condition {
+        EQ,
+        NE,
+        LT,
+        LE,
+        GE,
+        GT
+    };
+    Condition cond;
+    Value *rhs;
+    CondCFGNode *on_true;
+    CondCFGNode *on_false;
+};
+
+/**
+ * 记录归纳量
+ * i + m => initial += m, step = step, bound += m
+ * i - m => initial -= m, step = step, bound -= m
+ * m - i => initial = m - initial, step = -step, bound = m - bound
+ * m * i => initial *= initial, step = m * step, bound = m * bound
+ */
+struct Infer {
+    Value * increase_step;
+    Value * initial_value;
+    Value * upper_bound;
 };
 
 /**
@@ -124,14 +102,16 @@ private:
      * @param loop 搜索的循环
      * @return 找到返回指针，否则返回nullptr
      */
-    static Instruction *getInferVariable(Loop *loop, Trace &t);
+    static PhiInst *getInferVariable(Loop *loop, Trace &t);
 
     /**
      * 修改循环上界
      * @param loop 循环
      * @param inferValue 归纳变量
      */
-    void modifyLowerUpperBound(Loop *loop, Instruction *inferValue);
+    void modifyLowerUpperBound(Loop *loop, PhiInst *inferValue, Trace &T);
+
+    void strengthReduce(Loop *loop, PhiInst *infer, Trace &T);
 
     LoopSearch *lp{};
 
