@@ -40,7 +40,7 @@ void LoopExpansion::run() {
                 auto bb_set = loop->get_loop();
                 // find judge block and loop block
                 auto judge_block = loop->get_loop_entry();
-                std::cout << judge_block->get_name() << std::endl;
+//                std::cout << judge_block->get_name() << std::endl;
                 BasicBlock* loop_block = nullptr;
                 for(auto succ: judge_block->get_succ_basic_blocks()){
                     if(bb_set.find(succ) != bb_set.end()){
@@ -48,7 +48,7 @@ void LoopExpansion::run() {
                         break;
                     }
                 }
-                std::cout << loop_block->get_name() << std::endl;
+//                std::cout << loop_block->get_name() << std::endl;
                 auto cmp_id = CmpInst::CmpOp::EQ;
                 Value *decision_val = nullptr;
                 for(auto instr: judge_block->get_instructions()){
@@ -59,7 +59,6 @@ void LoopExpansion::run() {
                             init_val = dynamic_cast<ConstantInt *>(phi_instr->get_operand(0))->get_value();
                         }
                         else{
-                            std::cout << "4444" << std::endl;
                             simplify = false;
                         }
                         if(!simplify) break;
@@ -114,9 +113,9 @@ void LoopExpansion::run() {
                         break;
                     }
                 }
-                std::cout << "loop debug 1" << std::endl;
+//                std::cout << "loop debug 1" << std::endl;
                 if(!simplify) continue;
-                std::cout << "loop debug 1" << std::endl;
+//                std::cout << "loop debug 1" << std::endl;
                 for(auto instr: loop_block->get_instructions()){
                     if(instr->isBinary()){
                         auto bin_instr = dynamic_cast<BinaryInst *>(instr);
@@ -137,9 +136,16 @@ void LoopExpansion::run() {
                         auto new_loop_node = new Loop_Node(op1, op2);
                     }
                     else if(instr->is_call()){
-
+                        auto call_instr = dynamic_cast<CallInst *>(instr);
+                        auto fun = dynamic_cast<Function *>(call_instr->get_operand(0));
+                        if(fun == curfun){
+                            simplify = false;
+                            break;
+                        }
+                        continue;
                     }
                 }
+                if(!simplify) continue;
                 int expansion_time = 0;
                 bool const_loop = true;
                 bool expansion_simplify = true;
@@ -195,7 +201,7 @@ void LoopExpansion::run() {
                 if(expansion_simplify && expansion_time != 0){
 //                    std::cout << "expansion time: " << expansion_time << std::endl;
                     auto new_bb = unroll_loop(expansion_time, judge_block, loop_block);
-                    for(auto x: phi_value_stack[expansion_time - 1]){
+                    for(auto x: phi_value_stack[expansion_time]){
                         x.first->replace_all_use_with(ConstantInt::get(x.second, m_));
                     }
                 }
@@ -246,6 +252,7 @@ int Judge_Node::calculate_judge_value(std::map<Value *, Node *> ins2node) {
 }
 
 bool LoopExpansion::update_base_value(BasicBlock *loop_block) {
+    // if target num != num we can get, return false
     int target_num = 0;
     for(auto instr: loop_block->get_instructions()){
         if(instr->isBinary()){
@@ -339,15 +346,19 @@ BasicBlock * LoopExpansion::unroll_loop(int expansion_time, BasicBlock *judge_bb
                 auto op1 = add_instr->get_operand(1);
                 auto new_add = BinaryInst::create_add(op0, op1, bb, m_);
                 if(phi_val.find(op0) != phi_val.end()){
+                    op0->remove_use(new_add);
                     new_add->set_operand(0, ConstantInt::get(phi_val[op0], m_));
                 }
                 else if(loop_values.find(op0) != loop_values.end()){
+                    op0->remove_use(new_add);
                     new_add->set_operand(0, loop_map[op0]);
                 }
                 if(phi_val.find(op1) != phi_val.end()){
+                    op1->remove_use(new_add);
                     new_add->set_operand(1, ConstantInt::get(phi_val[op1], m_));
                 }
                 else if(loop_values.find(op1) != loop_values.end()){
+                    op1->remove_use(new_add);
                     new_add->set_operand(1, loop_map[op1]);
                 }
                 loop_values.insert(instr);
@@ -359,15 +370,19 @@ BasicBlock * LoopExpansion::unroll_loop(int expansion_time, BasicBlock *judge_bb
                 auto op1 = sub_instr->get_operand(1);
                 auto new_sub = BinaryInst::create_sub(op0, op1, bb, m_);
                 if(phi_val.find(op0) != phi_val.end()){
+                    op0->remove_use(new_sub);
                     new_sub->set_operand(0, ConstantInt::get(phi_val[op0], m_));
                 }
                 else if(loop_values.find(op0) != loop_values.end()){
+                    op0->remove_use(new_sub);
                     new_sub->set_operand(0, loop_map[op0]);
                 }
                 if(phi_val.find(op1) != phi_val.end()){
+                    op1->remove_use(new_sub);
                     new_sub->set_operand(1, ConstantInt::get(phi_val[op1], m_));
                 }
                 else if(loop_values.find(op1) != loop_values.end()){
+                    op1->remove_use(new_sub);
                     new_sub->set_operand(1, loop_map[op1]);
                 }
                 loop_values.insert(instr);
@@ -379,15 +394,19 @@ BasicBlock * LoopExpansion::unroll_loop(int expansion_time, BasicBlock *judge_bb
                 auto op1 = mul_instr->get_operand(1);
                 auto new_mul = BinaryInst::create_mul(op0, op1, bb, m_);
                 if(phi_val.find(op0) != phi_val.end()){
+                    op0->remove_use(new_mul);
                     new_mul->set_operand(0, ConstantInt::get(phi_val[op0], m_));
                 }
                 else if(loop_values.find(op0) != loop_values.end()){
+                    op0->remove_use(new_mul);
                     new_mul->set_operand(0, loop_map[op0]);
                 }
                 if(phi_val.find(op1) != phi_val.end()){
+                    op1->remove_use(new_mul);
                     new_mul->set_operand(1, ConstantInt::get(phi_val[op1], m_));
                 }
                 else if(loop_values.find(op1) != loop_values.end()){
+                    op1->remove_use(new_mul);
                     new_mul->set_operand(1, loop_map[op1]);
                 }
                 loop_values.insert(instr);
@@ -399,15 +418,19 @@ BasicBlock * LoopExpansion::unroll_loop(int expansion_time, BasicBlock *judge_bb
                 auto op1 = div_instr->get_operand(1);
                 auto new_div = BinaryInst::create_sdiv(op0, op1, bb, m_);
                 if(phi_val.find(op0) != phi_val.end()){
+                    op0->remove_use(new_div);
                     new_div->set_operand(0, ConstantInt::get(phi_val[op0], m_));
                 }
                 else if(loop_values.find(op0) != loop_values.end()){
+                    op0->remove_use(new_div);
                     new_div->set_operand(0, loop_map[op0]);
                 }
                 if(phi_val.find(op1) != phi_val.end()){
+                    op1->remove_use(new_div);
                     new_div->set_operand(1, ConstantInt::get(phi_val[op1], m_));
                 }
                 else if(loop_values.find(op1) != loop_values.end()){
+                    op1->remove_use(new_div);
                     new_div->set_operand(1, loop_map[op1]);
                 }
                 loop_values.insert(instr);
@@ -419,15 +442,19 @@ BasicBlock * LoopExpansion::unroll_loop(int expansion_time, BasicBlock *judge_bb
                 auto op1 = rem_instr->get_operand(1);
                 auto new_rem = BinaryInst::create_mod(op0, op1, bb, m_);
                 if(phi_val.find(op0) != phi_val.end()){
+                    op0->remove_use(new_rem);
                     new_rem->set_operand(0, ConstantInt::get(phi_val[op0], m_));
                 }
                 else if(loop_values.find(op0) != loop_values.end()){
+                    op0->remove_use(new_rem);
                     new_rem->set_operand(0, loop_map[op0]);
                 }
                 if(phi_val.find(op1) != phi_val.end()){
+                    op1->remove_use(new_rem);
                     new_rem->set_operand(1, ConstantInt::get(phi_val[op1], m_));
                 }
                 else if(loop_values.find(op1) != loop_values.end()){
+                    op1->remove_use(new_rem);
                     new_rem->set_operand(1, loop_map[op1]);
                 }
                 loop_values.insert(instr);
@@ -444,9 +471,11 @@ BasicBlock * LoopExpansion::unroll_loop(int expansion_time, BasicBlock *judge_bb
                 for(int j = 0; j < gep_instr->get_operands().size(); j++){
                     auto op_val = gep_instr->get_operand(j);
                     if(phi_val.find(op_val) != phi_val.end()){
+                        op_val->remove_use(new_gep);
                         new_gep->set_operand(j, ConstantInt::get(phi_val[op_val], m_));
                     }
                     else if(loop_values.find(op_val) != loop_values.end()){
+                        op_val->remove_use(new_gep);
                         new_gep->set_operand(j, loop_map[op_val]);
                     }
                 }
@@ -459,15 +488,19 @@ BasicBlock * LoopExpansion::unroll_loop(int expansion_time, BasicBlock *judge_bb
                 auto op1 = store_instr->get_operand(1);
                 auto new_store = StoreInst::create_store(op0, op1, bb);
                 if(phi_val.find(op0) != phi_val.end()){
+                    op0->remove_use(new_store);
                     new_store->set_operand(0, ConstantInt::get(phi_val[op0], m_));
                 }
                 else if(loop_values.find(op0) != loop_values.end()){
+                    op0->remove_use(new_store);
                     new_store->set_operand(0, loop_map[op0]);
                 }
                 if(phi_val.find(op1) != phi_val.end()){
+                    op1->remove_use(new_store);
                     new_store->set_operand(1, ConstantInt::get(phi_val[op1], m_));
                 }
                 else if(loop_values.find(op1) != loop_values.end()){
+                    op1->remove_use(new_store);
                     new_store->set_operand(1, loop_map[op1]);
                 }
                 loop_values.insert(instr);
@@ -478,9 +511,11 @@ BasicBlock * LoopExpansion::unroll_loop(int expansion_time, BasicBlock *judge_bb
                 auto load_ptr = load_instr->get_operand(0);
                 auto new_load = LoadInst::create_load(load_instr->get_load_type(), load_ptr, bb);
                 if(phi_val.find(load_ptr) != phi_val.end()){
+                    load_ptr->remove_use(new_load);
                     new_load->set_operand(0, ConstantInt::get(phi_val[load_ptr], m_));
                 }
                 else if(loop_values.find(load_ptr) != loop_values.end()){
+                    load_ptr->remove_use(new_load);
                     new_load->set_operand(0, loop_map[load_ptr]);
                 }
                 loop_values.insert(instr);
@@ -491,10 +526,28 @@ BasicBlock * LoopExpansion::unroll_loop(int expansion_time, BasicBlock *judge_bb
             }
             else if(instr->is_call()){
                 auto call_instr = dynamic_cast<CallInst *>(instr);
+                std::vector<Value *> args;
                 for(auto op: call_instr->get_operands()){
-                    std::cout << op->get_name() << std::endl;
+//                    std::cout << op->get_name() << std::endl;
                 }
-//                auto new_call = CallInst::create()
+                for(int k = 1; k < call_instr->get_operands().size(); k++){
+                    args.push_back(call_instr->get_operand(k));
+                }
+                auto fun = dynamic_cast<Function *>(call_instr->get_operand(0));
+                auto new_call = CallInst::create(fun, args, bb);
+                for(int j = 0; j < call_instr->get_operands().size(); j++){
+                    auto op_val = call_instr->get_operand(j);
+                    if(phi_val.find(op_val) != phi_val.end()){
+                        op_val->remove_use(new_call);
+                        new_call->set_operand(j, ConstantInt::get(phi_val[op_val], m_));
+                    }
+                    else if(loop_values.find(op_val) != loop_values.end()){
+                        op_val->remove_use(new_call);
+                        new_call->set_operand(j, loop_map[op_val]);
+                    }
+                }
+                loop_values.insert(instr);
+                loop_map[instr] = new_call;
                 continue;
             }
         }

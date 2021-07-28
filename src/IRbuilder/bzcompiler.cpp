@@ -26,13 +26,13 @@ int main(int argc, char **argv) {
     bool emit = false;
     bool analyze = false;
     bool mem2reg = false;
-    bool const_propagation = false;
+    bool const_propagation = true;
     bool activevars = false;
     bool loop_inv_hoist = false;
     bool loop_search = false;
     bool availableexpression = false;
-    bool code_sink = false;
-    bool global2local = false;
+    bool code_sink = true;
+    bool global2local = true;
 
     for (int i = 1;i < argc;++i) {
         if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
@@ -128,6 +128,13 @@ int main(int argc, char **argv) {
     }
     PM.add_pass<LoopSearch>();
     PM.add_pass<LoopExpansion>();
+    if ( const_propagation ) {
+        PM.add_pass<ConstFoldingDCEliminating>();
+        PM.add_pass<CodeElimination>();
+    }
+    if ( code_sink ) {
+        PM.add_pass<CodeSinking>();
+    }
 //    if( loop_search ){
 //        PM.add_pass<LoopSearch>();
 //    }
