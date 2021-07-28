@@ -2,11 +2,11 @@
 // Created by 万嘉诚 on 2021/7/26.
 //
 
-#include "BasicBlock.h"
-#include "Function.h"
-#include "IRBuilder.h"
-#include "Instruction.h"
-#include "Module.h"
+#include "include/IR/BasicBlock.h"
+#include "include/IR/Function.h"
+#include "include/IR/IRbuilder.h"
+#include "include/IR/Instruction.h"
+#include "include/IR/Module.h"
 #include "pass_manager.h"
 
 class CFG_simply : public Pass {
@@ -23,4 +23,5 @@ public:
   void del_singel_phi();
   void del_uncond();
   void del_self_loop();
+  void del_no_pre_(BasicBlock * bb);
 };

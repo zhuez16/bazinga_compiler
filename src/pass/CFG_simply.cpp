@@ -2,10 +2,10 @@
 // Created by 万嘉诚 on 2021/7/26.
 //
 
-#include "CFG_simply.h"
+#include "include/pass/CFG_simply.h"
 
 void CFG_simply::run() {
-    for (auto fun : m_->getFunctions())
+    for (auto fun : m_->get_functions())
     {
         func_ = fun;
         del_no_pre();
@@ -24,13 +24,13 @@ void CFG_simply::del_self_loop() {
     for (auto bb : func_->get_basic_blocks())
     {
         if ((bb->get_pre_basic_blocks().size() == 1)&&
-            (bb != get_entry_block()) &&
+            (bb != func_->get_entry_block()) &&
             (*(bb->get_pre_basic_blocks().begin()) == bb))
             func_->remove(bb);
     }
 }
 
-void del_no_pre_(BasicBlock * bb) {
+void CFG_simply::del_no_pre_(BasicBlock * bb) {
     if (bb->get_pre_basic_blocks().empty() && bb != func_->get_entry_block()) {
         for (auto succ_bb : bb->get_succ_basic_blocks()) {
             succ_bb->remove_pre_basic_block(bb);
@@ -126,7 +126,7 @@ void CFG_simply::del_uncond() {
                                         for (auto pre_bb : bb->get_pre_basic_blocks()) {
                                             if (idx == 0) {
                                                 instr->set_operand(i, pre_bb);
-                                                bb->remove_use(instr, i);
+                                                bb->remove_use(instr);
                                             } else {
                                                 instr->add_operand(val);
                                                 instr->add_operand(pre_bb);

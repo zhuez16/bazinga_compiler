@@ -9,6 +9,7 @@
 #include "pass/Sink.h"
 #include "pass/loop_search.h"
 #include "pass/active_vars.h"
+#include "pass/CFG_simply.h"
 #include "pass/CodeElimination.h"
 #include "codegen/codegen.h"
 #include "codegen/instgen.h"
@@ -142,6 +143,7 @@ int main(int argc, char **argv) {
 //        PM.add_pass<AvailableExpression>(true);
 //    }
 //    printf("555\n");
+    //PM.add_pass<CFG_simply>();
     PM.run();
     auto IR = m->print();
 
@@ -169,6 +171,7 @@ int main(int argc, char **argv) {
     for (auto val: reg_alloc){
         std::cout << val.first->get_name() << " " << val.second << std::endl;
     }
+
     //    std::string asm_code=temp.generateModuleCode();
 //    std::ofstream output_asm_stream;
 //    auto output_asm_file=target_path+".S";

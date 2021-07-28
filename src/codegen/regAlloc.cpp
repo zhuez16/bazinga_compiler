@@ -122,6 +122,7 @@ void LinearScanRegisterAllocation()
                 if(regs[i])
                 {
                     cur->set_reg(i);
+                    regs[i] = false;
                     break;
                 }
         }
@@ -177,12 +178,26 @@ std::map<Value *, int> codegen::regAlloc() {
             live.clear();
             auto live_in= bbactive.getLiveIn(bb);
             auto live_out = bbactive.getLiveOut(bb);
-            for(auto &tmp : live_in)
+            for(auto &op : live_in)
             {
-                if(live_out.find(tmp) != live_out.end())
-                    live.push_back(tmp);
+                if(value_map.find(op)!=value_map.end())
+                {
+                    LiveInterval * tmp = value_map[op];
+                    if(tmp->get_begin() > cur_pos)
+                        tmp->set_begin(cur_pos);
+                    else if(tmp->get_begin() == -1)
+                        tmp->set_begin(cur_pos);
+                }
                 else
-                    live_end.push_back(tmp);
+                {
+                    LiveInterval *tmp=new LiveInterval(cur_pos, -1, -1,op);
+                    unhandled.push_back(tmp);
+                    value_map[op]=tmp;
+                }
+                if(live_out.find(op) != live_out.end())
+                    live.push_back(op);
+                else
+                    live_end.push_back(op);
             }
             for(auto &tmp : live_out)
             {
@@ -268,4 +283,5 @@ std::map<Value *, int> codegen::regAlloc() {
             if(cur->get_reg()!=-1)
                 reg_mapping[cur->get_value()]=cur->get_reg();
     }
+    return reg_mapping;
 }
