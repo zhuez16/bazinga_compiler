@@ -8,6 +8,8 @@ void CFG_simply::run() {
     for (auto fun : m_->get_functions())
     {
         func_ = fun;
+        if(func_->is_declaration())
+            continue;
         del_no_pre();
         del_singel_phi();
         merge_single();
@@ -21,13 +23,16 @@ void CFG_simply::run() {
 }
 
 void CFG_simply::del_self_loop() {
+    bb_del.clear();
     for (auto bb : func_->get_basic_blocks())
     {
         if ((bb->get_pre_basic_blocks().size() == 1)&&
             (bb != func_->get_entry_block()) &&
             (*(bb->get_pre_basic_blocks().begin()) == bb))
-            func_->remove(bb);
+            bb_del.push_back(bb);
     }
+    for(auto bb : bb_del)
+        func_->remove(bb);
 }
 
 void CFG_simply::del_no_pre_(BasicBlock * bb) {
@@ -36,17 +41,20 @@ void CFG_simply::del_no_pre_(BasicBlock * bb) {
             succ_bb->remove_pre_basic_block(bb);
             del_no_pre_(succ_bb);
         }
-        func_->remove(bb);
+        bb_del.push_back(bb);
     }
 }
 
 void CFG_simply::del_no_pre() {
-    for (auto bb : func_->get_basic_blocks()) {
+    bb_del.clear();
+    for (auto bb : func_->get_basic_blocks())
         del_no_pre_(bb);
-    }
+    for(auto bb : bb_del)
+        func_->remove(bb);
 }
 
 void CFG_simply::merge_single() {
+    bb_del.clear();
     for (auto bb : func_->get_basic_blocks()) {
         if (bb->get_pre_basic_blocks().size() == 1) {
             auto pre_bb = bb->get_pre_basic_blocks().begin();
@@ -64,28 +72,35 @@ void CFG_simply::merge_single() {
                     succ_bb->add_pre_basic_block(*pre_bb);
                 }
                 bb->replace_all_use_with(*pre_bb);
-                func_->remove(bb);
+                bb_del.push_back(bb);
             }
         }
     }
+    for(auto bb : bb_del)
+        func_->remove(bb);
 }
 
 void CFG_simply::del_singel_phi() {
+    std::vector<Instruction*> instr_del;
     for (auto bb : func_->get_basic_blocks()) {
+        instr_del.clear();
         if (bb->get_pre_basic_blocks().size() == 1 || bb == func_->get_entry_block()) {
             for (auto instr : bb->get_instructions()) {
                 if (instr->is_phi()) {
                     for (auto use : instr->get_use_list())
                         static_cast<User *>(use.val_)->set_operand(
                                     use.arg_no_, instr->get_operand(0));
-                    bb->delete_instr(instr);
+                    instr_del.push_back(instr);
                 }
             }
         }
+        for(auto instr : instr_del)
+            bb->delete_instr(instr);
     }
 }
 
 void CFG_simply::del_uncond() {
+    bb_del.clear();
     for (auto bb : func_->get_basic_blocks()) {
         if (bb->get_num_of_instr() == 1 && bb != func_->get_entry_block()) {
             auto terminator = bb->get_terminator();
@@ -154,9 +169,11 @@ void CFG_simply::del_uncond() {
                         pre_bb->add_succ_basic_block(*succ_bb);
                         (*succ_bb)->add_pre_basic_block(pre_bb);
                     }
-                    func_->remove(bb);
+                    bb_del.push_back(bb);
                 }
             }
         }
     }
+    for(auto bb : bb_del)
+        func_->remove(bb);
 }

@@ -109,20 +109,20 @@ int main(int argc, char **argv) {
 
     Pass_manager PM(m);
     mem2reg = true;
-//    PM.add_pass<Global2Local>();
+    //PM.add_pass<Global2Local>();
     m->set_print_name();
 //    printf("start running pass manager\n");
-//    PM.add_pass<Global2Local>();
+    PM.add_pass<Global2Local>();
     PM.add_pass<Mem2Reg>();
 //    if ( const_propagation ) {
-//        PM.add_pass<ConstFoldingDCEliminating>();
-//        PM.add_pass<CodeElimination>();
+    //PM.add_pass<ConstFoldingDCEliminating>();
+    PM.add_pass<CodeElimination>();
 //    }
 //    if ( code_sink ) {
-//        PM.add_pass<CodeSinking>();
+        PM.add_pass<CodeSinking>();
 //    }
-//    PM.add_pass<active_vars>();
-//    PM.add_pass<LoopSearch>();
+    PM.add_pass<ActiveVars>();
+    PM.add_pass<LoopSearch>();
 //    PM.add_pass<LoopExpansion>();
 //    if( loop_search ){
 //        PM.add_pass<LoopSearch>();
@@ -143,7 +143,7 @@ int main(int argc, char **argv) {
 //        PM.add_pass<AvailableExpression>(true);
 //    }
 //    printf("555\n");
-    //PM.add_pass<CFG_simply>();
+    PM.add_pass<CFG_simply>();
     PM.run();
     auto IR = m->print();
 
@@ -164,14 +164,14 @@ int main(int argc, char **argv) {
         else return 1;
     }
 
-
+/*
     codegen temp=codegen(m);
     std::map<Value *, int> reg_alloc;
     reg_alloc=temp.regAlloc();
     for (auto val: reg_alloc){
         std::cout << val.first->get_name() << " " << val.second << std::endl;
     }
-
+*/
     //    std::string asm_code=temp.generateModuleCode();
 //    std::ofstream output_asm_stream;
 //    auto output_asm_file=target_path+".S";

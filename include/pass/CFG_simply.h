@@ -12,6 +12,7 @@
 class CFG_simply : public Pass {
 private:
   Function *func_;
+  std::vector<BasicBlock *> bb_del;
   CFG_simply();
 
 public:
