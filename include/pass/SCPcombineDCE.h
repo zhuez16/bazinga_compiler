@@ -322,7 +322,7 @@ private:
         std::swap(empty, _worklist);
     }
 public:
-    //explicit ConstFoldingDCEliminating(Module *m) : Pass(m) {}
+    explicit ConstFoldingDCEliminating(Module *m) : Pass(m) {}
     void run() final;
 };
 
