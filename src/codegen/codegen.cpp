@@ -897,14 +897,33 @@ std::string codegen::generateGlobalVarsCode() {
     for (auto &global_var : this->module->get_global_variable()) {
         asm_code += global_var->get_name() + ":" + newline;
         if (! Type::is_eq_type(global_var->get_type()->get_pointer_element_type(),
-                global_var->get_operands().at(0)->get_type())) {
-            asm_code += tab + ".zero" + " " +
-                        std::to_string(global_var->get_type()->get_size()) +
-                        newline;
+                global_var->get_init()->get_type())) {
+            asm_code += tab + ".zero" + " " + std::to_string(global_var->get_type()->get_size()) +newline;
         } else {
-            asm_code += codegen::generateInitializerCode(
-                    static_cast<Constant *>(global_var->get_operands().at(0)));
+            auto Const_zero_init=dynamic_cast<ConstantZero *>(global_var->get_init());
+            if (Const_zero_init){
+                asm_code+=codegen::generateZeroInitialCode(global_var->get_init()->get_type());
+            }
+            else{
+                asm_code += codegen::generateInitializerCode(
+                        static_cast<Constant *>(global_var->get_operands().at(0)));
+            }
         }
+    }
+    return asm_code;
+}
+
+std::string codegen::generateZeroInitialCode(Type *array) {
+    std::string asm_code;
+    if (array->is_array_type()){
+        auto array_type=static_cast<ArrayType *> (array);
+        auto length=array_type->get_num_of_elements();
+        for (int i=0;i<length;i++){
+            asm_code+=codegen::generateZeroInitialCode(array_type->get_element_type());
+        }
+    }
+    else{
+        asm_code+=tab+".word 0"+newline;
     }
     return asm_code;
 }
@@ -919,9 +938,10 @@ std::string codegen::generateInitializerCode(Constant *init) {
             asm_code +=
                     codegen::generateInitializerCode(array_init->get_element_value(i));
         }
-    } else {
+    }
+    else {
         auto val = codegen::constIntVal(init);
-        asm_code += tab + ".word" + " " + std::to_string(val.first) +
+        asm_code += tab + ".word " + std::to_string(val.first) +
                     newline;
     }
     return asm_code;
@@ -929,35 +949,12 @@ std::string codegen::generateInitializerCode(Constant *init) {
 
 std::pair<int, bool> codegen::constIntVal(Value *val) { // disabled
     auto const_val = dynamic_cast<ConstantInt *>(val);
-    auto inst_val = dynamic_cast<Instruction *>(val);
+    auto const_zero = dynamic_cast<ConstantZero *> (val);
     if (const_val) {
         return std::make_pair(const_val->get_value(), true);
     }
-    else if (inst_val && false) {
-        auto op_list = inst_val->get_operands();
-        if (dynamic_cast<BinaryInst *>(val)) {
-            auto val_0 = codegen::constIntVal(op_list.at(0));
-            auto val_1 = codegen::constIntVal(op_list.at(1));
-            if (val_0.second && val_1.second) {
-                int ret = 0;
-                bool flag = true;
-                switch (inst_val->get_instr_type()) {
-                    case Instruction::add:
-                        ret = val_0.first + val_1.first;
-                        break;
-                    case Instruction::sub:
-                        ret = val_0.first - val_1.first;
-                        break;
-                    default:
-                        flag = false;
-                        break;
-                }
-                return std::make_pair(ret, flag);
-            }
-            else {
-                return std::make_pair(0, false);
-            }
-        }
+    else if (const_zero){
+
     }
     std::cerr << "Function getConstIntVal exception!" << std::endl;
     abort();

@@ -92,6 +92,7 @@ public:
     std::string getSpecificReg(Value *val, int source, int offsets=0);
     std::string generateGlobalVarsCode();
     std::string generateInitializerCode(Constant *init);
+    std::string generateZeroInitialCode(Type *init);
     int getGlobalAddress(Value *val);
     std::pair<int,bool> constIntVal(Value *val);
     std::string comment(std::string s);
