@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "codegen/instgen.h"
-#include "include/IR/Module.h"
+#include "IR/Module.h"
 
 
 extern bool disable_div_optimization; // for debug
