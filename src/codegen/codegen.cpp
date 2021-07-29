@@ -22,7 +22,7 @@ std::string codegen::generateModuleCode(std::map<Value *, int> reg_mapping) {
                 "-a" + newline;
     asm_code += tab + ".text" + newline;
     for (auto &func : this->module->get_functions()) {
-        if (func->get_basic_blocks().size()) {
+        if (!func->get_basic_blocks().empty()) {
             asm_code += codegen::globalVariable(func->get_name());
         }
     }
@@ -292,8 +292,8 @@ std::string codegen::generateInstructionCode(Instruction *instr) {
                instr->get_instr_type() == Instruction::zext ||
                (instr->get_instr_type() == Instruction::getelementptr &&
                 instr->get_operands().size() == 2) ||
-               instr->get_instr_type() == Instruction::sdiv /*||
-               instr->get_instr_type() == Instruction::rem*/) {
+               instr->get_instr_type() == Instruction::sdiv ||
+               instr->get_instr_type() == Instruction::mod) {
         ConstantInt *op1_const =
                 (oprands.size() >= 2) ? (dynamic_cast<ConstantInt *>(oprands.at(1))) : nullptr;
         int alu_op0 = this->reg_mapping.count(oprands.at(0))
@@ -356,6 +356,12 @@ std::string codegen::generateInstructionCode(Instruction *instr) {
                     asm_code += InstGen::gen_sdiv(InstGen::Reg(alu_ret), InstGen::Reg(alu_op0),InstGen::Reg(alu_op1));
                     break;
 
+                case Instruction::mod:
+                    asm_code += codegen::assignSpecificReg(oprands.at(1), alu_op1);
+                    asm_code += InstGen::gen_sdiv(InstGen::Reg(alu_ret), InstGen::Reg(alu_op0),InstGen::Reg(alu_op1));
+                    asm_code += InstGen::gen_mul (InstGen::Reg(alu_ret), InstGen::Reg(alu_ret),InstGen::Reg(alu_op1));
+                    asm_code += InstGen::gen_sub (InstGen::Reg(alu_ret), InstGen::Reg(alu_op0),InstGen::Reg(alu_ret));
+                    break;
                 case Instruction::zext:
                     asm_code += InstGen::gen_mov(InstGen::Reg(alu_ret), InstGen::Reg(alu_op0));
                     break;
@@ -879,7 +885,7 @@ std::string codegen::generateGlobalTable() {
     }
     asm_code += global_vars_label + ":" + newline;
     for (auto &i : vecGOT) {
-        asm_code += tab + ".long" + " " + i->get_name() + newline;
+        asm_code += tab + ".word" + " " + i->get_name() + newline;
     }
     return asm_code;
 }
@@ -915,11 +921,7 @@ std::string codegen::generateInitializerCode(Constant *init) {
         }
     } else {
         auto val = codegen::constIntVal(init);
-        if (!val.second) {
-            std::cerr << "Function generateInitializerCode exception!" << std::endl;
-            abort();
-        }
-        asm_code += tab + ".long" + " " + std::to_string(val.first) +
+        asm_code += tab + ".word" + " " + std::to_string(val.first) +
                     newline;
     }
     return asm_code;
