@@ -83,6 +83,7 @@ int main(int argc, char *argv[]) {
         pm.add_pass<CodeSinking>();
         pm.add_pass<CodeElimination>();
     }
+    pm.run();
     // Now we can print the llvm ir code if needed
     if (generate_ir) {
         std::ofstream llvmIRStream;
@@ -97,11 +98,11 @@ int main(int argc, char *argv[]) {
         codegen temp=codegen(builder.getModule());
         std::map<Value *, int> reg_alloc;
         reg_alloc=temp.regAlloc();
-        /*
+/*
         for (auto val: reg_alloc){
             std::cout << val.first->get_name() << " " << val.second << std::endl;
         }
-         */
+*/
         std::string asm_code=temp.generateModuleCode(reg_alloc);
         std::ofstream output_asm_stream;
         output_asm_stream.open(output_filepath, std::ios::out);
