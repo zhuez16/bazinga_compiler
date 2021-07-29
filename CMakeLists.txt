@@ -58,7 +58,7 @@ ADD_EXECUTABLE(builder
         src/pass/Sink.cpp
         src/pass/GVN.cpp
         src/pass/CodeElimination.cpp)
-ADD_EXECUTABLE(codegen
+ADD_EXECUTABLE(compiler
         src/codegen/codegen.cpp
         src/codegen/instgen.cpp
         src/codegen/regAlloc.cpp
@@ -79,5 +79,5 @@ TARGET_LINK_LIBRARIES(
         builder IR_lib
 )
 TARGET_LINK_LIBRARIES(
-        codegen IR_lib
+        compiler IR_lib
 )
