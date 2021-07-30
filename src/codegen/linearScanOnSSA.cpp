@@ -139,18 +139,19 @@ void LinearScanSSA::buildIntervals() {
 }
 
 void LinearScanSSA::linearScan() {
+    // 清空所有缓存
+    unhandled.clear();
+    handled.clear();
+    active.clear();
+    inactive.clear();
     // Step 1. 构造按Begin排序的Intervals
-    std::vector<Interval> unhandled;
-    std::vector<Interval> active;
-    std::vector<Interval> inactive;
-    std::vector<Interval> handled;
     for (auto i: _interval) {
         unhandled.push_back(i.second);
     }
     std::sort(unhandled.begin(), unhandled.end());
     while (!unhandled.empty()) {
         // 弹出队列中的第一个元素
-        Interval current = unhandled.front();
+        Interval &current = unhandled.front();
         unhandled.erase(unhandled.begin());
         int position = current.getBegin();
         // check for intervals in active that are handled or inactive
@@ -180,6 +181,81 @@ void LinearScanSSA::linearScan() {
             }
         }
         // find a register for current
+        if (!tryAllocateFreeRegister(current)) {
+            // Fail to find a empty register to allocate
+            allocateBlockedRegister();
+        }
+    }
+}
+
+bool LinearScanSSA::tryAllocateFreeRegister(Interval &current, int position) {
+    int freeUntilPosition[NUM_REG];
+    // set freeUntilPos of all physical registers to maxInt
+    for (int i = 0; i < NUM_REG; ++i) {
+        freeUntilPosition[i] = INT_MAX;
+    }
+    // active and inactive
+    for (auto it: active) {
+        freeUntilPosition[it.getRegister()] = 0;
+    }
+    for (auto it: inactive) {
+        // TODO
+        if (int nextPos = it.intersect(position, current)) {
+            if (nextPos > 0)
+                freeUntilPosition[it.getRegister()] = std::min(nextPos, freeUntilPosition[it.getRegister()]);
+        }
+    }
+    // reg = register with highest freeUntilPos
+    int max_idx = 0;
+    for (int i = 1; i < NUM_REG; ++i) {
+        if (freeUntilPosition[i] > freeUntilPosition[max_idx]) max_idx = i;
+    }
+    if (freeUntilPosition[max_idx] == 0) {
+        // 没有空闲寄存器，分配失败
+        return false;
+    }
+    else if (current.getEnd() < freeUntilPosition[max_idx]) {
+        // 寄存器在Live Hole中完全可用
+        current.setRegister(max_idx);
+        return true;
+    } else {
+        // 寄存器在Live Hole中部分可用
+        unhandled.push_back(current.split(freeUntilPosition[max_idx]));
+        // TODO: need to re sort unhandled ?
+        current.setRegister(max_idx);
+        return true;
+    }
+
+}
+
+void LinearScanSSA::allocateBlockedRegister(Interval &current, int position) {
+    int nextUsePos[NUM_REG];
+    // set freeUntilPos of all physical registers to maxInt
+    for (int i = 0; i < NUM_REG; ++i) {
+        nextUsePos[i] = INT_MAX;
+    }
+    // active and inactive
+    for (auto it: active) {
+        nextUsePos[it.getRegister()] = std::min(it.getNextUse(position), nextUsePos[it.getRegister()]);
+    }
+    for (auto it: inactive) {
+        nextUsePos[it.getRegister()] = std::min(it.getNextUse(position), nextUsePos[it.getRegister()]);
+    }
+    // reg = register with highest freeUntilPos
+    int max_idx = 0;
+    for (int i = 1; i < NUM_REG; ++i) {
+        if (nextUsePos[i] > nextUsePos[max_idx]) max_idx = i;
+    }
+
+    int nextUse = current.getNextUse(position);
+    if (nextUse > nextUsePos[max_idx]) {
+        // all other intervals are used before current, so it is best to spill current itself
+        int spillId = requireNewSpillSlot();
+        current.setSpill(spillId);
+        unhandled.push_back(current.split(nextUse));
+    } else {
+        current.setRegister(max_idx);
 
     }
+
 }

@@ -17,6 +17,8 @@
 #include "pass/loop_search.h"
 #include "pass/active_vars.h"
 
+#define NUM_REG 10
+
 struct BlockIDRange {
     int from;
     int to;
@@ -28,15 +30,36 @@ class Interval {
     std::vector<std::pair<int, int>> _intervals;
     int _begin;
     int _end;
+    int _reg;
+    int _spill;
+    Value *_v;
 
 public:
     void addRange(int from, int to);
     void addRange(const BlockIDRange &br);
     void setFrom(int from);
+    void setSpill(int spillSlot);
+    void setRegister(int regId);
 
-    int getBegin();
-    int getEnd();
-    bool cover(int pos);
+    /**
+     * 将当前块划分为两部分
+     * P1: start ~ position - 1
+     * P2: position ~ end
+     * 自身上下界变为P1
+     * 返回的Interval为P2
+     * @param position
+     * @return
+     */
+    Interval split(int position);
+
+    int getBegin() const;
+    int getEnd() const;
+    int getRegister() const;
+    int getNextUse(int after) const;
+    bool cover(int pos) const;
+    bool intersect(const Interval &current) const;
+    int intersect(int pos, const Interval &current);
+    int getNextUse(int after);
 
     bool operator< (const Interval &rhs) {
         return _begin < rhs._begin;
@@ -120,11 +143,19 @@ private:
     std::map<Loop *, BlockIDRange> _loop_id;
     std::map<BasicBlock *, LiveData> _live;
     std::map<Value *, Interval> _interval;
+    // Data structure for linear scan algo
+    std::vector<Interval> unhandled;
+    std::vector<Interval> active;
+    std::vector<Interval> inactive;
+    std::vector<Interval> handled;
     // We use this class to transfer data between methods
     BBOrderGenerator _BG;
     void assignOpID(Function *f);
     void buildIntervals();
     void linearScan();
+    bool tryAllocateFreeRegister(Interval &current, int position);
+    void allocateBlockedRegister(Interval &current, int position);
+    int requireNewSpillSlot();
 };
 
 #endif //BAZINGA_COMPILER_LINEARSCAN_H
