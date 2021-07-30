@@ -160,6 +160,7 @@ void LinearScanSSA::addRange(int from, int to){
         this->_interval.erase(it);
     }
     this->_interval.push_front(temp);
+    std::sort(this->_interval.begin(),this->_interval.end());
 }
 
 void LinearScanSSA::linearScan() {
