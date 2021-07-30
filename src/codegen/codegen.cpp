@@ -73,21 +73,21 @@ std::string codegen::generateFunctionEntryCode(Function *func) {
     save_registers.push_back(InstGen::lr);
     std::sort(save_registers.begin(), save_registers.end());
     // large stack allocate
-    if (func->get_name() == "main" && enlarge_stack) {
-        const bool set_zero = false;
-        asm_code += codegen::comment("enlarge stack");
-        // do not change lr (r14)
-        asm_code += InstGen::gen_push(save_registers);
-        asm_code += InstGen::gen_set_value(InstGen::Reg(0),
-                                      InstGen::Constant(enlarge_stack_size));
-        asm_code += InstGen::gen_set_value(InstGen::Reg(1), InstGen::Constant(1));
-        asm_code += InstGen::gen_bl(set_zero ? "calloc" : "malloc");
-        asm_code += InstGen::gen_add(InstGen::Reg(op_reg_0),InstGen::Reg(0),InstGen::Constant(enlarge_stack_size));
-        asm_code += InstGen::gen_pop(save_registers);
-        asm_code += InstGen::gen_mov(InstGen::Reg(op_reg_2), InstGen::sp);
-        asm_code += InstGen::gen_mov(InstGen::sp, InstGen::Reg(op_reg_0));
-        asm_code += InstGen::gen_push({InstGen::Reg(op_reg_2)});
-    }
+//    if (func->get_name() == "main" && enlarge_stack) {
+//        const bool set_zero = false;
+//        asm_code += codegen::comment("enlarge stack");
+//        // do not change lr (r14)
+//        asm_code += InstGen::gen_push(save_registers);
+//        asm_code += InstGen::gen_set_value(InstGen::Reg(0),
+//                                      InstGen::Constant(enlarge_stack_size));
+//        asm_code += InstGen::gen_set_value(InstGen::Reg(1), InstGen::Constant(1));
+//        asm_code += InstGen::gen_bl(set_zero ? "calloc" : "malloc");
+//        asm_code += InstGen::gen_add(InstGen::Reg(op_reg_0),InstGen::Reg(0),InstGen::Constant(enlarge_stack_size));
+//        asm_code += InstGen::gen_pop(save_registers);
+//        asm_code += InstGen::gen_mov(InstGen::Reg(op_reg_2), InstGen::sp);
+//        asm_code += InstGen::gen_mov(InstGen::sp, InstGen::Reg(op_reg_0));
+//        asm_code += InstGen::gen_push({InstGen::Reg(op_reg_2)});
+//    }
     // save callee-save registers and lr
     asm_code += codegen::comment("save callee-save registers and lr");
     asm_code += InstGen::gen_push(save_registers);
@@ -445,33 +445,33 @@ std::string codegen::generateInstructionCode(Instruction *instr) {
         }
         // translate Br instr
         std::map<int, bool> elim;
-        if (is_cmp) {
-            ConstantInt *op1_const = (oprands.size() >= 2)
-                                     ? (dynamic_cast<ConstantInt *>(oprands.at(1)))
-                                     : nullptr;
-            int alu_op0 = this->reg_mapping.count(oprands.at(0))
-                          ? this->reg_mapping.at(oprands.at(0))
-                          : op_reg_0;
-            int alu_op1 = this->reg_mapping.count(oprands.at(1))
-                          ? this->reg_mapping.at(oprands.at(1))
-                          : op_reg_1;
-            asm_code += codegen::assignSpecificReg(oprands.at(0), alu_op0);
-            InstGen::CmpOp asmCmpOp = InstGen::GT;
-            asm_code += codegen::assignSpecificReg(oprands.at(1), alu_op1);
-            asm_code += InstGen::gen_cmp(InstGen::Reg(alu_op0), InstGen::Reg(alu_op1));
-            if (need_resolve[2]) {
-                asm_code +=
-                        InstGen::gen_b(InstGen::Label(codegen::getLabelName(bb_cur) +
-                                                  "_branch_" + std::to_string(2),
-                                                  0),asmCmpOp);
-            } else {
-                auto bb_next = static_cast<BasicBlock *>(oprands.at(i_end));
-                asm_code += InstGen::gen_b(
-                        InstGen::Label(codegen::getLabelName(bb_next), 0), asmCmpOp);
-                elim[2] = true;
-            }
-        }
-        else if (is_cond) {
+//        if (is_cmp) {
+//            ConstantInt *op1_const = (oprands.size() >= 2)
+//                                     ? (dynamic_cast<ConstantInt *>(oprands.at(1)))
+//                                     : nullptr;
+//            int alu_op0 = this->reg_mapping.count(oprands.at(0))
+//                          ? this->reg_mapping.at(oprands.at(0))
+//                          : op_reg_0;
+//            int alu_op1 = this->reg_mapping.count(oprands.at(1))
+//                          ? this->reg_mapping.at(oprands.at(1))
+//                          : op_reg_1;
+//            asm_code += codegen::assignSpecificReg(oprands.at(0), alu_op0);
+//            InstGen::CmpOp asmCmpOp = InstGen::GT;
+//            asm_code += codegen::assignSpecificReg(oprands.at(1), alu_op1);
+//            asm_code += InstGen::gen_cmp(InstGen::Reg(alu_op0), InstGen::Reg(alu_op1));
+//            if (need_resolve[2]) {
+//                asm_code +=
+//                        InstGen::gen_b(InstGen::Label(codegen::getLabelName(bb_cur) +
+//                                                  "_branch_" + std::to_string(2),
+//                                                  0),asmCmpOp);
+//            } else {
+//                auto bb_next = static_cast<BasicBlock *>(oprands.at(i_end));
+//                asm_code += InstGen::gen_b(
+//                        InstGen::Label(codegen::getLabelName(bb_next), 0), asmCmpOp);
+//                elim[2] = true;
+//            }
+//        }
+        //else if (is_cond) {
             InstGen::CmpOp asmCmpOp=InstGen::GT;
             int alu_op0 = this->reg_mapping.count(oprands.at(0))
                           ? this->reg_mapping.at(oprands.at(0))
@@ -491,7 +491,7 @@ std::string codegen::generateInstructionCode(Instruction *instr) {
                         InstGen::Label(codegen::getLabelName(bb_next), 0), asmCmpOp);
                 elim[2] = true;
             }
-        }
+        //}
         // for each branch
         {
             int branch_cnt = 0;
