@@ -3,7 +3,8 @@
 //
 
 #include "codegen/LinearScanSSA.h"
-
+#include <vector>
+#include <algorithm>
 
 
 
@@ -136,6 +137,30 @@ void LinearScanSSA::buildIntervals() {
         }
     }
 
+}
+
+
+void LinearScanSSA::addRange(int from, int to){
+    std::pair<int,int> temp=std::make_pair(from,to);
+    std::vector<std::pair<int,int>> delete_list;
+    for (auto it: this->_interval){
+        if (temp.second<it.first){
+            break;
+        }
+        else if (temp.first>it.second){
+            continue;
+        }
+        else{
+            delete_list.push_back(it);
+            temp.first=min(temp.first,it.first);
+            temp.second=max(temp.second,it.second);
+        }
+    }
+    for (auto it:delete_list){
+        this->_interval.erase(it);
+    }
+    this->_interval.push_front(temp);
+    std::sort(this->_interval.begin(),this->_interval.end());
 }
 
 void LinearScanSSA::linearScan() {

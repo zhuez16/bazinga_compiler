@@ -17,7 +17,7 @@ for item in l:
             output_path = os.path.abspath('../functional_test/' + item[:-3] + '.out')
             if os.path.exists(executable_path):
                 os.remove(executable_path)
-            ret = os.system('./builder ' + os.path.abspath('../functional_test/' + item) + ' -const-propagation -code-sink')
+            ret = os.system('./compiler ' + os.path.abspath('../functional_test/' + item) + ' -const-propagation -code-sink')
             if ret != 0:
                 print('Error occurred in building testcase ' + item)
                 break

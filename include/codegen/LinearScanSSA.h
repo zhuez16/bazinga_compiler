@@ -36,10 +36,11 @@ class Interval {
 
 public:
     void addRange(int from, int to);
-    void addRange(const BlockIDRange &br);
+    void addRange(const BlockIDRange &br){addRange(br.from,br.to);}
     void setFrom(int from);
     void setSpill(int spillSlot);
     void setRegister(int regId);
+    void getIntervals(){return _intervals;}
 
     /**
      * 将当前块划分为两部分
