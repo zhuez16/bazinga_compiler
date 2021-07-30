@@ -222,6 +222,7 @@ bool LinearScanSSA::tryAllocateFreeRegister(Interval &current, int position) {
         // 寄存器在Live Hole中部分可用
         unhandled.push_back(current.split(freeUntilPosition[max_idx]));
         // TODO: need to re sort unhandled ?
+        std::sort(unhandled.begin(), unhandled.end());
         current.setRegister(max_idx);
         return true;
     }
@@ -239,7 +240,8 @@ void LinearScanSSA::allocateBlockedRegister(Interval &current, int position) {
         nextUsePos[it.getRegister()] = std::min(it.getNextUse(position), nextUsePos[it.getRegister()]);
     }
     for (auto it: inactive) {
-        nextUsePos[it.getRegister()] = std::min(it.getNextUse(position), nextUsePos[it.getRegister()]);
+        if (it.intersect(current))
+            nextUsePos[it.getRegister()] = std::min(it.getNextUse(position), nextUsePos[it.getRegister()]);
     }
     // reg = register with highest freeUntilPos
     int max_idx = 0;
@@ -253,9 +255,60 @@ void LinearScanSSA::allocateBlockedRegister(Interval &current, int position) {
         int spillId = requireNewSpillSlot();
         current.setSpill(spillId);
         unhandled.push_back(current.split(nextUse));
+        std::sort(unhandled.begin(), unhandled.end());
     } else {
+        bool flag = true;
+        // make sure that current does not intersect with the fixed interval for reg
+        for(auto it : fixed){
+            if (it.intersect(current))
+                if(it.getRegister()==max_id)
+                {
+                    int spillId = requireNewSpillSlot();
+                    current.setSpill(spillId);
+                    unhandled.push_back(current.split(nextUse));
+                    std::sort(unhandled.begin(), unhandled.end());
+                    return;
+                }
+        }
+        Interval to_spill;
+        auto it = active.begin();
+        while ( it != active.end()) {
+            if ((*it).getRegister()==max_idx) {
+                flag = false;
+                to_spill = (*it);
+                active.erase(it);
+                break;
+            }
+        }
+        if(flag)
+        {
+            it = inactive.begin();
+            while ( it != inactive.end()) {
+                if ((*it).getRegister()==max_idx) {
+                    to_spill = (*it);
+                    inactive.erase(it);
+                    break;
+                }
+            }
+        }
         current.setRegister(max_idx);
-
+        int spillId = requireNewSpillSlot();
+        to_spill.setSpill(spillId);
+        unhandled.push_back(to_spill.split(nextUsePos[max_idx]));
+        std::sort(unhandled.begin(), unhandled.end());
     }
-
+    /*
+    // make sure that current does not intersect with the fixed interval for reg
+    for(auto it : fixed){
+        if (int nextPos = it.intersect(position, current))
+            if (nextPos > 0)
+                if(it.getRegister()==max_id)
+                {
+                    int spillId = requireNewSpillSlot();
+                    current.setSpill(spillId);
+                    unhandled.push_back(current.split(nextUse));
+                    std::sort(unhandled.begin(), unhandled.end());
+                }
+    }
+    */
 }
