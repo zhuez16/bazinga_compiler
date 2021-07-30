@@ -40,6 +40,7 @@ public:
     void setFrom(int from);
     void setSpill(int spillSlot);
     void setRegister(int regId);
+    void getIntervals(){return _intervals;}
 
     /**
      * 将当前块划分为两部分
