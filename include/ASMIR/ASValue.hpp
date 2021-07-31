@@ -9,17 +9,22 @@
 #include <map>
 
 #include "IR/Function.h"
+#include "ASMIR/RegAllocMapper.h"
 
 
 class ASValue;
+
 class ASBlock;
+
 class ASFunction;
 
 struct ASUse {
-    ASValue * _user;
+    ASValue *_user;
     unsigned _arg_id;
+
     ASUse(ASValue *usr, unsigned idx) : _user(usr), _arg_id(idx) {}
-    bool operator== (const ASUse &rhs) const {
+
+    bool operator==(const ASUse &rhs) const {
         return _user == rhs._user && _arg_id == rhs._arg_id;
     }
 };
@@ -39,13 +44,22 @@ private:
     std::string _name;
 protected:
     explicit ASValue(unsigned num_operands) { _operands.resize(num_operands); }
+
 public:
     std::list<ASUse> getUseList() const { return _use; }
+
     ASValue *getOperand(unsigned idx) const { return _operands[idx]; }
-    std::vector<ASValue *> getOperands() { return _operands; }
+
+    std::vector<ASValue *> getOperands() const { return _operands; }
+
+    int getNumOperands() const { return _operands.size(); }
+
     std::vector<ASValue *> getOperandsWithOp2();
+
     void setOperand(unsigned idx, ASValue *v);
+
     void addUser(unsigned idx, ASValue *user) { _use.emplace_back(user, idx); }
+
     void removeUser(unsigned idx, ASValue *user) {
         ASUse tbd(user, idx);
         for (auto it = _use.begin(); it != _use.end(); ++it) {
@@ -55,9 +69,13 @@ public:
             }
         }
     }
-    virtual std::string print() { return ""; }
+
+    virtual std::string print(RegMapper *mapper) { return ""; }
+
     std::string getName() const { return _name; }
+
     void setName(std::string n) { _name = n; }
+
     void expandNumOperand(int by) { _operands.resize(_operands.size() + by); }
 };
 
@@ -73,20 +91,48 @@ private:
     bool _array;
     int _size;
     std::vector<int> _initial;
+    ASGlobalValue(std::string name, const std::vector<int> &init) : ASValue(0), _initial(init) {
+
+    }
 public:
     bool isArray() const { return _array; }
-    int getArraySize() const { assert(isArray()); return _size; }
+
+    int getArraySize() const {
+        assert(isArray());
+        return _size;
+    }
+
     int getInitialValue() const { return _initial[0]; }
+
     std::vector<int> getArrayInitial() { return _initial; }
+
+    static ASGlobalValue *create(std::string name, Type *ty, Constant *init = nullptr) {
+        auto ret = new ASGlobalValue(name, {});
+        if (ty->is_int32_type()) { ret->_array = false; }
+        else {
+            ret->_array = true;
+            int sz = 1;
+            auto arr_ty = dynamic_cast<ArrayType *>(ty);
+            while (arr_ty) {
+                sz *= arr_ty->get_num_of_elements();
+                arr_ty = dynamic_cast<ArrayType *>(arr_ty->get_array_element_type());
+            }
+            ret->_size = sz;
+        }
+        return ret;
+    }
 };
 
 class ASConstant : public ASValue {
     // We don't maintain the use list of ASConstant type
 private:
     int _value;
-    explicit ASConstant(int val) : ASValue(0),  _value(val) {}
+
+    explicit ASConstant(int val) : ASValue(0), _value(val) {}
+
 public:
     static ASConstant *getConstant(int constVal) { return new ASConstant(constVal); }
+
     int getValue() const { return _value; }
 };
 
@@ -115,21 +161,27 @@ public:
         ASMLoadTy,  // [x] Rd = Mem[Rn (+ offset)]
         ASMStoreTy, // [x] Mem[Rn (+ offset)] = Rd
         ASMPhiTy,   // [x] Fake instruction
+        ASMCallTy,  // [x] Fake instruction
+        ASMRetTy,   // [x] Fake instruction
     };
 protected:
     ASInstruction(unsigned num_op, ASMInstType ty) : ASValue(num_op), _ty(ty) {}
+
 private:
     ASBlock *_parent{};
     ASMInstType _ty;
 public:
     void setParent(ASBlock *b) { _parent = b; }
+
     ASBlock *getBlock() const { return _parent; }
+
     ASMInstType getInstType() const { return _ty; }
+
     // 若指令包含一个返回值 Rd，则为true，否则为false
     bool hasResult() const {
         auto ty = getInstType();
         return ty == ASMAddTy || ty == ASMSubTy || ty == ASMMulTy || ty == ASMDivTy || ty == ASMLsrTy ||
-        ty == ASMLslTy || ty == ASMLoadTy || ty == ASMMovTy || ty == ASMMvnTy || ty == ASMAsrTy;
+               ty == ASMLslTy || ty == ASMLoadTy || ty == ASMMovTy || ty == ASMMvnTy || ty == ASMAsrTy;
     }
 
 };
@@ -148,6 +200,7 @@ private:
     ASFunction *_parent = nullptr;
 
     explicit ASBlock(std::string name) : ASLabel(std::move(name)) {}
+
 public:
     void addInstruction(ASInstruction *inst) {
         inst->setParent(this);
@@ -155,6 +208,7 @@ public:
     }
 
     void setParent(ASFunction *f) { _parent = f; }
+
     ASFunction *getFunction() const { return _parent; }
 
     static ASBlock *createBlock(ASFunction *parent, std::string name) {
@@ -168,16 +222,32 @@ class ASFunction : public ASLabel {
 private:
     std::list<ASBlock *> _block_list;
     std::map<void *, int> _stack;
+    std::map<Argument *, ASArgument *> _arg_map;
+    int _num_args = 0;
     int _sp_pointer = 0;
 
-    explicit ASFunction(std::string name) : ASLabel(std::move(name)) {}
+    explicit ASFunction(std::string name, int num_args) : ASLabel(std::move(name)), _num_args(num_args) {
+        expandNumOperand(num_args);
+        for (int i = 0; i < num_args; ++i) {
+            setOperand(i, ASArgument::createArgument());
+        }
+    }
+
 public:
     std::list<ASBlock *> getBlockList() { return _block_list; }
-    void addBlock(ASBlock *block) { block->setParent(this); _block_list.push_back(block); }
-    void eraseBlock(ASBlock *block) { block->setParent(nullptr); _block_list.remove(block); }
+
+    void addBlock(ASBlock *block) {
+        block->setParent(this);
+        _block_list.push_back(block);
+    }
+
+    void eraseBlock(ASBlock *block) {
+        block->setParent(nullptr);
+        _block_list.remove(block);
+    }
 
     // 在函数栈空间中分配存储
-    int allocStack(void* base, int requiredSize) {
+    int allocStack(void *base, int requiredSize) {
         int current_sp = _sp_pointer;
         _sp_pointer += requiredSize;
         _stack[base] = current_sp;
@@ -193,7 +263,14 @@ public:
     // 获取偏移量
     int getStackSize() const { return _sp_pointer; }
 
-    static ASFunction *createFunction(std::string name) { return new ASFunction(std::move(name)); }
+    int getNumArguments() const { return _num_args; }
+
+    void setArgumentMapping(int idx, Argument *ori) { _arg_map[ori] = dynamic_cast<ASArgument *>(getOperand(idx)); }
+
+    ASArgument *getArgument(int idx) const { return dynamic_cast<ASArgument *>(getOperand(idx)); }
+    ASArgument *getArgument(Argument *ori) { return _arg_map.at(ori); }
+
+    static ASFunction *createFunction(std::string name, int i) { return new ASFunction(std::move(name), i); }
 };
 
 /**
@@ -214,7 +291,9 @@ public:
     };
 private:
     Op2Type _ty;
+
     explicit ASOperand2(Op2Type ty) : ASValue(0), _ty(ty) {}
+
     ASValue *base = nullptr;
     ASValue *shift = nullptr;
 public:
@@ -233,7 +312,9 @@ public:
     // TODO: 其他 Op2 还没用到，先放着
 
     Op2Type getOp2Type() const { return _ty; }
+
     ASValue *getRm() const { return base; }
+
     ASValue *getRs() const { return shift; }
 };
 
@@ -242,49 +323,49 @@ private:
     ASBinaryInst(ASMInstType ty) : ASInstruction(2, ty) {}
 
 public:
-    static ASBinaryInst *createASMAdd(ASInstruction *Rn, ASOperand2 *Op2) {
+    static ASBinaryInst *createASMAdd(ASValue *Rn, ASValue *Op2) {
         auto ret = new ASBinaryInst(ASMAddTy);
         ret->setOperand(0, Rn);
         ret->setOperand(1, Op2);
         return ret;
     }
 
-    static ASBinaryInst *createASMSub(ASInstruction *Rn, ASOperand2 *Op2) {
+    static ASBinaryInst *createASMSub(ASValue *Rn, ASValue *Op2) {
         auto ret = new ASBinaryInst(ASMSubTy);
         ret->setOperand(0, Rn);
         ret->setOperand(1, Op2);
         return ret;
     }
 
-    static ASBinaryInst *createASMMul(ASInstruction *Rm, ASInstruction *Rs) {
+    static ASBinaryInst *createASMMul(ASValue *Rm, ASValue *Rs) {
         auto ret = new ASBinaryInst(ASMMulTy);
         ret->setOperand(0, Rm);
         ret->setOperand(1, Rs);
         return ret;
     }
 
-    static ASBinaryInst *createASMDiv(ASInstruction *Rn, ASInstruction *Rm) {
+    static ASBinaryInst *createASMDiv(ASValue *Rn, ASValue *Rm) {
         auto ret = new ASBinaryInst(ASMDivTy);
         ret->setOperand(0, Rn);
         ret->setOperand(1, Rm);
         return ret;
     }
 
-    static ASBinaryInst *createASMAsr(ASInstruction *Rm, ASOperand2 *Rs) {
+    static ASBinaryInst *createASMAsr(ASValue *Rm, ASValue *Rs) {
         auto ret = new ASBinaryInst(ASMAsrTy);
         ret->setOperand(0, Rm);
         ret->setOperand(1, Rs);
         return ret;
     }
 
-    static ASBinaryInst *createASMLsl(ASInstruction *Rm, ASInstruction *Rs) {
+    static ASBinaryInst *createASMLsl(ASValue *Rm, ASValue *Rs) {
         auto ret = new ASBinaryInst(ASMLslTy);
         ret->setOperand(0, Rm);
         ret->setOperand(1, Rs);
         return ret;
     }
 
-    static ASBinaryInst *createASMLsr(ASInstruction *Rm, ASInstruction *Rs) {
+    static ASBinaryInst *createASMLsr(ASValue *Rm, ASValue *Rs) {
         auto ret = new ASBinaryInst(ASMLsrTy);
         ret->setOperand(0, Rm);
         ret->setOperand(1, Rs);
@@ -297,13 +378,13 @@ private:
     ASUnaryInst(ASMInstType ty) : ASInstruction(1, ty) {}
 
 public:
-    static ASUnaryInst *createASMMov(ASOperand2 *Op2) {
+    static ASUnaryInst *createASMMov(ASValue *Op2) {
         auto ret = new ASUnaryInst(ASMMovTy);
         ret->setOperand(0, Op2);
         return ret;
     }
 
-    static ASUnaryInst *createASMMvn(ASOperand2 *Op2) {
+    static ASUnaryInst *createASMMvn(ASValue *Op2) {
         auto ret = new ASUnaryInst(ASMMvnTy);
         ret->setOperand(0, Op2);
         return ret;
@@ -315,14 +396,14 @@ private:
     ASCmpInst(ASMInstType ty) : ASInstruction(2, ty) {}
 
 public:
-    static ASCmpInst *createASMCmp(ASInstruction *Rn, ASOperand2 *Op2) {
+    static ASCmpInst *createASMCmp(ASValue *Rn, ASValue *Op2) {
         auto ret = new ASCmpInst(ASMCmpTy);
         ret->setOperand(0, Rn);
         ret->setOperand(1, Op2);
         return ret;
     }
 
-    static ASCmpInst *createASMCnz(ASInstruction *Rn, ASOperand2 *Op2) {
+    static ASCmpInst *createASMCnz(ASValue *Rn, ASValue *Op2) {
         auto ret = new ASCmpInst(ASMCmzTy);
         ret->setOperand(0, Rn);
         ret->setOperand(1, Op2);
@@ -344,16 +425,22 @@ public:
 private:
     ASMBranchCond _cond;
     bool _withLink;
-    ASBranchInst(ASMBranchCond cond, bool link, ASLabel *label) : ASInstruction(1, ASMBrTy), _cond(cond), _withLink(link) {
+
+    ASBranchInst(ASMBranchCond cond, bool link, ASLabel *label) : ASInstruction(1, ASMBrTy), _cond(cond),
+                                                                  _withLink(link) {
         setOperand(0, label);
     }
 
 public:
     static ASBranchInst *createBranch(ASLabel *lbl) { return new ASBranchInst(CondNo, false, lbl); }
+
     static ASBranchInst *createCondBranch(ASLabel *lbl, ASMBranchCond c) { return new ASBranchInst(c, false, lbl); }
+
     static ASBranchInst *createLinkBranch(ASLabel *lbl) { return new ASBranchInst(CondNo, true, lbl); }
+
     static ASBranchInst *createReturnBranch() { return new ASBranchInst(CondNo, true, nullptr); } // BX
-    std::string print() final;
+    std::string print(RegMapper *mapper) final;
+
     ASLabel *getLabel() const { return dynamic_cast<ASLabel *>(getOperand(0)); }
 };
 
@@ -362,7 +449,7 @@ private:
     ASPushInst() : ASInstruction(0, ASMPushTy) {}
 
 public:
-    ASPushInst *createPush() { return new ASPushInst(); }
+    static ASPushInst *createPush() { return new ASPushInst(); }
 };
 
 class ASPopInst : public ASInstruction {
@@ -370,18 +457,30 @@ private:
     ASPopInst() : ASInstruction(0, ASMPopTy) {}
 
 public:
-    ASPopInst *createPush() { return new ASPopInst(); }
+    static ASPopInst *createPush() { return new ASPopInst(); }
 };
 
 class ASLoadInst : public ASInstruction {
 private:
-    ASLoadInst(ASInstruction *Rn) : ASInstruction(1, ASMLoadTy) {
+    explicit ASLoadInst(ASInstruction *Rn) : ASInstruction(1, ASMLoadTy) {
         setOperand(0, Rn);
     }
+
     ASLoadInst(ASInstruction *Rn, ASOperand2 *Op2) : ASInstruction(2, ASMLoadTy) {
         setOperand(0, Rn);
         setOperand(1, Op2);
     }
+
+public:
+    // ldr r1, =label
+    static ASLoadInst *createLoad(ASGlobalValue *gv);
+    // ldr r1, [r2, r3]
+    static ASLoadInst *createLoad(ASInstruction *Rn, ASValue *Op2);
+    static ASLoadInst *createLoad(ASInstruction *Rn);
+    // ldr r1, [sp, r2]
+    static ASLoadInst *createSpLoad(ASValue *Rn);
+    // ldr r1, [r2, r3]
+    static ASLoadInst *createLoad(ASArgument *arg, ASValue *Op2);
 };
 
 class ASStoreInst : public ASInstruction {
@@ -390,11 +489,24 @@ private:
         setOperand(0, Rd);
         setOperand(1, Rn);
     }
+
     ASStoreInst(ASInstruction *Rd, ASInstruction *Rn, ASOperand2 *Op2) : ASInstruction(3, ASMLoadTy) {
         setOperand(0, Rd);
         setOperand(1, Rn);
         setOperand(2, Op2);
     }
+
+public:
+    // ldr r1, =label
+    static ASStoreInst *createStore(ASValue *data, ASGlobalValue *gv);
+    // ldr r1, [r2, r3]
+    static ASStoreInst *createStore(ASValue *data, ASInstruction *Rn, ASValue *Op2);
+    // ldr r1, [r2]
+    static ASStoreInst *createStore(ASValue *data, ASInstruction *Rn);
+    // ldr r1, [sp, r2]
+    static ASStoreInst *createSpStore(ASValue *data, ASValue *Rn);
+    // ldr r1, [r2, r3]
+    static ASStoreInst *createStore(ASValue *data, ASArgument *arg, ASValue *Op2);
 };
 
 class ASPhiInst : public ASInstruction {
@@ -407,6 +519,8 @@ public:
         setOperand(0, from);
         setOperand(1, value);
     }
+
+    static ASPhiInst *getPhi() { return new ASPhiInst(); }
 };
 
 /**
@@ -419,5 +533,62 @@ private:
     int regId;
 public:
     int getRegID() const { return regId; }
+
     static ASFixedRegister *getRegister(int regId) { return new ASFixedRegister(regId); }
+};
+
+class ASFunctionCall : public ASInstruction {
+private:
+    explicit ASFunctionCall(ASFunction *f, const std::vector<ASValue *> &params) : ASInstruction(
+            f->getNumArguments() + 1, ASMCallTy) {
+        assert(params.size() == f->getNumArguments() && "Param count mismatch");
+        setOperand(0, f);
+        for (int i = 0; i < f->getNumArguments(); ++i) {
+            setOperand(i + 1, params.at(i));
+        }
+    }
+
+public:
+    static ASFunctionCall *getCall(ASFunction *f, const std::vector<ASValue *> &params) {
+        return new ASFunctionCall(f, params);
+    }
+
+    static ASFunctionCall *getCall(ASFunction *f) {
+        return new ASFunctionCall(f, {});
+    }
+
+    ASFunction *getCallee() const { return dynamic_cast<ASFunction *>(getOperand(0)); }
+
+    ASValue *getArgument(int idx) const { return getOperand(idx + 1); }
+
+    bool isVoid() const { return getNumOperands() == 1; }
+
+    std::string print(RegMapper *mapper) final;
+};
+
+class ASAlloca : public ASValue {
+private:
+    ASAlloca(int size, int base_sp) : ASValue(0), _sz(size), _base(base_sp) {}
+    int _sz;
+    int _base;
+public:
+    static ASAlloca *getAlloca(int size, int base_sp_offset) {
+        return new ASAlloca(size, base_sp_offset);
+    }
+
+    int getSize() const { return _sz; }
+    int getBase() const { return _base; }
+};
+
+class ASReturn : public ASInstruction {
+private:
+    ASReturn() : ASInstruction(0, ASMRetTy){}
+    ASReturn(ASValue *ret) : ASInstruction(1, ASMRetTy) {
+        setOperand(0, ret);
+    }
+
+public:
+    bool isVoid() const { return getNumOperands() == 0; }
+    static ASReturn *getReturn(ASValue *ret) { return new ASReturn(ret); }
+    static ASReturn *getReturn() { return new ASReturn(); }
 };
