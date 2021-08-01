@@ -13,6 +13,6 @@ std::string RegMapper::getName(ASInstruction *inst, ASValue *operand) {
         return operand->getName();
     }
     else {
-        return " R" + std::to_string(getRegister(inst, operand));
+        return " r" + std::to_string(getRegister(inst, operand));
     }
 }
