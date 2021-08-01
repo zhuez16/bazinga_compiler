@@ -221,6 +221,12 @@ public:
 
     std::list<ASInstruction *> getInstList() { return _inst_list; }
 
+    std::list<ASInstruction *> getReverseInstList() {
+        std::list<ASInstruction *> ret = _inst_list;
+        std::reverse(ret.begin(), ret.end());
+        return ret;
+    }
+
     void setParent(ASFunction *f) { _parent = f; }
 
     ASFunction *getFunction() const { return _parent; }

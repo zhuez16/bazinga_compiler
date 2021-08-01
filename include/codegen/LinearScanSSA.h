@@ -16,8 +16,8 @@
 #include "pass/dominator.h"
 #include "pass/loop_search.h"
 #include "pass/active_vars.h"
-#include "ASMIR/ASMBuilder.h"
 #include "ASMIR/ASValue.hpp"
+
 #define NUM_REG 10
 
 struct BlockIDRange {
@@ -37,11 +37,11 @@ class Interval {
 
 public:
     void addRange(int from, int to);
-    void addRange(const BlockIDRange &br){addRange(br.from,br.to);}
+    void addRange(const BlockIDRange &br) { addRange(br.from,br.to); }
     void setFrom(int from);
     void setSpill(int spillSlot);
     void setRegister(int regId);
-    std::vector<std::pair<int,int>> getIntervals(){return _intervals;}
+    std::vector<std::pair<int,int>> getIntervals(){ return _intervals; }
 
     /**
      * 将当前块划分为两部分
@@ -63,7 +63,7 @@ public:
     int intersect(int pos, const Interval &current);
     int getNextUse(int after);
 
-    bool operator< (const Interval &rhs) {
+    bool operator< (const Interval &rhs) const {
         return _begin < rhs._begin;
     }
 };
@@ -78,8 +78,6 @@ private:
     std::set<BasicBlock *> _visited;
     std::vector<BasicBlock *> _queue;
     std::queue<BasicBlock *> _visit_queue;
-    std::vector<ASBlock *> _mapped_queue;
-    std::map<BasicBlock *, ASBlock *> f_bb;
     void runOnLoop(Loop *loop);
     bool visited(BasicBlock *bb);
     void clearQueue();
@@ -91,16 +89,33 @@ public:
     }
     void runOnFunction(Function *f);
 
-    std::vector<ASBlock *> getBBOrder() {
-        for (auto it:_queue){
-            _mapped_queue.push_back(f_bb[it]);
-        }
-        return _mapped_queue;
+    std::vector<BasicBlock *> getBBOrder() {
+        return _queue;
     }
 
-    std::vector<ASBlock *> getInverseBBOrder() {
+    std::vector<BasicBlock *> getInverseBBOrder() {
         auto ret = getBBOrder();
         std::reverse(ret.begin(), ret.end());
+        return ret;
+    }
+
+    std::vector<ASBlock *> getASMBBOrder(std::map<Value *, ASValue *> &map) {
+        std::vector<ASBlock *> ret;
+        for (auto bb: getBBOrder()) {
+            auto asm_bb = dynamic_cast<ASBlock *>(map[bb]);
+            assert(asm_bb && "Can't get ASM Block by BasicBlock");
+            ret.push_back(asm_bb);
+        }
+        return ret;
+    }
+
+    std::vector<ASBlock *> getInverseASMBBOrder(std::map<Value *, ASValue *> &map) {
+        std::vector<ASBlock *> ret;
+        for (auto bb: getInverseBBOrder()) {
+            auto asm_bb = dynamic_cast<ASBlock *>(map[bb]);
+            assert(asm_bb && "Can't get ASM Block by BasicBlock");
+            ret.push_back(asm_bb);
+        }
         return ret;
     }
 };
@@ -155,9 +170,11 @@ private:
     std::vector<Interval> active;
     std::vector<Interval> inactive;
     std::vector<Interval> handled;
+    // Mapping provided by ASM Builder
+    std::map<Value *, ASValue*> map;
     // We use this class to transfer data between methods
     BBOrderGenerator _BG;
-    void assignOpID(ASFunction *f);
+    void assignOpID(Function *of, ASFunction *f);
     void buildIntervals();
     void linearScan();
     bool tryAllocateFreeRegister(Interval &current, int position);
