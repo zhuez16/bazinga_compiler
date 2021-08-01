@@ -112,20 +112,20 @@ int main(int argc, char **argv) {
 //    PM.add_pass<Global2Local>();
     m->set_print_name();
 //    printf("start running pass manager\n");
-//    PM.add_pass<Global2Local>();
+    PM.add_pass<Global2Local>();
     PM.add_pass<Mem2Reg>();
 //    if ( const_propagation ) {
-//        PM.add_pass<ConstFoldingDCEliminating>();
-//        PM.add_pass<CodeElimination>();
+        PM.add_pass<ConstFoldingDCEliminating>();
+        PM.add_pass<CodeElimination>();
 //    }
 //    if ( code_sink ) {
-//        PM.add_pass<CodeSinking>();
+        PM.add_pass<CodeSinking>();
 //    }
-//    PM.add_pass<active_vars>();
-//    PM.add_pass<LoopSearch>();
-//    PM.add_pass<LoopExpansion>();
+    PM.add_pass<ActiveVars>();
+    PM.add_pass<LoopSearch>();
+    PM.add_pass<LoopExpansion>();
 //    if( loop_search ){
-//        PM.add_pass<LoopSearch>();
+        PM.add_pass<LoopSearch>();
 //    }
 //    if( const_propagation )
 //    {
@@ -143,7 +143,7 @@ int main(int argc, char **argv) {
 //        PM.add_pass<AvailableExpression>(true);
 //    }
 //    printf("555\n");
-    //PM.add_pass<CFG_simply>();
+    PM.add_pass<CFG_simply>();
     PM.run();
     auto IR = m->print();
 
@@ -164,7 +164,7 @@ int main(int argc, char **argv) {
         else return 1;
     }
 
-
+/*
     codegen temp=codegen(m);
     std::map<Value *, int> reg_alloc;
     reg_alloc=temp.regAlloc();
@@ -177,5 +177,6 @@ int main(int argc, char **argv) {
     output_asm_stream.open(output_asm_file, std::ios::out);
     output_asm_stream << asm_code;
     output_asm_stream.close();
+    */
     return 0;
 }
