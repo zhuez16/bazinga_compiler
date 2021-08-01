@@ -77,7 +77,7 @@ public:
 
     void setName(std::string n) { _name = std::move(n); }
 
-    void expandNumOperand(int by) { _operands.resize(_operands.size() + by); }
+    void expandNumOperand(unsigned by) { _operands.resize(_operands.size() + by); }
 };
 
 class ASArgument : public ASValue {
@@ -115,6 +115,7 @@ public:
     std::vector<int> getArrayInitial() { return _initial; }
 
     static ASGlobalValue *create(std::string name, Type *ty, Constant *init = nullptr) {
+        // TODO Init
         auto ret = new ASGlobalValue(std::move(name), {});
         if (ty->is_int32_type()) { ret->_array = false; ret->_size = 1; }
         else {
@@ -224,11 +225,7 @@ public:
 
     ASFunction *getFunction() const { return _parent; }
 
-    static ASBlock *createBlock(ASFunction *parent, std::string name) {
-        auto ret = new ASBlock(std::move(name));
-        ret->setParent(parent);
-        return ret;
-    }
+    static ASBlock *createBlock(ASFunction *parent, const std::string& name);
 
     std::string print(RegMapper *mapper) final;
 };
@@ -238,10 +235,10 @@ private:
     std::list<ASBlock *> _block_list;
     std::map<void *, int> _stack;
     std::map<Argument *, ASArgument *> _arg_map;
-    int _num_args = 0;
+    unsigned _num_args = 0;
     int _sp_pointer = 0;
 
-    explicit ASFunction(std::string name, int num_args) : ASLabel(std::move(name)), _num_args(num_args) {
+    explicit ASFunction(std::string name, unsigned num_args) : ASLabel(std::move(name)), _num_args(num_args) {
         expandNumOperand(num_args);
         for (int i = 0; i < num_args; ++i) {
             setOperand(i, ASArgument::createArgument());
@@ -264,7 +261,7 @@ public:
     // 在函数栈空间中分配存储
     int allocStack(void *base, int requiredSize) {
         int current_sp = _sp_pointer;
-        _sp_pointer += requiredSize;
+        _sp_pointer += requiredSize * 4;
         _stack[base] = current_sp;
         return current_sp;
     }
@@ -293,7 +290,7 @@ public:
     ASArgument *getArgument(int idx) const { return dynamic_cast<ASArgument *>(getOperand(idx)); }
     ASArgument *getArgument(Argument *ori) { return _arg_map.at(ori); }
 
-    static ASFunction *createFunction(std::string name, int i) { return new ASFunction(std::move(name), i); }
+    static ASFunction *createFunction(std::string name, unsigned i) { return new ASFunction(std::move(name), i); }
 
     std::string print(RegMapper *mapper) final;
 };
@@ -475,6 +472,10 @@ public:
 
     ASLabel *getLabel() const { return dynamic_cast<ASLabel *>(getOperand(0)); }
 
+    bool isLinkBr() const { return _withLink; }
+
+    ASMBranchCond getCondition() const { return _cond; }
+
     std::string print(RegMapper *mapper) final;
 };
 
@@ -585,19 +586,28 @@ private:
 
 public:
     void addPhiPair(ASBlock *from, ASValue *value) {
+        int currentNumOperands = getNumOperands();
         expandNumOperand(2);
-        setOperand(0, from);
-        setOperand(1, value);
+        setOperand(currentNumOperands, from);
+        setOperand(currentNumOperands + 1, value);
     }
 
     static ASPhiInst *getPhi() { return new ASPhiInst(); }
 
+    std::vector<std::pair<ASBlock *, ASValue *>> getBBValuePair() {
+        std::vector<std::pair<ASBlock *, ASValue *>> ret;
+        for (int i = 0; i < getNumOperands(); i+=2) {
+            ret.emplace_back(dynamic_cast<ASBlock *>(getOperand(i)), getOperand(i + 1));
+        }
+        return ret;
+    }
+
     std::string print(RegMapper *mapper) final;
 };
 
-/**
+/*
  * 固定的寄存器。这些寄存器无需进行寄存器分配且必须满足要求
- */
+
 class ASFixedRegister : public ASValue {
 private:
     explicit ASFixedRegister(int id) : ASValue(0), regId(id) {}
@@ -610,7 +620,7 @@ public:
 
     std::string print(RegMapper *mapper) final;
 };
-
+*/
 class ASFunctionCall : public ASInstruction {
 private:
     explicit ASFunctionCall(ASFunction *f, const std::vector<ASValue *> &params) : ASInstruction(
@@ -653,7 +663,6 @@ public:
     int getSize() const { return _sz; }
     int getBase() const { return _base; }
 
-    std::string print(RegMapper *mapper) final;
 };
 
 class ASReturn : public ASInstruction {
@@ -665,6 +674,7 @@ private:
 
 public:
     bool isVoid() const { return getNumOperands() == 0; }
+    ASValue *getReturnValue() const { assert(!isVoid() && "Void return doesn't have a return value."); return getOperand(0); }
     static ASReturn *getReturn(ASValue *ret) { return new ASReturn(ret); }
     static ASReturn *getReturn() { return new ASReturn(); }
 

@@ -66,8 +66,15 @@ private:
         _gv[ori] = ne;
         globals.push_back(ne);
     }
+
+    void setFunction(Function *ori, ASFunction *f) {
+        _mapping[ori] = f;
+        functions.push_back(f);
+    }
 public:
     void build(Module *m);
+    std::vector<ASGlobalValue *> getGlobalValuables() { return globals; }
+    std::vector<ASFunction *> getFunctions() { return functions; }
 };
 
 #endif //BAZINGA_COMPILER_ASMBUILDER_H
