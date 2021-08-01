@@ -11,7 +11,7 @@ bool isa(ASValue *inst) { return dynamic_cast<T *>(inst) == nullptr; }
 
 void ASValue::setOperand(unsigned idx, ASValue *v) {
     if (auto inst = dynamic_cast<ASInstruction *>(v)) {
-        assert(inst->hasResult() && "Only an instruction with a result can be used as operand.");
+        assert(inst->getInstType() == ASInstruction::ASMCallTy || inst->hasResult() && "Only an instruction with a result can be used as operand.");
     }
     // 单独处理Operand 2
     if (auto op2 = dynamic_cast<ASOperand2 *>(v)) {

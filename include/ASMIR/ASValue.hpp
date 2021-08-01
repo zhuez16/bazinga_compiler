@@ -194,7 +194,8 @@ public:
     bool hasResult() const {
         auto ty = getInstType();
         return ty == ASMAddTy || ty == ASMSubTy || ty == ASMMulTy || ty == ASMDivTy || ty == ASMLsrTy ||
-               ty == ASMLslTy || ty == ASMLoadTy || ty == ASMMovTy || ty == ASMMvnTy || ty == ASMAsrTy;
+               ty == ASMLslTy || ty == ASMLoadTy || ty == ASMMovTy || ty == ASMMvnTy || ty == ASMAsrTy ||
+               ty == ASMPhiTy || ty == ASMCallTy;
     }
 };
 
@@ -220,6 +221,12 @@ public:
     }
 
     std::list<ASInstruction *> getInstList() { return _inst_list; }
+
+    std::list<ASInstruction *> getReverseInstList() {
+        std::list<ASInstruction *> ret = _inst_list;
+        std::reverse(ret.begin(), ret.end());
+        return ret;
+    }
 
     void setParent(ASFunction *f) { _parent = f; }
 
@@ -287,8 +294,8 @@ public:
 
     void setArgumentMapping(int idx, Argument *ori) { _arg_map[ori] = dynamic_cast<ASArgument *>(getOperand(idx)); }
 
-    ASArgument *getArgument(int idx) const { return dynamic_cast<ASArgument *>(getOperand(idx)); }
-    ASArgument *getArgument(Argument *ori) { return _arg_map.at(ori); }
+    ASValue *getArgument(int idx) const { return dynamic_cast<ASArgument *>(getOperand(idx)); }
+    ASValue *getArgument(Argument *ori) { return _arg_map.at(ori); }
 
     static ASFunction *createFunction(std::string name, unsigned i) { return new ASFunction(std::move(name), i); }
 

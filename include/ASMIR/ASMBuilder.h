@@ -40,19 +40,6 @@ private:
         _current_func = _current_block->getFunction();
     }
 
-    template<class T> T* getMapping(Value *ori) {
-        assert(_mapping.find(ori) != _mapping.end() && "Can't find mapping for value");
-        return dynamic_cast<T *>(_mapping[ori]);
-    }
-
-    ASValue *getMapping(Value *ori) {
-        if (auto c = dynamic_cast<ConstantInt *>(ori)) {
-            return ASConstant::getConstant(c->get_value());
-        }
-        assert(_mapping.find(ori) != _mapping.end() && "Can't find mapping for value");
-        return _mapping[ori];
-    }
-
     ASFunction *getCurrentFunction() const {
         return _current_func;
     }
@@ -75,6 +62,21 @@ public:
     void build(Module *m);
     std::vector<ASGlobalValue *> getGlobalValuables() { return globals; }
     std::vector<ASFunction *> getFunctions() { return functions; }
+
+    template<class T> T* getMapping(Value *ori) {
+        assert(_mapping.find(ori) != _mapping.end() && "Can't find mapping for value");
+        return dynamic_cast<T *>(_mapping[ori]);
+    }
+
+    ASValue *getMapping(Value *ori) {
+        if (auto c = dynamic_cast<ConstantInt *>(ori)) {
+            return ASConstant::getConstant(c->get_value());
+        }
+        assert(_mapping.find(ori) != _mapping.end() && "Can't find mapping for value");
+        return _mapping[ori];
+    }
+
+    std::map<Value *, ASValue *> getValueMap() const { return _mapping; }
 };
 
 #endif //BAZINGA_COMPILER_ASMBUILDER_H

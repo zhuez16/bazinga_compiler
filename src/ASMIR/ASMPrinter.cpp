@@ -18,24 +18,30 @@ const std::map<ASInstruction::ASMInstType, std::string>
                           {ASInstruction::ASMStoreTy, "str"},
                           {ASInstruction::ASMBrTy, "b"},
                           {ASInstruction::ASMCmpTy, "cmp"},
-                          {ASInstruction::ASMCmzTy, "cmz"}
+                          {ASInstruction::ASMCmzTy, "cmz"},
+                          {ASInstruction::ASMCallTy, "call"},
+                          {ASInstruction::ASMLslTy, "lsl"},
+                          {ASInstruction::ASMLsrTy, "lsr"}
                   });
 
 
 std::string PrintReg(int i) { return " r" + std::to_string(i); }
 
 std::string ASFunctionCall::print(RegMapper *mapper) {
-    std::string ret;
+    std::string ret = l_spacing;
     // TODO
     // Step 1: push all active vars in registers into the stack, except the one to store the return value.
 
     // Step 2: generate br asm code
     ret += OpNameMap.at(getInstType());
+    // TODO: remove this if function doesn't have a return value
     ret += mapper->getName(this, this);
     ret += ", ";
     ret += mapper->getName(this, getOperand(0));
-    ret += ", ";
-    ret += mapper->getName(this, getOperand(1));
+    for (int i = 1; i < getNumOperands(); ++i) {
+        ret += ", ";
+        ret += mapper->getName(this, getOperand(i));
+    }
     ret += "\n";
     // Step 3: pull all active vars from the stack to the register.
     return ret;
@@ -117,9 +123,9 @@ std::string ASFunction::print(RegMapper *mapper) {
     for (auto arg: getArguments()) {
         ret += l_spacing + "@Arg: " + mapper->getName(nullptr, arg) + "\n";
     }
-    ret += "push {r11, lr}\n";
-    ret += "add r11, sp, #0\n";
-    ret += "sub sp,, sp, #" + std::to_string(getStackSize()) + "\n";
+    ret += l_spacing + "push {r11, lr}\n";
+    ret += l_spacing + "add r11, sp, #0\n";
+    ret += l_spacing + "sub sp, sp, #" + std::to_string(getStackSize()) + "\n";
 
     return ret;
 }

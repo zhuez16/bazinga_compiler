@@ -1,5 +1,5 @@
 #include "pass/loop_expansion.h"
-
+#include "pass/CFG.h"
 bool  simplify = true;
 
 Function *curfun;
@@ -208,6 +208,12 @@ void LoopExpansion::run() {
             }
         }
     }
+//    auto cfg = new CFG(m_);
+//    for(auto fun: m_->get_functions()){
+//        cfg->runOnFunction(fun);
+//        auto str = cfg->printAsMermaid();
+//        std::cout << str << std::endl;
+//    }
 }
 
 
@@ -556,34 +562,32 @@ BasicBlock * LoopExpansion::unroll_loop(int expansion_time, BasicBlock *judge_bb
     std::vector<BasicBlock *> wait_delete_bb;
     auto judge_bb_final = judge_bb->get_terminator();
     auto loop_bb_final = loop_bb->get_terminator();
-    auto target_bb = judge_bb_final->get_operand(2);
-    for(auto succ: judge_bb->get_succ_basic_blocks()){
-        wait_delete_bb.push_back(succ);
-    }
-    for(auto bb: wait_delete_bb){
-        judge_bb->remove_succ_basic_block(bb);
-    }
-    judge_bb->remove_pre_basic_block(loop_bb);
+    auto target_bb = dynamic_cast<BasicBlock *>(judge_bb_final->get_operand(2));
     for(auto instr: judge_bb->get_instructions()){
         wait_delete_instr.push_back(instr);
     }
     for(auto instr: wait_delete_instr){
         judge_bb->delete_instr(instr);
     }
-    auto judge_br_instr = BranchInst::create_br(bb, judge_bb);
-    auto bb_br_instr = BranchInst::create_br(loop_bb, bb);
-    bb->add_succ_basic_block(loop_bb);
-    bb->add_pre_basic_block(judge_bb);
-    loop_bb->remove_succ_basic_block(judge_bb);
-    loop_bb->add_pre_basic_block(bb);
-    wait_delete_instr.clear();
-    wait_delete_bb.clear();
     for(auto instr: loop_bb->get_instructions()){
         wait_delete_instr.push_back(instr);
     }
     for(auto instr: wait_delete_instr){
         loop_bb->delete_instr(instr);
     }
-    auto loop_br_instr = BranchInst::create_br(dynamic_cast<BasicBlock *>(target_bb), loop_bb);
+    // judge --> loop --> bb --> target
+    auto judge_br_instr = BranchInst::create_br(loop_bb, judge_bb);
+    auto loop_br_instr = BranchInst::create_br(bb, loop_bb);
+    auto bb_br_instr = BranchInst::create_br(target_bb, bb);
+    judge_bb->remove_succ_basic_block(target_bb);
+    judge_bb->remove_pre_basic_block(loop_bb);
+    target_bb->remove_pre_basic_block(judge_bb);
+//    target_bb->add_pre_basic_block(bb);
+//    bb->add_succ_basic_block(target_bb);
+//    bb->add_pre_basic_block(loop_bb);
+    loop_bb->remove_succ_basic_block(judge_bb);
+//    loop_bb->add_succ_basic_block(bb);
+    wait_delete_instr.clear();
+    wait_delete_bb.clear();
     return bb;
 }
