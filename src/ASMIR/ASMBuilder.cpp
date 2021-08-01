@@ -26,14 +26,14 @@ void ASMBuilder::build(Module *m) {
     _mapping.clear();
     // Add all global values
     for (auto gv: m->get_global_variable()) {
-        ASGlobalValue::create(gv->get_name(), gv->get_type(), gv->get_init());
+        setGlobalValue(gv, ASGlobalValue::create(gv->get_name(), gv->get_type(), gv->get_init()));
     }
     // Prepare all labels, so that br inst can find its destination
     for (auto f: m->get_functions()) {
         if (!f->is_declaration()) {
             // Step 1. Add all function to mapping
-            auto asFunc = ASFunction::createFunction(f->get_name(), f->get_num_of_args());
-            _mapping[f] = asFunc;
+            auto asFunc = ASFunction::createFunction(f->get_name(), (int)f->get_num_of_args());
+            setFunction(f, asFunc);
             // Step 2. Add function arguments to mapping
             // At this time we assume that we have infinity registers, so all params are passed through register
             // Don't consider opt here. Push r0 - r3 into stack if needed
@@ -226,6 +226,9 @@ void ASMBuilder::build(Module *m) {
                             auto st = dynamic_cast<StoreInst *>(inst);
                             auto from = st->get_operand(1);
                             auto data = getMapping(st->get_operand(0));
+                            if (auto co = dynamic_cast<ASConstant *>(data)) {
+                                data = insert(ASUnaryInst::createASMMov(co));
+                            }
                             if (auto gv = dynamic_cast<GlobalVariable *>(from)) {
                                 // Global int
                                 auto ld_label = ASLoadInst::createLoad(getGlobalValue(gv));
@@ -338,10 +341,10 @@ void ASMBuilder::build(Module *m) {
                                 int const_offset = 0;
                                 std::vector<ASBinaryInst *> var_offset;
                                 // 先把当前GEP内的总偏移计算出来，注意区分常量与变量
-                                for (int i = 1; i < gep->get_num_operand(); ++i) {
+                                for (int i = 2; i < gep->get_num_operand(); ++i) {
                                     auto idx = gep->get_operand(i);
                                     if (auto c = dynamic_cast<ConstantInt *>(idx)) {
-                                        const_offset += c->get_value() * accumulate_offset[i - 1];
+                                        const_offset += c->get_value() * accumulate_offset[i - 2];
                                     }
                                     else {
                                         var_offset.push_back(ASBinaryInst::createASMMul(getMapping(idx), ASConstant::getConstant(accumulate_offset[i - 1])));
