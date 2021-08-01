@@ -159,9 +159,10 @@ void Interval::addRange(int from, int to){
         }
     }
     for (auto it:delete_list){
-        this->_intervals.erase(it);
+        std::remove(this->_intervals.begin(),this->_intervals.end(),it);
+
     }
-    this->_intervals.push_front(temp);
+    this->_intervals.push_back(temp);
     std::sort(this->_intervals.begin(),this->_intervals.end());
 }
 
