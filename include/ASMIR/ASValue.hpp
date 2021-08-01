@@ -5,6 +5,7 @@
 #include <list>
 #include <cassert>
 #include <string>
+#include <utility>
 #include <vector>
 #include <map>
 
@@ -38,7 +39,7 @@ public:
         ASGlobalTy
     };
 private:
-    AS_TY _ty;
+    AS_TY _ty {};
     std::vector<ASValue *> _operands;
     std::list<ASUse> _use;
     std::string _name;
@@ -74,25 +75,27 @@ public:
 
     std::string getName() const { return _name; }
 
-    void setName(std::string n) { _name = n; }
+    void setName(std::string n) { _name = std::move(n); }
 
     void expandNumOperand(int by) { _operands.resize(_operands.size() + by); }
 };
 
 class ASArgument : public ASValue {
 private:
-
+    ASArgument() : ASValue(0) {}
 public:
-    static ASArgument *createArgument();
+    static ASArgument *createArgument() { return new ASArgument(); }
+
+    std::string print(RegMapper *mapper) final;
 };
 
 class ASGlobalValue : public ASValue {
 private:
-    bool _array;
-    int _size;
+    bool _array{};
+    int _size{};
     std::vector<int> _initial;
-    ASGlobalValue(std::string name, const std::vector<int> &init) : ASValue(0), _initial(init) {
-
+    ASGlobalValue(std::string name, std::vector<int> init) : ASValue(0), _initial(std::move(init)) {
+        setName(std::move(name));
     }
 public:
     bool isArray() const { return _array; }
@@ -102,25 +105,32 @@ public:
         return _size;
     }
 
-    int getInitialValue() const { return _initial[0]; }
+    int getInitialValue() const {
+        if (!_initial.empty())
+            return _initial[0];
+        else
+            return 0;
+    }
 
     std::vector<int> getArrayInitial() { return _initial; }
 
     static ASGlobalValue *create(std::string name, Type *ty, Constant *init = nullptr) {
-        auto ret = new ASGlobalValue(name, {});
-        if (ty->is_int32_type()) { ret->_array = false; }
+        auto ret = new ASGlobalValue(std::move(name), {});
+        if (ty->is_int32_type()) { ret->_array = false; ret->_size = 1; }
         else {
             ret->_array = true;
             int sz = 1;
             auto arr_ty = dynamic_cast<ArrayType *>(ty);
             while (arr_ty) {
-                sz *= arr_ty->get_num_of_elements();
+                sz *= (int)arr_ty->get_num_of_elements();
                 arr_ty = dynamic_cast<ArrayType *>(arr_ty->get_array_element_type());
             }
             ret->_size = sz;
         }
         return ret;
     }
+
+    std::string print(RegMapper *mapper) final;
 };
 
 class ASConstant : public ASValue {
@@ -134,6 +144,8 @@ public:
     static ASConstant *getConstant(int constVal) { return new ASConstant(constVal); }
 
     int getValue() const { return _value; }
+
+    std::string print(RegMapper *mapper) final;
 };
 
 class ASInstruction : public ASValue {
@@ -183,7 +195,6 @@ public:
         return ty == ASMAddTy || ty == ASMSubTy || ty == ASMMulTy || ty == ASMDivTy || ty == ASMLsrTy ||
                ty == ASMLslTy || ty == ASMLoadTy || ty == ASMMovTy || ty == ASMMvnTy || ty == ASMAsrTy;
     }
-
 };
 
 class ASLabel : public ASValue {
@@ -207,6 +218,8 @@ public:
         _inst_list.push_back(inst);
     }
 
+    std::list<ASInstruction *> getInstList() { return _inst_list; }
+
     void setParent(ASFunction *f) { _parent = f; }
 
     ASFunction *getFunction() const { return _parent; }
@@ -216,6 +229,8 @@ public:
         ret->setParent(parent);
         return ret;
     }
+
+    std::string print(RegMapper *mapper) final;
 };
 
 class ASFunction : public ASLabel {
@@ -265,12 +280,22 @@ public:
 
     int getNumArguments() const { return _num_args; }
 
+    std::vector<ASArgument *> getArguments() {
+        std::vector<ASArgument *> ret;
+        for (auto op: getOperands()) {
+            ret.push_back(dynamic_cast<ASArgument *>(op));
+        }
+        return ret;
+    }
+
     void setArgumentMapping(int idx, Argument *ori) { _arg_map[ori] = dynamic_cast<ASArgument *>(getOperand(idx)); }
 
     ASArgument *getArgument(int idx) const { return dynamic_cast<ASArgument *>(getOperand(idx)); }
     ASArgument *getArgument(Argument *ori) { return _arg_map.at(ori); }
 
     static ASFunction *createFunction(std::string name, int i) { return new ASFunction(std::move(name), i); }
+
+    std::string print(RegMapper *mapper) final;
 };
 
 /**
@@ -316,11 +341,13 @@ public:
     ASValue *getRm() const { return base; }
 
     ASValue *getRs() const { return shift; }
+
+    std::string print(RegMapper *mapper) final;
 };
 
 class ASBinaryInst : public ASInstruction {
 private:
-    ASBinaryInst(ASMInstType ty) : ASInstruction(2, ty) {}
+    explicit ASBinaryInst(ASMInstType ty) : ASInstruction(2, ty) {}
 
 public:
     static ASBinaryInst *createASMAdd(ASValue *Rn, ASValue *Op2) {
@@ -371,11 +398,13 @@ public:
         ret->setOperand(1, Rs);
         return ret;
     }
+
+    std::string print(RegMapper *mapper) final;
 };
 
 class ASUnaryInst : public ASInstruction {
 private:
-    ASUnaryInst(ASMInstType ty) : ASInstruction(1, ty) {}
+    explicit ASUnaryInst(ASMInstType ty) : ASInstruction(1, ty) {}
 
 public:
     static ASUnaryInst *createASMMov(ASValue *Op2) {
@@ -389,11 +418,13 @@ public:
         ret->setOperand(0, Op2);
         return ret;
     }
+
+    std::string print(RegMapper *mapper) final;
 };
 
 class ASCmpInst : public ASInstruction {
 private:
-    ASCmpInst(ASMInstType ty) : ASInstruction(2, ty) {}
+    explicit ASCmpInst(ASMInstType ty) : ASInstruction(2, ty) {}
 
 public:
     static ASCmpInst *createASMCmp(ASValue *Rn, ASValue *Op2) {
@@ -409,6 +440,8 @@ public:
         ret->setOperand(1, Op2);
         return ret;
     }
+
+    std::string print(RegMapper *mapper) final;
 };
 
 class ASBranchInst : public ASInstruction {
@@ -439,9 +472,10 @@ public:
     static ASBranchInst *createLinkBranch(ASLabel *lbl) { return new ASBranchInst(CondNo, true, lbl); }
 
     static ASBranchInst *createReturnBranch() { return new ASBranchInst(CondNo, true, nullptr); } // BX
-    std::string print(RegMapper *mapper) final;
 
     ASLabel *getLabel() const { return dynamic_cast<ASLabel *>(getOperand(0)); }
+
+    std::string print(RegMapper *mapper) final;
 };
 
 class ASPushInst : public ASInstruction {
@@ -450,6 +484,8 @@ private:
 
 public:
     static ASPushInst *createPush() { return new ASPushInst(); }
+
+    std::string print(RegMapper *mapper) final;
 };
 
 class ASPopInst : public ASInstruction {
@@ -458,55 +494,89 @@ private:
 
 public:
     static ASPopInst *createPush() { return new ASPopInst(); }
+
+    std::string print(RegMapper *mapper) final;
 };
 
 class ASLoadInst : public ASInstruction {
 private:
-    explicit ASLoadInst(ASInstruction *Rn) : ASInstruction(1, ASMLoadTy) {
+    explicit ASLoadInst(ASValue *Rn) : ASInstruction(1, ASMLoadTy) {
         setOperand(0, Rn);
     }
 
-    ASLoadInst(ASInstruction *Rn, ASOperand2 *Op2) : ASInstruction(2, ASMLoadTy) {
+    ASLoadInst(ASValue *Rn, ASValue *Op2) : ASInstruction(2, ASMLoadTy) {
         setOperand(0, Rn);
         setOperand(1, Op2);
     }
 
+    bool _isSpOffset = false;
+    bool _isLabel = false;
+
+
 public:
     // ldr r1, =label
-    static ASLoadInst *createLoad(ASGlobalValue *gv);
+    static ASLoadInst *createLoad(ASGlobalValue *gv) {
+        auto ret = new ASLoadInst(gv);
+        ret->_isLabel = true;
+        return ret;
+    }
     // ldr r1, [r2, r3]
-    static ASLoadInst *createLoad(ASInstruction *Rn, ASValue *Op2);
-    static ASLoadInst *createLoad(ASInstruction *Rn);
+    static ASLoadInst *createLoad(ASInstruction *Rn, ASValue *Op2) {
+        return new ASLoadInst(Rn, Op2);
+    }
+    // ldr r1, [r2]
+    static ASLoadInst *createLoad(ASInstruction *Rn) {
+        return new ASLoadInst(Rn);
+    }
     // ldr r1, [sp, r2]
-    static ASLoadInst *createSpLoad(ASValue *Rn);
+    static ASLoadInst *createSpLoad(ASValue *Rn) {
+        auto ret = new ASLoadInst(Rn);
+        ret->_isSpOffset = true;
+        return ret;
+    }
     // ldr r1, [r2, r3]
-    static ASLoadInst *createLoad(ASArgument *arg, ASValue *Op2);
+    static ASLoadInst *createLoad(ASArgument *arg, ASValue *Op2) {
+        return new ASLoadInst(arg, Op2);
+    }
+
+    std::string print(RegMapper *mapper) final;
 };
 
 class ASStoreInst : public ASInstruction {
 private:
-    ASStoreInst(ASInstruction *Rd, ASInstruction *Rn) : ASInstruction(2, ASMLoadTy) {
+    ASStoreInst(ASValue *Rd, ASValue *Rn) : ASInstruction(2, ASMLoadTy) {
         setOperand(0, Rd);
         setOperand(1, Rn);
     }
 
-    ASStoreInst(ASInstruction *Rd, ASInstruction *Rn, ASOperand2 *Op2) : ASInstruction(3, ASMLoadTy) {
+    ASStoreInst(ASValue *Rd, ASValue *Rn, ASValue *Op2) : ASInstruction(3, ASMLoadTy) {
         setOperand(0, Rd);
         setOperand(1, Rn);
         setOperand(2, Op2);
     }
 
+    bool _isSp = false;
 public:
-    // ldr r1, =label
-    static ASStoreInst *createStore(ASValue *data, ASGlobalValue *gv);
-    // ldr r1, [r2, r3]
-    static ASStoreInst *createStore(ASValue *data, ASInstruction *Rn, ASValue *Op2);
-    // ldr r1, [r2]
-    static ASStoreInst *createStore(ASValue *data, ASInstruction *Rn);
-    // ldr r1, [sp, r2]
-    static ASStoreInst *createSpStore(ASValue *data, ASValue *Rn);
-    // ldr r1, [r2, r3]
-    static ASStoreInst *createStore(ASValue *data, ASArgument *arg, ASValue *Op2);
+    // str r1, [r2, r3]
+    static ASStoreInst *createStore(ASValue *data, ASInstruction *Rn, ASValue *Op2) {
+        return new ASStoreInst(data, Rn, Op2);
+    }
+    // str r1, [r2]
+    static ASStoreInst *createStore(ASValue *data, ASInstruction *Rn) {
+        return new ASStoreInst(data, Rn);
+    }
+    // str r1, [sp, r2]
+    static ASStoreInst *createSpStore(ASValue *data, ASValue *Rn) {
+        auto ret = new ASStoreInst(data, Rn);
+        ret->_isSp = true;
+        return ret;
+    }
+    // str r1, [r2, r3]
+    static ASStoreInst *createStore(ASValue *data, ASArgument *arg, ASValue *Op2) {
+        return new ASStoreInst(data, arg, Op2);
+    }
+
+    std::string print(RegMapper *mapper) final;
 };
 
 class ASPhiInst : public ASInstruction {
@@ -521,6 +591,8 @@ public:
     }
 
     static ASPhiInst *getPhi() { return new ASPhiInst(); }
+
+    std::string print(RegMapper *mapper) final;
 };
 
 /**
@@ -535,6 +607,8 @@ public:
     int getRegID() const { return regId; }
 
     static ASFixedRegister *getRegister(int regId) { return new ASFixedRegister(regId); }
+
+    std::string print(RegMapper *mapper) final;
 };
 
 class ASFunctionCall : public ASInstruction {
@@ -578,12 +652,14 @@ public:
 
     int getSize() const { return _sz; }
     int getBase() const { return _base; }
+
+    std::string print(RegMapper *mapper) final;
 };
 
 class ASReturn : public ASInstruction {
 private:
     ASReturn() : ASInstruction(0, ASMRetTy){}
-    ASReturn(ASValue *ret) : ASInstruction(1, ASMRetTy) {
+    explicit ASReturn(ASValue *ret) : ASInstruction(1, ASMRetTy) {
         setOperand(0, ret);
     }
 
@@ -591,4 +667,6 @@ public:
     bool isVoid() const { return getNumOperands() == 0; }
     static ASReturn *getReturn(ASValue *ret) { return new ASReturn(ret); }
     static ASReturn *getReturn() { return new ASReturn(); }
+
+    std::string print(RegMapper *mapper) final;
 };

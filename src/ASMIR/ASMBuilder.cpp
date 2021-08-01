@@ -141,8 +141,20 @@ void ASMBuilder::build(Module *m) {
                             }
                             break;
                         }
-                        case Instruction::mod:
+                        case Instruction::mod: {
+                            // TODO: Fast up when one of the operand is a constant
+                            // A naive impl of mod: a % b = a - (a / b) * b
+                            // 如果Op1是常数则需要mov指令
+                            auto a = getMapping(inst->get_operand(0));
+                            auto b = getMapping(inst->get_operand(1));
+                            if (auto c_a = dynamic_cast<ASConstant *>(a)) {
+                                a = insert(ASUnaryInst::createASMMov(c_a));
+                            }
+                            auto adb = insert(ASBinaryInst::createASMDiv(a, b));
+                            auto apb = insert(ASBinaryInst::createASMMul(adb, b));
+                            insertAndAddToMapping(inst, ASBinaryInst::createASMSub(a, apb));
                             break;
+                        }
                         /**
                          * Alloca 语句不生成可执行的代码而仅在栈上分配一段空间，将空间的基址存入mapping中
                          */
@@ -212,8 +224,8 @@ void ASMBuilder::build(Module *m) {
                         }
                         case Instruction::store:{
                             auto st = dynamic_cast<StoreInst *>(inst);
-                            auto from = st->get_operand(0);
-                            auto data = getMapping(st->get_rval());
+                            auto from = st->get_operand(1);
+                            auto data = getMapping(st->get_operand(0));
                             if (auto gv = dynamic_cast<GlobalVariable *>(from)) {
                                 // Global int
                                 auto ld_label = ASLoadInst::createLoad(getGlobalValue(gv));

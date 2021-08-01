@@ -4,7 +4,10 @@
 
 #include "ASMIR/ASValue.hpp"
 
-template <class T> bool isa(ASValue *inst) { return dynamic_cast<T *>(inst) == nullptr; }
+template<class T>
+bool isa(ASValue *inst) { return dynamic_cast<T *>(inst) == nullptr; }
+
+
 
 void ASValue::setOperand(unsigned idx, ASValue *v) {
     if (auto inst = dynamic_cast<ASInstruction *>(v)) {
@@ -23,7 +26,7 @@ void ASValue::setOperand(unsigned idx, ASValue *v) {
             }
         }
     }
-    // 我们不维护Label与Constant的引用关系
+        // 我们不维护Label与Constant的引用关系
     else if (!isa<ASLabel>(v) && !isa<ASConstant>(v)) {
         v->addUser(idx, this);
     }
@@ -46,3 +49,5 @@ std::vector<ASValue *> ASValue::getOperandsWithOp2() {
     }
     return val;
 }
+
+
