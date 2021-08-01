@@ -1279,10 +1279,11 @@ public:
         } else {
             // int a[][const_exp]... 形式的多维指针变量
             _array = true;
+            _dimension = 1;
             TreeNode *pointer = t->children[3];
-            while (pointer->node_type == AST_pointer) {
-                _array_list.push_back(new ASTAddOp(pointer->children[1]));
-                pointer = pointer->children[3];
+            while (pointer && pointer->node_type == AST_pointer) {
+                _array_list.push_back(new ASTAddOp(pointer->children[1]->children[0]));
+                pointer = pointer->children.size() > 3 ? pointer->children[3] : nullptr;
                 _dimension += 1;
             }
         }

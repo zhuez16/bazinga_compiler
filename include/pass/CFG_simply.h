@@ -2,17 +2,16 @@
 // Created by 万嘉诚 on 2021/7/26.
 //
 
-#include "include/IR/BasicBlock.h"
-#include "include/IR/Function.h"
-#include "include/IR/IRbuilder.h"
-#include "include/IR/Instruction.h"
-#include "include/IR/Module.h"
+#include "IR/BasicBlock.h"
+#include "IR/Function.h"
+#include "IR/IRbuilder.h"
+#include "IR/Instruction.h"
+#include "IR/Module.h"
 #include "pass_manager.h"
 
 class CFG_simply : public Pass {
 private:
   Function *func_;
-  std::vector<BasicBlock *> bb_del;
   CFG_simply();
 
 public:

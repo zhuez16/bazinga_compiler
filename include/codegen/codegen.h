@@ -45,7 +45,6 @@ const int cache_line_size=1<<cache_line_bits;
 const int mt_num_threads=4;
 const int L1_cache_size=32*(1<<10);
 const int L2_cache_size=1*(1<<20);
-const int clone_flag=CLONE_VM ;
 
 
 const int stack_top_address=0x1000-4096;
@@ -93,6 +92,7 @@ public:
     std::string getSpecificReg(Value *val, int source, int offsets=0);
     std::string generateGlobalVarsCode();
     std::string generateInitializerCode(Constant *init);
+    std::string generateZeroInitialCode(Type *init);
     int getGlobalAddress(Value *val);
     std::pair<int,bool> constIntVal(Value *val);
     std::string comment(std::string s);

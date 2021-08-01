@@ -4,5 +4,8 @@ build/
 .idea/
 cmake-build-debug/
 cmake-build-default/
+.vscode
+IR.bak/
+functional_test/
 .DS_Store
 functional_test/*.ll

@@ -9,9 +9,9 @@
 #include "pass/loop_search.h"
 #include "pass/active_vars.h"
 
-#define R 12
+#define R 10
 
-bool regs[R]={true,true,true,true,true,true,true,true,true,true,true,true};
+bool regs[R]={true,true,true,true,true,true,true,true,true,true};
 class LiveInterval {
 
 private:

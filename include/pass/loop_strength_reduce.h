@@ -17,7 +17,7 @@ struct Trace {
         ADD,
         SUB
     };
-    std::vector<std::pair<Value *, OpType>> var;
+    std::vector<std::pair<Value *, OpType>> var;    // 循环的
     std::set<Instruction *> infer_set;              // 记录了计算InferValue的语句，这些语句不会被重写
     int constant = 0;
     Instruction *entryPhi = nullptr;
