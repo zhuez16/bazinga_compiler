@@ -37,9 +37,22 @@ void ASMBuilder::build(Module *m) {
             // Step 2. Add function arguments to mapping
             // At this time we assume that we have infinity registers, so all params are passed through register
             // Don't consider opt here. Push r0 - r3 into stack if needed
+            // TODO: maybe we have a better way to handle this ?
+            /*
             int i = 0;
             for (auto arg: f->get_args()) {
-                asFunc->setArgumentMapping(i++, arg);
+                asFunc->setArgumentMapping(i, arg);
+                _mapping[arg] = asFunc->getArgument(i++);
+            }
+             */
+            // Create a entry block
+            auto i_bb = ASBlock::createBlock(asFunc, asFunc->getName() + "_Init");
+            setInsertBlock(i_bb);
+            // Use mov / ldr to match the RegAlloc Algo
+            int i = 0;
+            for (auto arg: f->get_args()) {
+                if (i < 4) insertAndAddToMapping(arg, ASUnaryInst::createASMMov(ASConstant::getConstant(0)));
+                else insertAndAddToMapping(arg, ASLoadInst::createSpLoad(ASConstant::getConstant(0)));
             }
             // Step 3. Add all basic blocks to mapping
             for (auto bb: f->get_basic_blocks()) {
@@ -105,6 +118,8 @@ void ASMBuilder::build(Module *m) {
                                     }
                                     insert(ASBranchInst::createBranch(getMapping<ASLabel>(br->getFalseBB())));
                                 }
+                            } else {
+                                insert(ASBranchInst::createBranch(getMapping<ASLabel>(br->getTrueBB())));
                             }
                             break;
                         }
@@ -206,7 +221,7 @@ void ASMBuilder::build(Module *m) {
                                 else if (auto a = dynamic_cast<Argument *>(top)) {
                                     // 直接Load即可
                                     // TODO: Argument -> ASArgument map
-                                    insertAndAddToMapping(inst, ASLoadInst::createLoad(getCurrentFunction()->getArgument(a), offset));
+                                    insertAndAddToMapping(inst, ASLoadInst::createLoad(getMapping<ASInstruction>(a), offset));
                                 }
                                 // Alloca出来的数组
                                 else if (auto al = dynamic_cast<AllocaInst *>(top)) {
@@ -260,7 +275,7 @@ void ASMBuilder::build(Module *m) {
                                     // 参数变量
                                 else if (auto a = dynamic_cast<Argument *>(top)) {
                                     // 直接Load即可
-                                    insertAndAddToMapping(inst, ASStoreInst::createStore(data, getCurrentFunction()->getArgument(a), offset));
+                                    insertAndAddToMapping(inst, ASStoreInst::createStore(data, getMapping<ASInstruction>(a), offset));
                                 }
                                     // Alloca出来的数组
                                 else if (auto al = dynamic_cast<AllocaInst *>(top)) {
@@ -292,7 +307,7 @@ void ASMBuilder::build(Module *m) {
                                 params.push_back(getMapping(call->get_operand(i)));
                             }
                             auto ci = ASFunctionCall::getCall(callee, params);
-                            if (ci->isVoid()) {
+                            if (call->get_type()->is_void_type()) {
                                 insert(ci);
                             } else {
                                 insertAndAddToMapping(inst, ci);

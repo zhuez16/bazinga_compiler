@@ -69,15 +69,23 @@ void BBOrderGenerator::runOnLoop(Loop *loop) {
 
 void LinearScanSSA::assignOpID(Function *of, ASFunction *f) {
     int id = 1;
-    for (auto bb: _BG.getASMBBOrder(map)) {
+    for (auto bb: BG->getASMBBOrder(map)) {
         int begin = id;
         for (auto inst: bb->getInstList()) {
-            _inst_id[inst] = id++;
+            _inst_id[inst] = id;
+            _interval[inst] = Interval(inst, id);
+            if (inst->getInstType() == ASInstruction::ASMCallTy) {
+                for (int i = 0; i < 4; ++i) {
+                    Interval iv(id, i);
+                    fixed.push_back(iv);
+                }
+            }
+            ++id;
         }
         int end = id - 1;
         _block_id[bb] = BlockIDRange(begin, end);
     }
-    for (auto loop: _lp.get_loop(of)) {
+    for (auto loop: _lp->get_loop(of)) {
         int start = INT_MAX;
         int end = 0;
         for (auto bb: loop->get_loop()) {
@@ -90,13 +98,13 @@ void LinearScanSSA::assignOpID(Function *of, ASFunction *f) {
 }
 
 void LinearScanSSA::buildIntervals() {
-    for (auto bb: _BG.getInverseBBOrder()) {
+    for (auto bb: BG->getInverseBBOrder()) {
         LiveData live;
         auto ASBB = dynamic_cast<ASBlock *>(map[bb]);
         assert(ASBB && "Can't get ASM Block.");
         BlockIDRange bbRange = _block_id[ASBB];
         // Union all live in of successors
-        for(auto succ: _cfg.getSuccBB(bb)) {
+        for(auto succ: _cfg->getSuccBB(bb)) {
             live.unionLive(_live[dynamic_cast<ASBlock *>(succ)]);
         }
         // Update live data
@@ -113,7 +121,7 @@ void LinearScanSSA::buildIntervals() {
             }
             // 没有返回值的也要考虑使用到的操作数。遍历来源操作数并设置Range，跳过常量、全局量、BB
             for (auto opd: op->getOperands()) {
-                if (dynamic_cast<Instruction *>(opd) || dynamic_cast<Argument *>(opd)) {
+                if (dynamic_cast<ASInstruction *>(opd) || dynamic_cast<ASArgument *>(opd)) {
                     _interval[opd].addRange(bbRange.from, _inst_id[op]);
                     live.add(opd);
                 }
@@ -129,7 +137,7 @@ void LinearScanSSA::buildIntervals() {
             }
         }
         // Process Loop
-        if (auto loop = _lp.get_smallest_loop(bb)) {
+        if (auto loop = _lp->get_smallest_loop(bb)) {
             if (loop->get_loop_entry() == bb) {
                 auto lrg = _loop_id[loop];
                 for (auto op: live) {
@@ -173,7 +181,7 @@ void LinearScanSSA::linearScan() {
     active.clear();
     inactive.clear();
     // Step 1. 构造按Begin排序的Intervals
-    for (auto i: _interval) {
+    for (const auto& i: _interval) {
         unhandled.push_back(i.second);
     }
     std::sort(unhandled.begin(), unhandled.end());
@@ -209,9 +217,12 @@ void LinearScanSSA::linearScan() {
             }
         }
         // find a register for current
-        if (!tryAllocateFreeRegister(current)) {
+        if (!tryAllocateFreeRegister(current, current.getBegin())) {
             // Fail to find a empty register to allocate
-            allocateBlockedRegister();
+            allocateBlockedRegister(current, current.getBegin());
+        }
+        if (current.getRegister() != -1) {
+            active.push_back(current);
         }
     }
 }
@@ -219,11 +230,11 @@ void LinearScanSSA::linearScan() {
 bool LinearScanSSA::tryAllocateFreeRegister(Interval &current, int position) {
     int freeUntilPosition[NUM_REG];
     // set freeUntilPos of all physical registers to maxInt
-    for (int i = 0; i < NUM_REG; ++i) {
-        freeUntilPosition[i] = INT_MAX;
+    for (int & i : freeUntilPosition) {
+        i = INT_MAX;
     }
     // active and inactive
-    for (auto it: active) {
+    for (const auto& it: active) {
         freeUntilPosition[it.getRegister()] = 0;
     }
     for (auto it: inactive) {
@@ -280,18 +291,18 @@ void LinearScanSSA::allocateBlockedRegister(Interval &current, int position) {
     int nextUse = current.getNextUse(position);
     if (nextUse > nextUsePos[max_idx]) {
         // all other intervals are used before current, so it is best to spill current itself
-        int spillId = requireNewSpillSlot();
+        int spillId = requireNewSpillSlot(current.getValue());
         current.setSpill(spillId);
         unhandled.push_back(current.split(nextUse));
         std::sort(unhandled.begin(), unhandled.end());
     } else {
         bool flag = true;
         // make sure that current does not intersect with the fixed interval for reg
-        for(auto it : fixed){
+        for(const auto& it : fixed){
             if (it.intersect(current))
-                if(it.getRegister()==max_id)
+                if(it.getRegister()==max_idx)
                 {
-                    int spillId = requireNewSpillSlot();
+                    int spillId = requireNewSpillSlot(current.getValue());
                     current.setSpill(spillId);
                     unhandled.push_back(current.split(nextUse));
                     std::sort(unhandled.begin(), unhandled.end());
@@ -320,7 +331,7 @@ void LinearScanSSA::allocateBlockedRegister(Interval &current, int position) {
             }
         }
         current.setRegister(max_idx);
-        int spillId = requireNewSpillSlot();
+        int spillId = requireNewSpillSlot(to_spill.getValue());
         to_spill.setSpill(spillId);
         unhandled.push_back(to_spill.split(nextUsePos[max_idx]));
         std::sort(unhandled.begin(), unhandled.end());
