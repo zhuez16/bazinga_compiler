@@ -16,7 +16,8 @@
 #include "pass/dominator.h"
 #include "pass/loop_search.h"
 #include "pass/active_vars.h"
-
+#include "ASMIR/ASMBuilder.h"
+#include "ASMIR/ASValue.hpp"
 #define NUM_REG 10
 
 struct BlockIDRange {
@@ -32,7 +33,7 @@ class Interval {
     int _end;
     int _reg;
     int _spill;
-    Value *_v;
+    ASValue *_v;
 
 public:
     void addRange(int from, int to);
@@ -40,7 +41,7 @@ public:
     void setFrom(int from);
     void setSpill(int spillSlot);
     void setRegister(int regId);
-    void getIntervals(){return _intervals;}
+    std::vector<std::pair<int,int>> getIntervals(){return _intervals;}
 
     /**
      * 将当前块划分为两部分
@@ -77,6 +78,8 @@ private:
     std::set<BasicBlock *> _visited;
     std::vector<BasicBlock *> _queue;
     std::queue<BasicBlock *> _visit_queue;
+    std::vector<ASBlock *> _mapped_queue;
+    std::map<BasicBlock *, ASBlock *> f_bb;
     void runOnLoop(Loop *loop);
     bool visited(BasicBlock *bb);
     void clearQueue();
@@ -88,11 +91,14 @@ public:
     }
     void runOnFunction(Function *f);
 
-    std::vector<BasicBlock *> getBBOrder() {
-        return _queue;
+    std::vector<ASBlock *> getBBOrder() {
+        for (auto it:_queue){
+            _mapped_queue.push_back(f_bb[it]);
+        }
+        return _mapped_queue;
     }
 
-    std::vector<BasicBlock *> getInverseBBOrder() {
+    std::vector<ASBlock *> getInverseBBOrder() {
         auto ret = getBBOrder();
         std::reverse(ret.begin(), ret.end());
         return ret;
@@ -101,9 +107,9 @@ public:
 
 struct LiveData {
 private:
-    std::set<Value *> _live;
+    std::set<ASValue *> _live;
 public:
-    void unionLive(const std::unordered_set<Value *> &lv) {
+    void unionLive(const std::unordered_set<ASValue *> &lv) {
         for (auto v: lv) {
             _live.insert(v);
         }
@@ -115,16 +121,16 @@ public:
         }
     }
 
-    std::set<Value *>::iterator begin() {
+    std::set<ASValue *>::iterator begin() {
         return _live.begin();
     }
 
-    std::set<Value *>::iterator end() {
+    std::set<ASValue *>::iterator end() {
         return _live.end();
     }
 
-    void erase(Value *v) { _live.erase(v); }
-    void add(Value *v) { _live.insert(v); }
+    void erase(ASValue *v) { _live.erase(v); }
+    void add(ASValue *v) { _live.insert(v); }
 };
 
 /**
@@ -139,11 +145,11 @@ private:
     CFG _cfg;
     LoopSearch _lp;
 
-    std::map<Instruction *, int> _inst_id;
-    std::map<BasicBlock *, BlockIDRange> _block_id;
+    std::map<ASInstruction *, int> _inst_id;
+    std::map<ASBlock *, BlockIDRange> _block_id;
     std::map<Loop *, BlockIDRange> _loop_id;
-    std::map<BasicBlock *, LiveData> _live;
-    std::map<Value *, Interval> _interval;
+    std::map<ASBlock *, LiveData> _live;
+    std::map<ASValue *, Interval> _interval;
     // Data structure for linear scan algo
     std::vector<Interval> unhandled;
     std::vector<Interval> active;
@@ -151,7 +157,7 @@ private:
     std::vector<Interval> handled;
     // We use this class to transfer data between methods
     BBOrderGenerator _BG;
-    void assignOpID(Function *f);
+    void assignOpID(ASFunction *f);
     void buildIntervals();
     void linearScan();
     bool tryAllocateFreeRegister(Interval &current, int position);

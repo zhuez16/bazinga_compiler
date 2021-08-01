@@ -11,17 +11,17 @@
 
 
 void BBOrderGenerator::clearQueue() {
-    std::queue<BasicBlock *> empty_queue;
+    std::queue<ASBlock *> empty_queue;
     std::swap(_visit_queue, empty_queue);
     _visited.clear();
     _queue.clear();
 }
 
-bool BBOrderGenerator::visited(BasicBlock *bb) {
+bool BBOrderGenerator::visited(ASBlock *bb) {
     return _visited.find(bb) != _visited.end();
 }
 
-void BBOrderGenerator::runOnFunction(Function *f) {
+void BBOrderGenerator::runOnFunction(ASFunction *f) {
     if (f->is_declaration()) return;
     clearQueue();
     _cfg->runOnFunction(f);
@@ -47,7 +47,7 @@ void BBOrderGenerator::runOnFunction(Function *f) {
 }
 
 void BBOrderGenerator::runOnLoop(Loop *loop) {
-    std::queue<BasicBlock *> visit_queue;
+    std::queue<ASBlock *> visit_queue;
     visit_queue.push(loop->get_loop_entry());
     while (!visit_queue.empty()) {
         auto bb = visit_queue.front();
@@ -67,7 +67,7 @@ void BBOrderGenerator::runOnLoop(Loop *loop) {
     }
 }
 
-void LinearScanSSA::assignOpID(Function *f) {
+void LinearScanSSA::assignOpID(ASFunction *f) {
     int id = 1;
     for (auto bb: _BG.getBBOrder()) {
         int begin = id;
