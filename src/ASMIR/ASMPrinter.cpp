@@ -25,6 +25,17 @@ std::string PrintReg(int i) { return " r" + std::to_string(i); }
 std::string ASFunctionCall::print(RegMapper *mapper) {
     std::string ret;
     // TODO
+    // Step 1: push all active vars in registers into the stack, except the one to store the return value.
+
+    // Step 2: generate br asm code
+    ret += OpNameMap.at(getInstType());
+    ret += mapper->getName(this, this);
+    ret += ", ";
+    ret += mapper->getName(this, getOperand(0));
+    ret += ", ";
+    ret += mapper->getName(this, getOperand(1));
+    ret += "\n";
+    // Step 3: pull all active vars from the stack to the register.
     return ret;
 }
 
@@ -85,12 +96,22 @@ std::string ASBlock::print(RegMapper *mapper) {
 
 std::string ASFunction::print(RegMapper *mapper) {
     // TODO: Function header
+
+    /*
+     * push   {r11, lr}
+     * add    r11, sp, #0
+     * sub    sp, sp, #16
+     * */
     auto ret = "ASFunction: " + getName() + ":\n";
     ret += s_spacing + "@ Alloca Stack Required: " + std::to_string(getStackSize()) + '\n';
     ret += s_spacing + "@ Arguments:\n";
     for (auto arg: getArguments()) {
         ret += l_spacing + "@Arg: " + mapper->getName(nullptr, arg) + "\n";
     }
+    ret += "push {r11, lr}\n";
+    ret += "add r11, sp, #0\n";
+    ret += "sub sp,, sp, #" + std::to_string(getStackSize()) + "\n";
+
     return ret;
 }
 

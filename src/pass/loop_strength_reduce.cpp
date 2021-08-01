@@ -148,6 +148,11 @@ void LoopStrengthReduce::runOnFunction(Function *f) {
     for (Loop *loop: lp->get_loop(f)) {
         Trace t;
         auto inst = getInferVariable(loop, t);
+        for (auto use:t.entryPhi.get_use_list()){
+            if (auto rtype = dynamic_cast<BinaryInst*>(use.val_)){
+
+            }
+        }
         if (inst == nullptr) continue;
         std::cout << inst->print() << std::endl;
         std::cout << t.print_trace() << std::endl;
