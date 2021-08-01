@@ -11,6 +11,7 @@
 #include "pass/active_vars.h"
 #include "pass/CFG_simply.h"
 #include "pass/CodeElimination.h"
+#include "pass/power_sum.h"
 #include "codegen/codegen.h"
 #include "codegen/instgen.h"
 #include <cstring>
@@ -115,7 +116,7 @@ int main(int argc, char **argv) {
     PM.add_pass<Global2Local>();
     PM.add_pass<Mem2Reg>();
 //    if ( const_propagation ) {
-    //PM.add_pass<ConstFoldingDCEliminating>();
+    PM.add_pass<ConstFoldingDCEliminating>();
     PM.add_pass<CodeElimination>();
 //    }
 //    if ( code_sink ) {
@@ -123,7 +124,12 @@ int main(int argc, char **argv) {
 //    }
     PM.add_pass<ActiveVars>();
     PM.add_pass<LoopSearch>();
-//    PM.add_pass<LoopExpansion>();
+    PM.add_pass<LoopExpansion>();
+    PM.add_pass<ConstFoldingDCEliminating>();
+    PM.add_pass<CodeElimination>();
+    PM.add_pass<power_sum_delete>();
+//    PM.add_pass<CFG_simply>();
+
 //    if( loop_search ){
 //        PM.add_pass<LoopSearch>();
 //    }
@@ -143,7 +149,7 @@ int main(int argc, char **argv) {
 //        PM.add_pass<AvailableExpression>(true);
 //    }
 //    printf("555\n");
-    PM.add_pass<CFG_simply>();
+//    PM.add_pass<CFG_simply>();
     PM.run();
     auto IR = m->print();
 
