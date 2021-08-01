@@ -59,7 +59,7 @@ void ASMBuilder::build(Module *m) {
                         case Instruction::ret: {
                             auto ret = dynamic_cast<ReturnInst *>(inst);
                             // Check if it is a void function
-                            if (!ret->is_void_ret()) {
+                            if (ret->is_void_ret()) {
                                 insert(ASReturn::getReturn());
                             } else {
                                 insert(ASReturn::getReturn(getMapping(ret->get_operand(0))));
@@ -260,7 +260,6 @@ void ASMBuilder::build(Module *m) {
                                     // 参数变量
                                 else if (auto a = dynamic_cast<Argument *>(top)) {
                                     // 直接Load即可
-                                    // TODO: Argument -> ASArgument map
                                     insertAndAddToMapping(inst, ASStoreInst::createStore(data, getCurrentFunction()->getArgument(a), offset));
                                 }
                                     // Alloca出来的数组
