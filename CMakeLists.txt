@@ -59,6 +59,7 @@ ADD_EXECUTABLE(parser
 #         src/pass/GVN.cpp
 #         src/pass/CodeElimination.cpp)
 ADD_EXECUTABLE(compiler
+        src/codegen/linearScanOnSSA.cpp
         src/codegen/codegen.cpp
         src/codegen/instgen.cpp
         src/codegen/regAlloc.cpp
@@ -74,7 +75,7 @@ ADD_EXECUTABLE(compiler
         src/pass_manager.cpp
         src/pass/active_vars.cpp
 #        src/pass/SCPcombineDCE.cpp
-        )
+        src/pass/reassociate.cpp include/pass/reassociate.h)
 # TARGET_LINK_LIBRARIES(
 #         builder IR_lib
 # )

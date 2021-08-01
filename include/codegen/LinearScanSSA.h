@@ -38,9 +38,24 @@ class Interval {
 public:
     void addRange(int from, int to);
     void addRange(const BlockIDRange &br) { addRange(br.from,br.to); }
-    void setFrom(int from);
-    void setSpill(int spillSlot);
-    void setRegister(int regId);
+    void setFrom(int from){
+        this->_begin=from;
+        this->_intervals.front().first=from;
+    }
+    void setSpill(int spillSlot){
+        for (auto it:this->_intervals){
+            if (it.first < spillSlot && it.second > spillSlot){
+                addRange(it.first,spillSlot-1);
+                addRange(spillSlot,it.second);
+                std::remove(this->_intervals.begin(),this->_intervals.end(),it);
+                break;
+            }
+        }
+        std::sort(this->_intervals.begin(),this->_intervals.end());
+    }
+    void setRegister(int regId){
+        this->_reg=regId;
+    }
     std::vector<std::pair<int,int>> getIntervals(){ return _intervals; }
 
     /**
@@ -52,16 +67,58 @@ public:
      * @param position
      * @return
      */
-    Interval split(int position);
+    Interval split(int position){
+        setSpill(position);
+        Interval P1;
+        for (auto it: this->_intervals){
+            if (it.first>=position){
+                P1._intervals.push_back(it);
+                P1._end=it.second;
+            }
+        }
+        P1._begin=position;
+        while (this->_intervals.back().first >= position) this->_intervals.pop_back();
+        this->_end=position-1;
+        return P1;
+    }
 
-    int getBegin() const;
-    int getEnd() const;
-    int getRegister() const;
-    int getNextUse(int after) const;
-    bool cover(int pos) const;
-    bool intersect(const Interval &current) const;
-    int intersect(int pos, const Interval &current);
-    int getNextUse(int after);
+    int getBegin() const {return this->_begin;};
+    int getEnd() const {return this->_end;};
+    int getRegister() const {return this->_reg;};
+    int getNextUse(int after) const {
+        for (auto it: this->_intervals){
+            if (it.first >= after)
+                return it.first;
+        }
+    };
+    bool cover(int pos) const {
+        for (auto it: this->_intervals){
+            if (it.first <= pos && pos <= it.second)
+                return true;
+        }
+        return false;
+    };
+    bool intersect(const Interval &current) const {
+        for (auto it_cur:current._intervals){
+            for (auto it_this:this->_intervals){
+                if (it_cur.first < it_this.second && it_cur.second > it_this.first){
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
+    int intersect(int pos, const Interval &current){
+        for (auto it_cur:current._intervals){
+            for (auto it_this:this->_intervals){
+                if (it_cur.first < it_this.second && it_cur.second > it_this.first){
+                    if (it_cur.first > pos)
+                        return it_cur.first;
+                }
+            }
+        }
+        return 0;
+    }
 
     bool operator< (const Interval &rhs) const {
         return _begin < rhs._begin;

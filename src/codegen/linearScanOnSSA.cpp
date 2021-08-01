@@ -5,7 +5,7 @@
 #include "codegen/LinearScanSSA.h"
 #include <vector>
 #include <algorithm>
-
+#include <climits>
 
 
 
