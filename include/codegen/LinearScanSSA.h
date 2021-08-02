@@ -264,6 +264,7 @@ public:
         _lp = new LoopSearch(m);
         BG = new BBOrderGenerator(m);
         _lp->run();
+        std::cout << "======= BEGIN BUILD INTERVAL DUMP ========" << std::endl;
         for (auto f: m->get_functions()) {
             if (!f->is_declaration()) {
                 _cfg->runOnFunction(f);
@@ -271,15 +272,16 @@ public:
                 auto asmF = builder->getMapping<ASFunction>(f);
                 currentFunc = asmF;
                 assignOpID(f, asmF);
+                std::cout << "Function Name: " << f->get_name() << std::endl;
+                for (const auto& iv: _interval) {
+                    std::cout << iv.second.toString(rm);
+                }
                 buildIntervals();
                 linearScan();
             }
         }
-        std::cout << "======= BEGIN BUILD INTERVAL DUMP ========" << std::endl;
-        for (const auto& iv: _interval) {
-            std::cout << iv.second.toString(rm);
-        }
         std::cout << "======= END BUILD INTERVAL DUMP ========\n\n" << std::endl;
+
     }
 
     std::vector<Interval> getInterval() { return handled; };

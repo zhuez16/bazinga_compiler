@@ -68,6 +68,7 @@ void BBOrderGenerator::runOnLoop(Loop *loop) {
 }
 
 void LinearScanSSA::assignOpID(Function *of, ASFunction *f) {
+    _interval.clear();
     int id = 1;
     // 加入init块访问
     auto init_bb = f->getBlockList().front();
