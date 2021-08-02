@@ -34,6 +34,7 @@ class Interval {
     int _end;
     int _reg;
     int _spill;
+    bool _fixed = false;
     ASValue *_v = nullptr;
 
 public:
@@ -44,6 +45,9 @@ public:
         ret += "  Range: ";
         for (auto iv: _intervals) {
             ret += "[" + std::to_string(iv.first) + " - " + std::to_string(iv.second) + "] ";
+        }
+        if (_fixed) {
+            ret += "  [FIXED]";
         }
         ret += "\n";
         return ret;
@@ -56,10 +60,12 @@ public:
     Interval() : _reg(-1), _begin(INT_MAX), _end(-1), _spill(-1) {
         _intervals.emplace_back(INT_MAX, -1);
     }
-    Interval(int pos, int reg) : _reg(reg), _begin(pos), _end(pos), _spill(-1) {
+    Interval(int pos, int reg, ASValue *v= nullptr, bool fixed= false) : _reg(reg), _begin(pos), _end(pos), _spill(-1), _v(v), _fixed(fixed) {
+        assert(pos > 0 && "Invalid position");
         _intervals.emplace_back(pos, pos);
     }
-    Interval(int from, int to, int reg) : _reg(reg), _begin(from), _end(to), _spill(-1) {
+    Interval(int from, int to, int reg, ASValue *v= nullptr) : _reg(reg), _begin(from), _end(to), _spill(-1), _v(v) {
+        assert(from > 0 && to > from && "Invalid range");
         _intervals.emplace_back(from, to);
     }
 
@@ -71,15 +77,7 @@ public:
         this->_intervals.front().first=from;
     }
     void setSpill(int spillSlot){
-        for (auto it:this->_intervals){
-            if (it.first < spillSlot && it.second > spillSlot){
-                addRange(it.first,spillSlot-1);
-                addRange(spillSlot,it.second);
-                std::remove(this->_intervals.begin(),this->_intervals.end(),it);
-                break;
-            }
-        }
-        std::sort(this->_intervals.begin(),this->_intervals.end());
+        _spill = spillSlot;
     }
     void setRegister(int regId){
         this->_reg=regId;
@@ -98,18 +96,32 @@ public:
      * @return
      */
     Interval split(int position){
-        setSpill(position);
+        // if (position < 0) assert(0);
+        // setSpill(position);
         Interval P1;
-        for (auto it: this->_intervals){
-            if (it.first>=position){
-                P1._intervals.push_back(it);
-                P1._end=it.second;
+        for (auto it = _intervals.begin(); it != _intervals.end(); ++it){
+            if (it->first <= position && it->second >= position && it->first!=it->second){
+//                addRange(it->first,position-1);
+//                addRange(position,it->second);
+                while (_intervals.back().first != it->first){
+                    P1._intervals.insert(P1._intervals.begin(),_intervals.back());
+                    _intervals.pop_back();
+                }
+                auto pair1=std::make_pair(it->first,position-1);
+                _intervals.pop_back();
+                _intervals.push_back(pair1);
+                P1.addRange(position,this->_end);
+                this->_end=position-1;
+                break;
             }
         }
-        P1._begin=position;
-        while (this->_intervals.back().first >= position) this->_intervals.pop_back();
-        this->_end=position-1;
         P1.setValue(getValue());
+        // P1._begin=position;
+//        while (this->_intervals.back().first >= position) this->_intervals.pop_back();
+//        this->_end=position-1;
+//        P1.setValue(getValue());
+//        P1.setRegister(-1);
+//        P1.setSpill(-1);
         return P1;
     }
 
@@ -118,10 +130,10 @@ public:
     int getRegister() const {return this->_reg;};
     int getNextUse(int after) const {
         for (auto it: this->_intervals){
-            if (it.first >= after)
+            if (it.first > after)
                 return it.first;
         }
-        return -1;
+        return INT_MAX;
     };
     bool cover(int pos) const {
         for (auto it: this->_intervals){
@@ -242,11 +254,12 @@ public:
  */
 class LinearScanSSA {
 public:
-    void run(ASMBuilder *builder, Module *m) {
+    void run(ASMBuilder *builder, Module *m, RegMapper *rm) {
         map = builder->getValueMap();
         delete _cfg;
         delete _lp;
         delete BG;
+        unhandled.clear();
         _cfg = new CFG(m);
         _lp = new LoopSearch(m);
         BG = new BBOrderGenerator(m);
@@ -260,12 +273,13 @@ public:
                 assignOpID(f, asmF);
                 buildIntervals();
                 linearScan();
-
-                for (auto it: handled) {
-
-                }
             }
         }
+        std::cout << "======= BEGIN BUILD INTERVAL DUMP ========" << std::endl;
+        for (const auto& iv: _interval) {
+            std::cout << iv.second.toString(rm);
+        }
+        std::cout << "======= END BUILD INTERVAL DUMP ========\n\n" << std::endl;
     }
 
     std::vector<Interval> getInterval() { return handled; };

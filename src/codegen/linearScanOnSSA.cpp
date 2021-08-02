@@ -69,6 +69,14 @@ void BBOrderGenerator::runOnLoop(Loop *loop) {
 
 void LinearScanSSA::assignOpID(Function *of, ASFunction *f) {
     int id = 1;
+    // 加入init块访问
+    auto init_bb = f->getBlockList().front();
+    // 保证只有mov和load
+    for (auto inst: init_bb->getInstList()) {
+        _inst_id[inst] = id;
+        _interval[inst] = Interval(inst, id);
+        ++id;
+    }
     for (auto bb: BG->getASMBBOrder(map)) {
         int begin = id;
         for (auto inst: bb->getInstList()) {
@@ -78,7 +86,7 @@ void LinearScanSSA::assignOpID(Function *of, ASFunction *f) {
             }
             if (inst->getInstType() == ASInstruction::ASMCallTy) {
                 for (int i = 0; i < 4; ++i) {
-                    Interval iv(id, i);
+                    Interval iv(id, i, inst, true);
                     fixed.push_back(iv);
                 }
             }
@@ -153,6 +161,13 @@ void LinearScanSSA::buildIntervals() {
 
 
 void Interval::addRange(int from, int to){
+    if (_end == -1) {
+        _intervals.clear();
+        _intervals.emplace_back(from, to);
+        _begin = from;
+        _end = to;
+        return;
+    }
     std::pair<int,int> temp=std::make_pair(from,to);
     this->_begin = std::min(this->_begin, from);
     this->_end = std::max(this->_end, to);
@@ -178,12 +193,23 @@ void Interval::addRange(int from, int to){
 void LinearScanSSA::linearScan() {
     // 清空所有缓存
     unhandled.clear();
-    handled.clear();
+    // handled.clear();
     active.clear();
     inactive.clear();
     // Step 1. 构造按Begin排序的Intervals
     for (const auto& i: _interval) {
-        unhandled.push_back(i.second);
+        // 若是函数调用返回则固定到0号寄存器
+        if (dynamic_cast<ASInstruction *>(i.first)->getInstType() == ASInstruction::ASMCallTy) {
+            auto a = i.second;
+            a.setRegister(0);
+            unhandled.push_back(a);
+        } else {
+            unhandled.push_back(i.second);
+        }
+    }
+    // 将函数的Fixed也传进去
+    for (const auto& f: fixed) {
+        active.push_back(f);
     }
     std::sort(unhandled.begin(), unhandled.end());
     while (!unhandled.empty()) {
@@ -194,7 +220,7 @@ void LinearScanSSA::linearScan() {
         // check for intervals in active that are handled or inactive
         auto it = active.begin();
         while ( it != active.end()) {
-            if ((*it).getEnd() < position) {
+            if ((*it).getEnd() <= position) {
                 handled.push_back(*it);
                 it = active.erase(it);
             } else if (!it->cover(position)) {
@@ -207,12 +233,12 @@ void LinearScanSSA::linearScan() {
         // check for intervals in inactive that are handled or active
         auto it2 = inactive.begin();
         while (it2 != inactive.end()) {
-            if (it2->getEnd() < position) {
+            if (it2->getEnd() <= position) {
                 handled.push_back(*it2);
-                it2 = active.erase(it2);
+                it2 = inactive.erase(it2);
             } else if (it2->cover(position)) {
                 active.push_back(*it2);
-                it2 = active.erase(it2);
+                it2 = inactive.erase(it2);
             } else {
                 it2++;
             }
@@ -248,10 +274,15 @@ bool LinearScanSSA::tryAllocateFreeRegister(Interval &current, int position) {
                 freeUntilPosition[it.getRegister()] = std::min(nextPos, freeUntilPosition[it.getRegister()]);
         }
     }
+    // 如果一个Interval已经分配了寄存器，我们认为他被指派了固定寄存器编号
     // reg = register with highest freeUntilPos
     int max_idx = 0;
-    for (int i = 1; i < NUM_REG; ++i) {
-        if (freeUntilPosition[i] > freeUntilPosition[max_idx]) max_idx = i;
+    if (current.getRegister() != -1) {
+        max_idx = current.getRegister();
+    } else {
+        for (int i = 1; i < NUM_REG; ++i) {
+            if (freeUntilPosition[i] > freeUntilPosition[max_idx]) max_idx = i;
+        }
     }
     if (freeUntilPosition[max_idx] == 0) {
         // 没有空闲寄存器，分配失败
@@ -275,25 +306,28 @@ bool LinearScanSSA::tryAllocateFreeRegister(Interval &current, int position) {
 void LinearScanSSA::allocateBlockedRegister(Interval &current, int position) {
     int nextUsePos[NUM_REG];
     // set freeUntilPos of all physical registers to maxInt
-    for (int i = 0; i < NUM_REG; ++i) {
-        nextUsePos[i] = INT_MAX;
+    for (int & nextUsePo : nextUsePos) {
+        nextUsePo = INT_MAX;
     }
     // active and inactive
-    for (auto it: active) {
+    for (const auto& it: active) {
         nextUsePos[it.getRegister()] = std::min(it.getNextUse(position), nextUsePos[it.getRegister()]);
     }
-    for (auto it: inactive) {
+    for (const auto& it: inactive) {
         if (it.intersect(current))
             nextUsePos[it.getRegister()] = std::min(it.getNextUse(position), nextUsePos[it.getRegister()]);
     }
     // reg = register with highest freeUntilPos
     int max_idx = 0;
-    for (int i = 1; i < NUM_REG; ++i) {
-        if (nextUsePos[i] > nextUsePos[max_idx]) max_idx = i;
+    if (current.getRegister() != -1) {
+        max_idx = current.getRegister();
+    } else {
+        for (int i = 1; i < NUM_REG; ++i) {
+            if (nextUsePos[i] > nextUsePos[max_idx]) max_idx = i;
+        }
     }
-
     int nextUse = current.getNextUse(position);
-    if (nextUse > nextUsePos[max_idx]) {
+    if (current.getRegister() == -1 && nextUse > nextUsePos[max_idx]) {
         // all other intervals are used before current, so it is best to spill current itself
         int spillId = requireNewSpillSlot(current.getValue());
         current.setSpill(spillId);
@@ -302,6 +336,7 @@ void LinearScanSSA::allocateBlockedRegister(Interval &current, int position) {
     } else {
         bool flag = true;
         // make sure that current does not intersect with the fixed interval for reg
+        /*
         for(const auto& it : fixed){
             if (it.intersect(current))
                 if(it.getRegister()==max_idx)
@@ -313,6 +348,8 @@ void LinearScanSSA::allocateBlockedRegister(Interval &current, int position) {
                     return;
                 }
         }
+         */
+        // 找出当前占用该寄存器的Interval
         Interval to_spill;
         auto it = active.begin();
         while ( it != active.end()) {
@@ -322,6 +359,7 @@ void LinearScanSSA::allocateBlockedRegister(Interval &current, int position) {
                 active.erase(it);
                 break;
             }
+            it++;
         }
         if(flag)
         {
@@ -332,12 +370,21 @@ void LinearScanSSA::allocateBlockedRegister(Interval &current, int position) {
                     inactive.erase(it);
                     break;
                 }
+                it++;
             }
         }
-        current.setRegister(max_idx);
+        // 为Spill分配栈空间
         int spillId = requireNewSpillSlot(to_spill.getValue());
         to_spill.setSpill(spillId);
-        unhandled.push_back(to_spill.split(nextUsePos[max_idx]));
+        // 如果是因为固定寄存器导致Spill，位置设置为当前位置
+        if (current.getRegister() == -1) {
+            unhandled.push_back(to_spill.split(nextUsePos[max_idx]));
+        } else {
+            unhandled.push_back(to_spill.split(position));
+        }
+        handled.push_back(to_spill);
+        // 为当前Interval分配指定寄存器
+        current.setRegister(max_idx);
         std::sort(unhandled.begin(), unhandled.end());
     }
     /*
