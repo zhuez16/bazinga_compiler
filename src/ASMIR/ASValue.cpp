@@ -5,7 +5,7 @@
 #include "ASMIR/ASValue.hpp"
 
 template<class T>
-bool isa(ASValue *inst) { return dynamic_cast<T *>(inst) == nullptr; }
+bool isa(ASValue *inst) { return dynamic_cast<T *>(inst) != nullptr; }
 
 
 
@@ -31,6 +31,13 @@ void ASValue::setOperand(unsigned idx, ASValue *v) {
         v->addUser(idx, this);
     }
     _operands[idx] = v;
+}
+
+bool ASInstruction::hasResult() const {
+    auto ty = getInstType();
+    return ty == ASMAddTy || ty == ASMSubTy || ty == ASMMulTy || ty == ASMDivTy || ty == ASMLsrTy ||
+           ty == ASMLslTy || ty == ASMLoadTy || ty == ASMMovTy || ty == ASMMvnTy || ty == ASMAsrTy ||
+           ty == ASMPhiTy || (ty == ASMCallTy && dynamic_cast<const ASFunction *>(getOperand(0))->hasReturnValue());
 }
 
 std::vector<ASValue *> ASValue::getOperandsWithOp2() {

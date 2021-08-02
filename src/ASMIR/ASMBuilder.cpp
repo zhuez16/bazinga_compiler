@@ -32,7 +32,7 @@ void ASMBuilder::build(Module *m) {
     for (auto f: m->get_functions()) {
         if (!f->is_declaration()) {
             // Step 1. Add all function to mapping
-            auto asFunc = ASFunction::createFunction(f->get_name(), (int)f->get_num_of_args());
+            auto asFunc = ASFunction::createFunction(f->get_name(), (int)f->get_num_of_args(), !f->get_return_type()->is_void_type());
             setFunction(f, asFunc);
             // Step 2. Add function arguments to mapping
             // At this time we assume that we have infinity registers, so all params are passed through register
@@ -59,7 +59,7 @@ void ASMBuilder::build(Module *m) {
                 _mapping[bb] = ASBlock::createBlock(asFunc, bb->get_name());
             }
         } else {
-            _mapping[f] = ASFunction::createFunction(f->get_name(), f->get_num_of_args());
+            _mapping[f] = ASFunction::createFunction(f->get_name(), f->get_num_of_args(), !f->get_return_type()->is_void_type());
         }
     }
     // Code gen

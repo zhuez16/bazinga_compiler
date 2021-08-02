@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 #include <map>
+#include <algorithm>
 
 #include "IR/Function.h"
 #include "ASMIR/RegAllocMapper.h"
@@ -78,6 +79,15 @@ public:
     void setName(std::string n) { _name = std::move(n); }
 
     void expandNumOperand(unsigned by) { _operands.resize(_operands.size() + by); }
+
+    std::string printUser(RegMapper *mapper) {
+        std::string ret = "    @ User: ";
+        for (auto user: getUseList()) {
+            ret += mapper->getName(nullptr, user._user);
+        }
+        ret += "\n";
+        return ret;
+    }
 };
 
 class ASArgument : public ASValue {
@@ -191,12 +201,7 @@ public:
     ASMInstType getInstType() const { return _ty; }
 
     // 若指令包含一个返回值 Rd，则为true，否则为false
-    bool hasResult() const {
-        auto ty = getInstType();
-        return ty == ASMAddTy || ty == ASMSubTy || ty == ASMMulTy || ty == ASMDivTy || ty == ASMLsrTy ||
-               ty == ASMLslTy || ty == ASMLoadTy || ty == ASMMovTy || ty == ASMMvnTy || ty == ASMAsrTy ||
-               ty == ASMPhiTy || ty == ASMCallTy;
-    }
+    bool hasResult() const;
 };
 
 class ASLabel : public ASValue {
@@ -244,8 +249,9 @@ private:
     std::map<Argument *, ASArgument *> _arg_map;
     unsigned _num_args = 0;
     int _sp_pointer = 0;
+    bool _has_ret;
 
-    explicit ASFunction(std::string name, unsigned num_args) : ASLabel(std::move(name)), _num_args(num_args) {
+    explicit ASFunction(std::string name, unsigned num_args, bool hasRet) : ASLabel(std::move(name)), _num_args(num_args), _has_ret(hasRet) {
         expandNumOperand(num_args);
         for (int i = 0; i < num_args; ++i) {
             setOperand(i, ASArgument::createArgument());
@@ -297,9 +303,11 @@ public:
     ASValue *getArgument(int idx) const { return dynamic_cast<ASArgument *>(getOperand(idx)); }
     ASValue *getArgument(Argument *ori) { return _arg_map.at(ori); }
 
-    static ASFunction *createFunction(std::string name, unsigned i) { return new ASFunction(std::move(name), i); }
+    static ASFunction *createFunction(std::string name, unsigned i, bool hasRet) { return new ASFunction(std::move(name), i, hasRet); }
 
     std::string print(RegMapper *mapper) final;
+
+    bool hasReturnValue() const { return _has_ret; }
 };
 
 /**
