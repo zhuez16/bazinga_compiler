@@ -10,7 +10,9 @@
 #include "pass/loop_search.h"
 #include "pass/active_vars.h"
 #include "pass/CFG_simply.h"
+#include "pass/GVN.h"
 #include "pass/CodeElimination.h"
+#include "pass/get_ptr_simply.h"
 #include "codegen/codegen.h"
 #include "codegen/instgen.h"
 #include <cstring>
@@ -115,21 +117,27 @@ int main(int argc, char **argv) {
 //    PM.add_pass<Global2Local>();
     PM.add_pass<Mem2Reg>();
 //    if ( const_propagation ) {
-//        PM.add_pass<ConstFoldingDCEliminating>();
-//        PM.add_pass<CodeElimination>();
+        PM.add_pass<ConstFoldingDCEliminating>();
+        PM.add_pass<CodeElimination>();
 //    }
 //    if ( code_sink ) {
-//        PM.add_pass<CodeSinking>();
+        PM.add_pass<CodeSinking>();
 //    }
 //    PM.add_pass<active_vars>();
 //    PM.add_pass<LoopSearch>();
-//    PM.add_pass<LoopExpansion>();
+    PM.add_pass<LoopExpansion>();
 //    if( loop_search ){
 //        PM.add_pass<LoopSearch>();
 //    }
 //    if( const_propagation )
 //    {
-//        PM.add_pass<ConstPropagation>(true);
+        PM.add_pass<ConstFoldingDCEliminating>();
+        PM.add_pass<CodeElimination>();
+        PM.add_pass<CodeSinking>();
+        PM.add_pass<GVN>();
+        PM.add_pass<GEP_Simply>();
+        PM.add_pass<ConstFoldingDCEliminating>();
+        PM.add_pass<CodeElimination>();
 //    }
 //    if( activevars )
 //    {
@@ -165,17 +173,17 @@ int main(int argc, char **argv) {
     }
 
 
-    codegen temp=codegen(m);
-    std::map<Value *, int> reg_alloc;
-    reg_alloc=temp.regAlloc();
-    for (auto val: reg_alloc){
-        std::cout << val.first->get_name() << " " << val.second << std::endl;
-    }
-    std::string asm_code=temp.generateModuleCode(reg_alloc);
-    std::ofstream output_asm_stream;
-    auto output_asm_file=target_path+".S";
-    output_asm_stream.open(output_asm_file, std::ios::out);
-    output_asm_stream << asm_code;
-    output_asm_stream.close();
+//    codegen temp=codegen(m);
+//    std::map<Value *, int> reg_alloc;
+//    reg_alloc=temp.regAlloc();
+//    for (auto val: reg_alloc){
+//        std::cout << val.first->get_name() << " " << val.second << std::endl;
+//    }
+//    std::string asm_code=temp.generateModuleCode(reg_alloc);
+//    std::ofstream output_asm_stream;
+//    auto output_asm_file=target_path+".S";
+//    output_asm_stream.open(output_asm_file, std::ios::out);
+//    output_asm_stream << asm_code;
+//    output_asm_stream.close();
     return 0;
 }

@@ -63,9 +63,15 @@ ADD_EXECUTABLE(compiler
         src/codegen/instgen.cpp
         src/codegen/regAlloc.cpp
         src/pass/dominator.cpp
+        src/pass/loop_expansion.cpp
+        src/pass/Sink.cpp
         src/pass/mem2reg.cpp
-#        src/pass/loop_search.cpp
-#        src/pass/global2local.cpp
+        src/pass/loop_search.cpp
+        src/pass/GVN.cpp
+        src/pass/global2local.cpp
+        src/pass/CodeElimination.cpp
+        src/pass/get_ptr_simply.cpp
+        src/pass/CFG.cpp
         src/IRbuilder/bzcompiler.cpp
         src/IRbuilder/bzcompiler_builder.cpp
         ${FLEX_lexer2_OUTPUTS}
@@ -73,7 +79,7 @@ ADD_EXECUTABLE(compiler
         src/ast.cpp
         src/pass_manager.cpp
         src/pass/active_vars.cpp
-#        src/pass/SCPcombineDCE.cpp
+        src/pass/SCPcombineDCE.cpp
         )
 # TARGET_LINK_LIBRARIES(
 #         builder IR_lib
