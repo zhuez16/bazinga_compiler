@@ -152,23 +152,20 @@ void LinearScanSSA::buildIntervals() {
 
 void Interval::addRange(int from, int to){
     std::pair<int,int> temp=std::make_pair(from,to);
-    std::vector<std::pair<int,int>> delete_list;
-    for (auto it: this->_intervals){
-        if (temp.second<it.first){
+    for (auto it = _intervals.begin(); it != _intervals.end();){
+        if (temp.second<it->first){
+            ++it;
             break;
         }
-        else if (temp.first>it.second){
+        else if (temp.first>it->second){
+            ++it;
             continue;
         }
         else{
-            delete_list.push_back(it);
-            temp.first=std::min(temp.first,it.first);
-            temp.second=std::max(temp.second,it.second);
+            temp.first=std::min(temp.first,it->first);
+            temp.second=std::max(temp.second,it->second);
+            it = _intervals.erase(it);
         }
-    }
-    for (auto it:delete_list){
-        std::remove(this->_intervals.begin(),this->_intervals.end(),it);
-
     }
     this->_intervals.push_back(temp);
     std::sort(this->_intervals.begin(),this->_intervals.end());
@@ -187,7 +184,7 @@ void LinearScanSSA::linearScan() {
     std::sort(unhandled.begin(), unhandled.end());
     while (!unhandled.empty()) {
         // 弹出队列中的第一个元素
-        Interval &current = unhandled.front();
+        Interval current = unhandled.front();
         unhandled.erase(unhandled.begin());
         int position = current.getBegin();
         // check for intervals in active that are handled or inactive
