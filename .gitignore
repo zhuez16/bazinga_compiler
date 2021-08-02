@@ -9,3 +9,5 @@ IR.bak/
 functional_test/
 .DS_Store
 functional_test/*.ll
+CMakeLists.txt
+src/IRbuilder/bzcompiler.cpp

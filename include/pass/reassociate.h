@@ -11,6 +11,23 @@
 #include <list>
 #include <set>
 #include <map>
+/*
+ * Try to build a simplest reassociate pass
+ * Reassociate all add expr
+ * First transform all expr like A+(B+C) to (B+C)+A
+ * And expr like (A+B)+(C+D) to ((A+B)+C)+D
+ * then try to bubble up all the constant
+ * merge all the constant in the succ of the expr.
+ * */
+
+struct ValueEntry{
+    int rank;
+    Value *val;
+    ValueEntry(int rank, Value *val):rank(rank),val(val){}
+};
+inline bool operator <(const ValueEntry &l, const ValueEntry &r){
+    return l.rank > r.rank;
+}
 
 class reassociate: public Pass {
 public:
@@ -31,16 +48,37 @@ public:
         return false;
     }
 
-    bool getInstrRank(BasicBlock *bb);
 
-    bool get_reassociable(Value *val){
+    bool isReassociable(Value *val){
         if (val->get_use_list().size()<=1)
             return true;
         return false;
     }
+    void moveInstrTo(Instruction *from, Instruction *to){
+        assert(from->get_use_list().size() <= 1);
+        auto remove_bb=from->get_parent();
+        remove_bb->delete_instr(from);
 
+
+        auto *insertbb=to->get_parent();
+        for (auto it:insertbb->get_instructions()){
+            if (it->getSuccInst()==to){
+
+            }
+        }
+    }
+    void fetchAllInstructions(Function *func);
+
+    void BuildRankMap(Function *func);
+    int getValueRank(Value *val);
+    void ReassociateExpr(BinaryInst *instr);
+    void RewriteExprTree(BinaryInst *instr, std::vector<ValueEntry> &expr);
+    Value *OptimizeExpression(BinaryInst *instr, std::vector<ValueEntry> &expr);
+    void linearExprTree(BinaryInst *instr, std::vector<ValueEntry> &expr);
+    void linearExpr(BinaryInst *instr);
 private:
-    std::map<Instruction *, int> inst_rank;
+    std::map<BasicBlock *, int> rank_map;
+    std::map<Value *, int> value_rank_map;
 };
 
 
