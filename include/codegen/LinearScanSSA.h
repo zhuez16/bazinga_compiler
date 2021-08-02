@@ -54,7 +54,7 @@ public:
     }
 
     Interval(ASValue *v, int pos) : _reg(-1), _spill(-1), _begin(pos), _end(pos), _v(v) {
-        _intervals.emplace_back(pos, pos);
+        // _intervals.emplace_back(pos, pos);
     }
 
     Interval() : _reg(-1), _begin(INT_MAX), _end(-1), _spill(-1) {
@@ -96,6 +96,7 @@ public:
      * @return
      */
     Interval split(int position){
+        assert(!isFixed() && "Fixed interval is not splittable");
         // if (position < 0) assert(0);
         // setSpill(position);
         Interval P1;
@@ -163,6 +164,8 @@ public:
         }
         return 0;
     }
+
+    bool isFixed() const { return _fixed; }
 
     bool operator< (const Interval &rhs) const {
         return _begin < rhs._begin;
@@ -272,11 +275,11 @@ public:
                 auto asmF = builder->getMapping<ASFunction>(f);
                 currentFunc = asmF;
                 assignOpID(f, asmF);
+                buildIntervals();
                 std::cout << "Function Name: " << f->get_name() << std::endl;
                 for (const auto& iv: _interval) {
                     std::cout << iv.second.toString(rm);
                 }
-                buildIntervals();
                 linearScan();
             }
         }

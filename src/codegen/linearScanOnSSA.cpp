@@ -109,12 +109,17 @@ void LinearScanSSA::assignOpID(Function *of, ASFunction *f) {
 }
 
 void LinearScanSSA::buildIntervals() {
-    for (auto bb: BG->getInverseBBOrder()) {
+    auto bb_l = BG->getInverseBBOrder();
+    bb_l.push_back(nullptr);
+    for (auto bb: bb_l) {
         LiveData live;
-        auto ASBB = dynamic_cast<ASBlock *>(map[bb]);
+        auto ASBB = (bb) ? dynamic_cast<ASBlock *>(map[bb]) : currentFunc->getBlockList().front();
         assert(ASBB && "Can't get ASM Block.");
         BlockIDRange bbRange = _block_id[ASBB];
         // Union all live in of successors
+        if (bb == nullptr) {
+            live.unionLive(_live[dynamic_cast<ASBlock *>(map[_cfg->getEntryBB()])]);
+        }
         for(auto succ: _cfg->getSuccBB(bb)) {
             live.unionLive(_live[dynamic_cast<ASBlock *>(succ)]);
         }
@@ -148,11 +153,13 @@ void LinearScanSSA::buildIntervals() {
             }
         }
         // Process Loop
-        if (auto loop = _lp->get_smallest_loop(bb)) {
-            if (loop->get_loop_entry() == bb) {
-                auto lrg = _loop_id[loop];
-                for (auto op: live) {
-                    _interval[op].addRange(bbRange.from, lrg.to);
+        if (bb) {
+            if (auto loop = _lp->get_smallest_loop(bb)) {
+                if (loop->get_loop_entry() == bb) {
+                    auto lrg = _loop_id[loop];
+                    for (auto op: live) {
+                        _interval[op].addRange(bbRange.from, lrg.to);
+                    }
                 }
             }
         }
@@ -221,7 +228,7 @@ void LinearScanSSA::linearScan() {
         // check for intervals in active that are handled or inactive
         auto it = active.begin();
         while ( it != active.end()) {
-            if ((*it).getEnd() <= position) {
+            if ((*it).getEnd() < position) {
                 handled.push_back(*it);
                 it = active.erase(it);
             } else if (!it->cover(position)) {
@@ -234,7 +241,7 @@ void LinearScanSSA::linearScan() {
         // check for intervals in inactive that are handled or active
         auto it2 = inactive.begin();
         while (it2 != inactive.end()) {
-            if (it2->getEnd() <= position) {
+            if (it2->getEnd() < position) {
                 handled.push_back(*it2);
                 it2 = inactive.erase(it2);
             } else if (it2->cover(position)) {
@@ -306,17 +313,31 @@ bool LinearScanSSA::tryAllocateFreeRegister(Interval &current, int position) {
 
 void LinearScanSSA::allocateBlockedRegister(Interval &current, int position) {
     int nextUsePos[NUM_REG];
+    Interval nextList[NUM_REG];
     // set freeUntilPos of all physical registers to maxInt
     for (int & nextUsePo : nextUsePos) {
         nextUsePo = INT_MAX;
     }
     // active and inactive
     for (const auto& it: active) {
-        nextUsePos[it.getRegister()] = std::min(it.getNextUse(position), nextUsePos[it.getRegister()]);
+        if (it.intersect(current)) {
+            auto np = it.getNextUse(position);
+            if (np < nextUsePos[it.getRegister()]) {
+                nextUsePos[it.getRegister()] = np;
+                nextList[it.getRegister()] = it;
+            }
+        }
     }
     for (const auto& it: inactive) {
-        if (it.intersect(current))
-            nextUsePos[it.getRegister()] = std::min(it.getNextUse(position), nextUsePos[it.getRegister()]);
+        if (it.intersect(current)) {
+            if (it.intersect(current)) {
+                auto np = it.getNextUse(position);
+                if (np < nextUsePos[it.getRegister()]) {
+                    nextUsePos[it.getRegister()] = np;
+                    nextList[it.getRegister()] = it;
+                }
+            }
+        }
     }
     // reg = register with highest freeUntilPos
     int max_idx = 0;
@@ -324,7 +345,7 @@ void LinearScanSSA::allocateBlockedRegister(Interval &current, int position) {
         max_idx = current.getRegister();
     } else {
         for (int i = 1; i < NUM_REG; ++i) {
-            if (nextUsePos[i] > nextUsePos[max_idx]) max_idx = i;
+            if (nextList[max_idx].isFixed() || (!nextList[i].isFixed() && nextUsePos[i] > nextUsePos[max_idx])) max_idx = i;
         }
     }
     int nextUse = current.getNextUse(position);
@@ -343,8 +364,9 @@ void LinearScanSSA::allocateBlockedRegister(Interval &current, int position) {
                 if(it.getRegister()==max_idx)
                 {
                     int spillId = requireNewSpillSlot(current.getValue());
+                    auto spt = current.split(position);
                     current.setSpill(spillId);
-                    unhandled.push_back(current.split(nextUse));
+                    unhandled.push_back(spt);
                     std::sort(unhandled.begin(), unhandled.end());
                     return;
                 }
