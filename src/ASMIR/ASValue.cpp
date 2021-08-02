@@ -40,6 +40,12 @@ bool ASInstruction::hasResult() const {
            ty == ASMPhiTy || (ty == ASMCallTy && dynamic_cast<const ASFunction *>(getOperand(0))->hasReturnValue());
 }
 
+void ASInstruction::setParent(ASBlock *b) { _parent = b; }
+
+ASBlock *ASInstruction::getBlock() const { return _parent; }
+
+ASInstruction::ASMInstType ASInstruction::getInstType() const { return _ty; }
+
 std::vector<ASValue *> ASValue::getOperandsWithOp2() {
     std::vector<ASValue *> val;
     for (auto i : getOperands()) {
@@ -57,4 +63,48 @@ std::vector<ASValue *> ASValue::getOperandsWithOp2() {
     return val;
 }
 
+std::string ASValue::printUser(RegMapper *mapper)  {
+    std::string ret = "    @ User: ";
+    for (auto user: getUseList()) {
+        ret += mapper->getName(nullptr, user._user);
+    }
+    ret += "\n";
+    return ret;
+}
+
+void ASValue::removeUser(unsigned int idx, ASValue *user) {
+    ASUse tbd(user, idx);
+    for (auto it = _use.begin(); it != _use.end(); ++it) {
+        if (*it == tbd) {
+            _use.erase(it);
+            break;
+        }
+    }
+}
+
+void ASValue::addUser(unsigned int idx, ASValue *user) { _use.emplace_back(user, idx); }
+
+int ASValue::getNumOperands() const { return _operands.size(); }
+
+std::vector<ASValue *> ASValue::getOperands() const { return _operands; }
+
+ASValue *ASValue::getOperand(unsigned int idx) const { return _operands[idx]; }
+
+std::list<ASUse> ASValue::getUseList() const { return _use; }
+
+std::string ASValue::print(RegMapper *mapper) { return ""; }
+
+std::string ASValue::getName() const { return _name; }
+
+void ASValue::setName(std::string n) { _name = std::move(n); }
+
+void ASValue::expandNumOperand(unsigned int by)  { _operands.resize(_operands.size() + by); }
+
+ASAlloca *ASAlloca::getAlloca(int size, int base_sp_offset)  {
+        return new ASAlloca(size, base_sp_offset);
+    }
+
+int ASAlloca::getSize() const  { return _sz; }
+
+int ASAlloca::getBase() const { return _base; }
 

@@ -7,10 +7,12 @@
 
 #include <string>
 #include <map>
-#include <list>
+#include "codegen/LinearScanSSA.h"
 
 class ASValue;
 class ASInstruction;
+class ASConstant;
+class ASLabel;
 
 class RegMapper {
 public:
@@ -21,7 +23,6 @@ public:
     int getRegister(ASInstruction *inst, ASValue *operand) {
         return getRegister(getInstructionID(inst), operand);
     }
-//    virtual std::list<int> getActiveVars(ASInstruction *inst)=0;
 };
 
 class InfRegMapper : public RegMapper {
@@ -36,6 +37,19 @@ public:
         }
         return _regMapper[operand];
     }
+};
+
+class SsaRegMapper : public RegMapper{
+private:
+    std::map<ASInstruction *,int> inst_id;
+    std::vector<Interval> intervals;
+public:
+    std::vector<Interval> get_intervals();
+
+    SsaRegMapper(const std::map<ASInstruction *,int> &inst_id_, const std::vector<Interval> &interval_);
+    int getInstructionID(ASInstruction *inst) final ;
+    std::string getName(ASInstruction *instr, ASValue *val) final;
+    int getRegister(int instID, ASValue *operand) final ;
 };
 
 #endif //BAZINGA_COMPILER_REGALLOCMAPPER_H

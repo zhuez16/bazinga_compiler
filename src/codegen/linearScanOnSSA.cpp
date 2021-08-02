@@ -3,12 +3,59 @@
 //
 
 #include "codegen/LinearScanSSA.h"
+#include "ASMIR/ASMBuilder.h"
 #include <vector>
 #include <algorithm>
 #include <climits>
 
 
+void LinearScanSSA::run(ASMBuilder *builder, Module *m, RegMapper *rm) {
+    {
+        map = builder->getValueMap();
+        delete _cfg;
+        delete _lp;
+        delete BG;
+        unhandled.clear();
+        _cfg = new CFG(m);
+        _lp = new LoopSearch(m);
+        BG = new BBOrderGenerator(m);
+        _lp->run();
+        for (auto f: m->get_functions()) {
+            if (!f->is_declaration()) {
+                _cfg->runOnFunction(f);
+                BG->runOnFunction(f);
+                auto asmF = builder->getMapping<ASFunction>(f);
+                currentFunc = asmF;
+                assignOpID(f, asmF);
+                buildIntervals();
+                linearScan();
+            }
+        }
+        std::cout << "======= BEGIN BUILD INTERVAL DUMP ========" << std::endl;
+        for (const auto& iv: _interval) {
+            std::cout << iv.second.toString(rm);
+        }
+        std::cout << "======= END BUILD INTERVAL DUMP ========\n\n" << std::endl;
+    }
+}
 
+std::string Interval::toString(RegMapper *mapper) const {
+    {
+        std::string ret = mapper->getName(nullptr, _v);
+        ret += "  Reg: " + std::to_string(_reg);
+        ret += "  Spi: " + std::to_string(_spill);
+        ret += "  Range: ";
+        for (auto iv: _intervals) {
+            ret += "[" + std::to_string(iv.first) + " - " + std::to_string(iv.second) + "] ";
+        }
+        if (_fixed) {
+            ret += "  [FIXED]";
+        }
+        ret += "\n";
+        return ret;
+    }
+
+}
 
 void BBOrderGenerator::clearQueue() {
     std::queue<BasicBlock *> empty_queue;
@@ -64,6 +111,30 @@ void BBOrderGenerator::runOnLoop(Loop *loop) {
                 visit_queue.push(succ);
             }
         }
+    }
+}
+
+std::vector<ASBlock *> BBOrderGenerator::getInverseASMBBOrder(std::map<Value *, ASValue *> &map) {
+    {
+        std::vector<ASBlock *> ret;
+        for (auto bb: getInverseBBOrder()) {
+            auto asm_bb = dynamic_cast<ASBlock *>(map[bb]);
+            assert(asm_bb && "Can't get ASM Block by BasicBlock");
+            ret.push_back(asm_bb);
+        }
+        return ret;
+    }
+}
+
+std::vector<ASBlock *> BBOrderGenerator::getASMBBOrder(std::map<Value *, ASValue *> &map) {
+    {
+        std::vector<ASBlock *> ret;
+        for (auto bb: getBBOrder()) {
+            auto asm_bb = dynamic_cast<ASBlock *>(map[bb]);
+            assert(asm_bb && "Can't get ASM Block by BasicBlock");
+            ret.push_back(asm_bb);
+        }
+        return ret;
     }
 }
 
@@ -401,4 +472,8 @@ void LinearScanSSA::allocateBlockedRegister(Interval &current, int position) {
                 }
     }
     */
+}
+
+int LinearScanSSA::requireNewSpillSlot(ASValue *v) {
+    { return currentFunc->allocStack(v, 1); }
 }

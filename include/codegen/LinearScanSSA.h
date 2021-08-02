@@ -16,10 +16,16 @@
 #include "pass/dominator.h"
 #include "pass/loop_search.h"
 #include "pass/active_vars.h"
-#include "ASMIR/ASMBuilder.h"
-#include "ASMIR/RegAllocMapper.h"
 #include <climits>
+
 #define NUM_REG 10
+
+class RegMapper;
+class ASValue;
+class ASFunction;
+class ASBlock;
+class ASInstruction;
+class ASMBuilder;
 
 struct BlockIDRange {
     int from;
@@ -38,21 +44,7 @@ class Interval {
     ASValue *_v = nullptr;
 
 public:
-    std::string toString(RegMapper *mapper) const {
-        std::string ret = mapper->getName(nullptr, _v);
-        ret += "  Reg: " + std::to_string(_reg);
-        ret += "  Spi: " + std::to_string(_spill);
-        ret += "  Range: ";
-        for (auto iv: _intervals) {
-            ret += "[" + std::to_string(iv.first) + " - " + std::to_string(iv.second) + "] ";
-        }
-        if (_fixed) {
-            ret += "  [FIXED]";
-        }
-        ret += "\n";
-        return ret;
-    }
-
+    std::string toString(RegMapper *mapper) const;
     Interval(ASValue *v, int pos) : _reg(-1), _spill(-1), _begin(pos), _end(pos), _v(v) {
         _intervals.emplace_back(pos, pos);
     }
@@ -128,6 +120,7 @@ public:
     int getBegin() const {return this->_begin;};
     int getEnd() const {return this->_end;};
     int getRegister() const {return this->_reg;};
+    int getSpill() const {return this->_spill;}
     int getNextUse(int after) const {
         for (auto it: this->_intervals){
             if (it.first > after)
@@ -200,25 +193,9 @@ public:
         return ret;
     }
 
-    std::vector<ASBlock *> getASMBBOrder(std::map<Value *, ASValue *> &map) {
-        std::vector<ASBlock *> ret;
-        for (auto bb: getBBOrder()) {
-            auto asm_bb = dynamic_cast<ASBlock *>(map[bb]);
-            assert(asm_bb && "Can't get ASM Block by BasicBlock");
-            ret.push_back(asm_bb);
-        }
-        return ret;
-    }
+    std::vector<ASBlock *> getASMBBOrder(std::map<Value *, ASValue *> &map);
 
-    std::vector<ASBlock *> getInverseASMBBOrder(std::map<Value *, ASValue *> &map) {
-        std::vector<ASBlock *> ret;
-        for (auto bb: getInverseBBOrder()) {
-            auto asm_bb = dynamic_cast<ASBlock *>(map[bb]);
-            assert(asm_bb && "Can't get ASM Block by BasicBlock");
-            ret.push_back(asm_bb);
-        }
-        return ret;
-    }
+    std::vector<ASBlock *> getInverseASMBBOrder(std::map<Value *, ASValue *> &map);
 };
 
 struct LiveData {
@@ -254,36 +231,11 @@ public:
  */
 class LinearScanSSA {
 public:
-    void run(ASMBuilder *builder, Module *m, RegMapper *rm) {
-        map = builder->getValueMap();
-        delete _cfg;
-        delete _lp;
-        delete BG;
-        unhandled.clear();
-        _cfg = new CFG(m);
-        _lp = new LoopSearch(m);
-        BG = new BBOrderGenerator(m);
-        _lp->run();
-        for (auto f: m->get_functions()) {
-            if (!f->is_declaration()) {
-                _cfg->runOnFunction(f);
-                BG->runOnFunction(f);
-                auto asmF = builder->getMapping<ASFunction>(f);
-                currentFunc = asmF;
-                assignOpID(f, asmF);
-                buildIntervals();
-                linearScan();
-            }
-        }
-        std::cout << "======= BEGIN BUILD INTERVAL DUMP ========" << std::endl;
-        for (const auto& iv: _interval) {
-            std::cout << iv.second.toString(rm);
-        }
-        std::cout << "======= END BUILD INTERVAL DUMP ========\n\n" << std::endl;
-    }
+    void run(ASMBuilder *builder, Module *m, RegMapper *rm);
 
-    std::vector<Interval> getInterval() { return handled; };
+    std::vector<Interval> getIntervals() { return handled; };
 
+    std::map<ASInstruction *, int>  getInstId () {return _inst_id;}
 
     LinearScanSSA() = default;
 
@@ -309,12 +261,14 @@ private:
     // We use this class to transfer data between methods
     ASFunction *currentFunc = nullptr;
     BBOrderGenerator *BG = nullptr;
+
+    std::map<ASInstruction *, int> get_inst_id(){return _inst_id;}
     void assignOpID(Function *of, ASFunction *f);
     void buildIntervals();
     void linearScan();
     bool tryAllocateFreeRegister(Interval &current, int position);
     void allocateBlockedRegister(Interval &current, int position);
-    int requireNewSpillSlot(ASValue *v) { return currentFunc->allocStack(v, 1); };
+    int requireNewSpillSlot(ASValue *v);
 };
 
 #endif //BAZINGA_COMPILER_LINEARSCAN_H
