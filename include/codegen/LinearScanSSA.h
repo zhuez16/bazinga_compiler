@@ -18,7 +18,7 @@
 #include "pass/active_vars.h"
 #include "ASMIR/ASMBuilder.h"
 #include "ASMIR/RegAllocMapper.h"
-
+#include <climits>
 #define NUM_REG 10
 
 struct BlockIDRange {

@@ -75,7 +75,29 @@ public:
         assert(_mapping.find(ori) != _mapping.end() && "Can't find mapping for value");
         return _mapping[ori];
     }
-
+    /*
+    void buildPhi(RegMapper &reg_mapper){
+        for (auto *func:functions){
+            for (auto *bb:func->getBlockList()){
+                auto *instr=bb->getInstList().front();
+                while (dynamic_cast<ASPhiInst *> (instr)){
+                    auto phi_instr=instr;
+                    bb->getInstList().pop_front();
+                    instr=bb->getInstList().front();
+                    for (auto operand:phi_instr->getOperands()) {
+                        auto temp_bb = dynamic_cast<ASBlock *> (operand);
+                        auto temp_br_inst = temp_bb->getInstList().back();
+                        auto reg=reg_mapper.getRegister(instr,operand);
+                        temp_bb->getInstList().pop_back();
+                        //TODO How to generate a instruction with a specific register?
+                        temp_bb->addInstruction(new ASInstruction(reg, ASInstruction::ASMMovTy));
+                        temp_bb->addInstruction(temp_br_inst);
+                    }
+                }
+            }
+        }
+    }*/
+    void buildRegAsm(RegMapper &reg_mapper);
     std::map<Value *, ASValue *> getValueMap() const { return _mapping; }
 };
 

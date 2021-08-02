@@ -445,3 +445,71 @@ void ASMBuilder::build(Module *m) {
         }
     }
 }
+
+void ASMBuilder::buildRegAsm(RegMapper &reg_mapper) {
+    for (auto *func:functions){
+        for (auto *bb:func->getBlockList()){
+            for (auto *instr:bb->getInstList()){
+                switch (instr->getInstType()){
+                    case ASInstruction::ASMPhiTy:
+                        while (dynamic_cast<ASPhiInst *> (instr)){
+                            auto instr_reg=reg_mapper.getRegister(instr,instr);
+                            for (auto operand:instr->getOperands()) {
+                                auto temp_bb = dynamic_cast<ASBlock *> (operand);
+                                auto temp_br_inst = temp_bb->getInstList().back();
+                                auto reg=reg_mapper.getRegister(instr,operand);
+                                temp_bb->getInstList().pop_back();
+                                //TODO How to generate a instruction with a specific register?
+                                temp_bb->addInstruction("mov "+std::to_string(instr_reg)+","+std::to_string(reg));
+                                temp_bb->addInstruction(temp_br_inst);
+                            }
+                        }
+                        break;
+                    case ASInstruction::ASMAddTy:{
+                        auto target=reg_mapper.getRegister(instr,instr);
+                        auto op1=reg_mapper.getRegister(instr,instr->getOperand(0));
+                        auto op2=reg_mapper.getRegister(instr,instr->getOperand(1));
+                        bb->addInstruction("ADD "+std::to_string(target)+","+std::to_string(op1)+","+std::to_string(op2)+"\n");
+                        break;
+                    }
+                    case ASInstruction::ASMMulTy:{
+                        auto target=reg_mapper.getRegister(instr,instr);
+                        auto op1=reg_mapper.getRegister(instr,instr->getOperand(0));
+                        auto op2=reg_mapper.getRegister(instr,instr->getOperand(1));
+                        bb->addInstruction("ADD "+std::to_string(target)+","+std::to_string(op1)+","+std::to_string(op2)+"\n");
+                        break;
+                    }
+                    case ASInstruction::ASMSubTy:{
+                        auto target=reg_mapper.getRegister(instr,instr);
+                        auto op1=reg_mapper.getRegister(instr,instr->getOperand(0));
+                        auto op2=reg_mapper.getRegister(instr,instr->getOperand(1));
+                        bb->addInstruction("ADD "+std::to_string(target)+","+std::to_string(op1)+","+std::to_string(op2)+"\n");
+                        break;
+                    }
+                    case ASInstruction::ASMDivTy:{
+                        auto target=reg_mapper.getRegister(instr,instr);
+                        auto op1=reg_mapper.getRegister(instr,instr->getOperand(0));
+                        auto op2=reg_mapper.getRegister(instr,instr->getOperand(1));
+                        bb->addInstruction("ADD "+std::to_string(target)+","+std::to_string(op1)+","+std::to_string(op2)+"\n");
+                        break;
+                    }
+                    case ASInstruction::ASMBrTy:{
+                        //TODO How to pick out cond_br from br
+                        break;
+                    }
+                    case ASInstruction::ASMCmpTy:{
+                        //TODO need a way to get the operator of cmp
+                        auto target=reg_mapper.getRegister(instr,instr);
+                        auto op1=reg_mapper.getRegister(instr,instr->getOperand(0));
+                        auto op2=reg_mapper.getRegister(instr,instr->getOperand(1));
+                        bb->addInstruction("ADD "+std::to_string(target)+","+std::to_string(op1)+","+std::to_string(op2)+"\n");
+                        break;
+                    }
+                    case ASInstruction::ASMCallTy:{
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}

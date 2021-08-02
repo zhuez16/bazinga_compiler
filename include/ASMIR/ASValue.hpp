@@ -187,8 +187,10 @@ public:
         ASMCallTy,  // [x] Fake instruction
         ASMRetTy,   // [x] Fake instruction
     };
-protected:
+
     ASInstruction(unsigned num_op, ASMInstType ty) : ASValue(num_op), _ty(ty) {}
+
+protected:
 
 private:
     ASBlock *_parent{};
@@ -215,6 +217,7 @@ protected:
 class ASBlock : public ASLabel {
 private:
     std::list<ASInstruction *> _inst_list;
+    std::list<std::string> _inst_print;
     ASFunction *_parent = nullptr;
 
     explicit ASBlock(std::string name) : ASLabel(std::move(name)) {}
@@ -223,6 +226,9 @@ public:
     void addInstruction(ASInstruction *inst) {
         inst->setParent(this);
         _inst_list.push_back(inst);
+    }
+    void addInstruction(std::string inst){
+        _inst_print.push_back(inst);
     }
 
     std::list<ASInstruction *> getInstList() { return _inst_list; }
