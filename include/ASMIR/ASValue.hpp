@@ -73,6 +73,7 @@ public:
     }
 
     virtual std::string print(RegMapper *mapper) { return ""; }
+    virtual void generate(RegMapper *mapper) {};
 
     std::string getName() const { return _name; }
 
@@ -97,6 +98,7 @@ public:
     static ASArgument *createArgument() { return new ASArgument(); }
 
     std::string print(RegMapper *mapper) final;
+    void generate(RegMapper *mapper) final;
 };
 
 class ASGlobalValue : public ASValue {
@@ -107,6 +109,7 @@ private:
     ASGlobalValue(std::string name, std::vector<int> init) : ASValue(0), _initial(std::move(init)) {
         setName(std::move(name));
     }
+
 public:
     bool isArray() const { return _array; }
 
@@ -142,6 +145,7 @@ public:
     }
 
     std::string print(RegMapper *mapper) final;
+    void generate(RegMapper *mapper) final;
 };
 
 class ASConstant : public ASValue {
@@ -157,6 +161,7 @@ public:
     int getValue() const { return _value; }
 
     std::string print(RegMapper *mapper) final;
+    void generate(RegMapper *mapper) final;
 };
 
 class ASInstruction : public ASValue {
@@ -246,6 +251,7 @@ public:
     static ASBlock *createBlock(ASFunction *parent, const std::string& name);
 
     std::string print(RegMapper *mapper) final;
+    void generate(RegMapper *mapper) final;
 };
 
 class ASFunction : public ASLabel {
@@ -312,6 +318,7 @@ public:
     static ASFunction *createFunction(std::string name, unsigned i, bool hasRet) { return new ASFunction(std::move(name), i, hasRet); }
 
     std::string print(RegMapper *mapper) final;
+    void generate(RegMapper *mapper) final;
 
     bool hasReturnValue() const { return _has_ret; }
 };
@@ -352,6 +359,7 @@ public:
         return ret;
     }
 
+    void generate(RegMapper *mapper) final;
     // TODO: 其他 Op2 还没用到，先放着
 
     Op2Type getOp2Type() const { return _ty; }
@@ -418,6 +426,7 @@ public:
     }
 
     std::string print(RegMapper *mapper) final;
+    void generate(RegMapper *mapper) final;
 };
 
 class ASUnaryInst : public ASInstruction {
@@ -438,6 +447,7 @@ public:
     }
 
     std::string print(RegMapper *mapper) final;
+    void generate(RegMapper *mapper) final;
 };
 
 class ASCmpInst : public ASInstruction {
@@ -458,6 +468,7 @@ public:
         ret->setOperand(1, Op2);
         return ret;
     }
+    void generate(RegMapper *mapper) final;
 
     std::string print(RegMapper *mapper) final;
 };
@@ -498,6 +509,7 @@ public:
     ASMBranchCond getCondition() const { return _cond; }
 
     std::string print(RegMapper *mapper) final;
+    void generate(RegMapper *mapper) final;
 };
 
 class ASPushInst : public ASInstruction {
@@ -508,6 +520,7 @@ public:
     static ASPushInst *createPush() { return new ASPushInst(); }
 
     std::string print(RegMapper *mapper) final;
+    void generate(RegMapper *mapper) final;
 };
 
 class ASPopInst : public ASInstruction {
@@ -518,6 +531,7 @@ public:
     static ASPopInst *createPush() { return new ASPopInst(); }
 
     std::string print(RegMapper *mapper) final;
+    void generate(RegMapper *mapper) final;
 };
 
 class ASLoadInst : public ASInstruction {
@@ -560,6 +574,7 @@ public:
     static ASLoadInst *createLoad(ASArgument *arg, ASValue *Op2) {
         return new ASLoadInst(arg, Op2);
     }
+    void generate(RegMapper *mapper) final;
 
     std::string print(RegMapper *mapper) final;
 };
@@ -599,6 +614,7 @@ public:
     }
 
     std::string print(RegMapper *mapper) final;
+    void generate(RegMapper *mapper) final;
 };
 
 class ASPhiInst : public ASInstruction {
@@ -624,6 +640,7 @@ public:
     }
 
     std::string print(RegMapper *mapper) final;
+    void generate(RegMapper *mapper) final;
 };
 
 /*
@@ -669,6 +686,8 @@ public:
     bool isVoid() const { return getNumOperands() == 1; }
 
     std::string print(RegMapper *mapper) final;
+
+    void generate(RegMapper *mapper) final;
 };
 
 class ASAlloca : public ASValue {
@@ -684,6 +703,7 @@ public:
     int getSize() const { return _sz; }
     int getBase() const { return _base; }
 
+    void generate(RegMapper *mapper) final;
 };
 
 class ASReturn : public ASInstruction {
@@ -699,5 +719,6 @@ public:
     static ASReturn *getReturn(ASValue *ret) { return new ASReturn(ret); }
     static ASReturn *getReturn() { return new ASReturn(); }
 
+    void generate(RegMapper *mapper) final;
     std::string print(RegMapper *mapper) final;
 };

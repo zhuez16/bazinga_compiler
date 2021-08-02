@@ -7,6 +7,7 @@
 
 #include <string>
 #include <map>
+#include <list>
 
 class ASValue;
 class ASInstruction;
@@ -20,6 +21,7 @@ public:
     int getRegister(ASInstruction *inst, ASValue *operand) {
         return getRegister(getInstructionID(inst), operand);
     }
+//    virtual std::list<int> getActiveVars(ASInstruction *inst)=0;
 };
 
 class InfRegMapper : public RegMapper {

@@ -187,6 +187,7 @@ std::string ASPhiInst::print(RegMapper *mapper) {
     ret.pop_back();
     ret.pop_back();
     ret += "\n";
+
     return ret;
 }
 
@@ -246,7 +247,7 @@ std::string ASLoadInst::print(RegMapper *mapper) {
         return ret + "[" + mapper->getName(this, getOperand(0)) + "]\n";
     } else {
         return ret + "[" + mapper->getName(this, getOperand(0)) + ", "
-                   + mapper->getName(this, getOperand(1)) +"]\n";
+               + mapper->getName(this, getOperand(1)) +"]\n";
     }
 }
 
