@@ -33,6 +33,13 @@ void ASValue::setOperand(unsigned idx, ASValue *v) {
     _operands[idx] = v;
 }
 
+bool ASInstruction::hasResult() const {
+    auto ty = getInstType();
+    return ty == ASMAddTy || ty == ASMSubTy || ty == ASMMulTy || ty == ASMDivTy || ty == ASMLsrTy ||
+           ty == ASMLslTy || ty == ASMLoadTy || ty == ASMMovTy || ty == ASMMvnTy || ty == ASMAsrTy ||
+           ty == ASMPhiTy || (ty == ASMCallTy && dynamic_cast<const ASFunction *>(getOperand(0))->hasReturnValue());
+}
+
 std::vector<ASValue *> ASValue::getOperandsWithOp2() {
     std::vector<ASValue *> val;
     for (auto i : getOperands()) {

@@ -73,7 +73,9 @@ void LinearScanSSA::assignOpID(Function *of, ASFunction *f) {
         int begin = id;
         for (auto inst: bb->getInstList()) {
             _inst_id[inst] = id;
-            _interval[inst] = Interval(inst, id);
+            if (inst->hasResult()) {
+                _interval[inst] = Interval(inst, id);
+            }
             if (inst->getInstType() == ASInstruction::ASMCallTy) {
                 for (int i = 0; i < 4; ++i) {
                     Interval iv(id, i);
@@ -152,6 +154,8 @@ void LinearScanSSA::buildIntervals() {
 
 void Interval::addRange(int from, int to){
     std::pair<int,int> temp=std::make_pair(from,to);
+    this->_begin = std::min(this->_begin, from);
+    this->_end = std::max(this->_end, to);
     for (auto it = _intervals.begin(); it != _intervals.end();){
         if (temp.second<it->first){
             ++it;
@@ -222,6 +226,9 @@ void LinearScanSSA::linearScan() {
             active.push_back(current);
         }
     }
+    // move every thing in active and inactive to handled and finish algo
+    handled.insert(handled.end(), active.begin(), active.end());
+    handled.insert(handled.end(), inactive.begin(), inactive.end());
 }
 
 bool LinearScanSSA::tryAllocateFreeRegister(Interval &current, int position) {
