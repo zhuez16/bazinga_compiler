@@ -172,11 +172,11 @@ void Interval::addRange(int from, int to){
     this->_begin = std::min(this->_begin, from);
     this->_end = std::max(this->_end, to);
     for (auto it = _intervals.begin(); it != _intervals.end();){
-        if (temp.second<it->first){
+        if (temp.second+1<it->first){
             ++it;
             break;
         }
-        else if (temp.first>it->second){
+        else if (temp.first>it->second+1){
             ++it;
             continue;
         }
