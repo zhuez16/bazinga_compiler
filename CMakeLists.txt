@@ -1,3 +1,5 @@
+
+
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 PROJECT(bazinga_compiler)
 
@@ -60,11 +62,12 @@ ADD_EXECUTABLE(parser
 #         src/pass/CodeElimination.cpp)
 ADD_EXECUTABLE(compiler
         src/codegen/linearScanOnSSA.cpp
-        src/codegen/codegen.cpp
-        src/codegen/instgen.cpp
-        src/codegen/regAlloc.cpp
+        #        src/codegen/codegen.cpp
+        #        src/codegen/instgen.cpp
+        #        src/codegen/regAlloc.cpp
         src/pass/dominator.cpp
         src/pass/mem2reg.cpp
+        src/pass/CFG.cpp
         #        src/pass/loop_search.cpp
         #        src/pass/global2local.cpp
         src/IRbuilder/bzcompiler.cpp
@@ -74,11 +77,20 @@ ADD_EXECUTABLE(compiler
         src/ast.cpp
         src/pass_manager.cpp
         src/pass/active_vars.cpp
-        #        src/pass/SCPcombineDCE.cpp
-        src/pass/reassociate.cpp include/pass/reassociate.h)
+        src/pass/SCPcombineDCE.cpp
+        src/pass/reassociate.cpp
+        src/pass/GVN.cpp
+        src/pass/loop_expansion.cpp
+        src/pass/CodeElimination.cpp
+        src/pass/loop_search.cpp
+        src/ASMIR/ASMBuilder.cpp
+        src/ASMIR/ASMPrinter.cpp
+        src/ASMIR/ASValue.cpp
+        src/ASMIR/RegAllocMapper.cpp src/ASMIR/ASMcodeprinter.cpp include/ASMIR/ASMcodeprinter.h)
 # TARGET_LINK_LIBRARIES(
 #         builder IR_lib
 # )
 TARGET_LINK_LIBRARIES(
         compiler IR_lib
 )
+
