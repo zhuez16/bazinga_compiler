@@ -5,23 +5,23 @@
 #include "codegen/LinearScanSSA.h"
 #include <vector>
 #include <algorithm>
-
+#include <climits>
 
 
 
 
 void BBOrderGenerator::clearQueue() {
-    std::queue<ASBlock *> empty_queue;
+    std::queue<BasicBlock *> empty_queue;
     std::swap(_visit_queue, empty_queue);
     _visited.clear();
     _queue.clear();
 }
 
-bool BBOrderGenerator::visited(ASBlock *bb) {
+bool BBOrderGenerator::visited(BasicBlock *bb) {
     return _visited.find(bb) != _visited.end();
 }
 
-void BBOrderGenerator::runOnFunction(ASFunction *f) {
+void BBOrderGenerator::runOnFunction(Function *f) {
     if (f->is_declaration()) return;
     clearQueue();
     _cfg->runOnFunction(f);
@@ -47,7 +47,7 @@ void BBOrderGenerator::runOnFunction(ASFunction *f) {
 }
 
 void BBOrderGenerator::runOnLoop(Loop *loop) {
-    std::queue<ASBlock *> visit_queue;
+    std::queue<BasicBlock *> visit_queue;
     visit_queue.push(loop->get_loop_entry());
     while (!visit_queue.empty()) {
         auto bb = visit_queue.front();
@@ -67,21 +67,31 @@ void BBOrderGenerator::runOnLoop(Loop *loop) {
     }
 }
 
-void LinearScanSSA::assignOpID(ASFunction *f) {
+void LinearScanSSA::assignOpID(Function *of, ASFunction *f) {
     int id = 1;
-    for (auto bb: _BG.getBBOrder()) {
+    for (auto bb: BG->getASMBBOrder(map)) {
         int begin = id;
-        for (auto inst: bb->get_instructions()) {
-            _inst_id[inst] = id++;
+        for (auto inst: bb->getInstList()) {
+            _inst_id[inst] = id;
+            if (inst->hasResult()) {
+                _interval[inst] = Interval(inst, id);
+            }
+            if (inst->getInstType() == ASInstruction::ASMCallTy) {
+                for (int i = 0; i < 4; ++i) {
+                    Interval iv(id, i);
+                    fixed.push_back(iv);
+                }
+            }
+            ++id;
         }
         int end = id - 1;
         _block_id[bb] = BlockIDRange(begin, end);
     }
-    for (auto loop: _lp.get_loop(f)) {
+    for (auto loop: _lp->get_loop(of)) {
         int start = INT_MAX;
         int end = 0;
         for (auto bb: loop->get_loop()) {
-            auto range = _block_id[bb];
+            auto range = _block_id[dynamic_cast<ASBlock *>(map[bb])];
             if (range.from < start) start = range.from;
             if (range.to > end) end = range.to;
         }
@@ -90,36 +100,38 @@ void LinearScanSSA::assignOpID(ASFunction *f) {
 }
 
 void LinearScanSSA::buildIntervals() {
-    for (auto bb: _BG.getInverseBBOrder()) {
+    for (auto bb: BG->getInverseBBOrder()) {
         LiveData live;
-        BlockIDRange bbRange = _block_id[bb];
+        auto ASBB = dynamic_cast<ASBlock *>(map[bb]);
+        assert(ASBB && "Can't get ASM Block.");
+        BlockIDRange bbRange = _block_id[ASBB];
         // Union all live in of successors
-        for(auto succ: _cfg.getSuccBB(bb)) {
-            live.unionLive(_live[succ]);
+        for(auto succ: _cfg->getSuccBB(bb)) {
+            live.unionLive(_live[dynamic_cast<ASBlock *>(succ)]);
         }
         // Update live data
         for (auto op: live) {
             _interval[op].addRange(bbRange);
         }
         // Process operands of inst
-        for (auto op: bb->get_reverse_instructions()) {
+        for (auto op: ASBB->getReverseInstList()) {
             // 保证指令是有返回值的，否则无需分配寄存器
-            if (!op->is_void()) {
+            if (op->hasResult()) {
                 // 我们的所有Op只有一个返回值，无需遍历
                 _interval[op].setFrom(_inst_id[op]);
                 live.erase(op);
             }
             // 没有返回值的也要考虑使用到的操作数。遍历来源操作数并设置Range，跳过常量、全局量、BB
-            for (auto opd: op->get_operands()) {
-                if (dynamic_cast<Instruction *>(opd) || dynamic_cast<Argument *>(opd)) {
+            for (auto opd: op->getOperands()) {
+                if (dynamic_cast<ASInstruction *>(opd) || dynamic_cast<ASArgument *>(opd)) {
                     _interval[opd].addRange(bbRange.from, _inst_id[op]);
                     live.add(opd);
                 }
             }
         }
         // Process phi function
-        for (auto inst: bb->get_instructions()) {
-            if (dynamic_cast<PhiInst *>(inst)) {
+        for (auto inst: ASBB->getInstList()) {
+            if (dynamic_cast<ASPhiInst *>(inst)) {
                 live.erase(inst);
             } else {
                 // phi 只会出现在bb块开头
@@ -127,7 +139,7 @@ void LinearScanSSA::buildIntervals() {
             }
         }
         // Process Loop
-        if (auto loop = _lp.get_smallest_loop(bb)) {
+        if (auto loop = _lp->get_smallest_loop(bb)) {
             if (loop->get_loop_entry() == bb) {
                 auto lrg = _loop_id[loop];
                 for (auto op: live) {
@@ -140,27 +152,27 @@ void LinearScanSSA::buildIntervals() {
 }
 
 
-void LinearScanSSA::addRange(int from, int to){
+void Interval::addRange(int from, int to){
     std::pair<int,int> temp=std::make_pair(from,to);
-    std::vector<std::pair<int,int>> delete_list;
-    for (auto it: this->_interval){
-        if (temp.second<it.first){
+    this->_begin = std::min(this->_begin, from);
+    this->_end = std::max(this->_end, to);
+    for (auto it = _intervals.begin(); it != _intervals.end();){
+        if (temp.second<it->first){
+            ++it;
             break;
         }
-        else if (temp.first>it.second){
+        else if (temp.first>it->second){
+            ++it;
             continue;
         }
         else{
-            delete_list.push_back(it);
-            temp.first=min(temp.first,it.first);
-            temp.second=max(temp.second,it.second);
+            temp.first=std::min(temp.first,it->first);
+            temp.second=std::max(temp.second,it->second);
+            it = _intervals.erase(it);
         }
     }
-    for (auto it:delete_list){
-        this->_interval.erase(it);
-    }
-    this->_interval.push_front(temp);
-    std::sort(this->_interval.begin(),this->_interval.end());
+    this->_intervals.push_back(temp);
+    std::sort(this->_intervals.begin(),this->_intervals.end());
 }
 
 void LinearScanSSA::linearScan() {
@@ -170,13 +182,13 @@ void LinearScanSSA::linearScan() {
     active.clear();
     inactive.clear();
     // Step 1. 构造按Begin排序的Intervals
-    for (auto i: _interval) {
+    for (const auto& i: _interval) {
         unhandled.push_back(i.second);
     }
     std::sort(unhandled.begin(), unhandled.end());
     while (!unhandled.empty()) {
         // 弹出队列中的第一个元素
-        Interval &current = unhandled.front();
+        Interval current = unhandled.front();
         unhandled.erase(unhandled.begin());
         int position = current.getBegin();
         // check for intervals in active that are handled or inactive
@@ -206,21 +218,27 @@ void LinearScanSSA::linearScan() {
             }
         }
         // find a register for current
-        if (!tryAllocateFreeRegister(current)) {
+        if (!tryAllocateFreeRegister(current, current.getBegin())) {
             // Fail to find a empty register to allocate
-            allocateBlockedRegister();
+            allocateBlockedRegister(current, current.getBegin());
+        }
+        if (current.getRegister() != -1) {
+            active.push_back(current);
         }
     }
+    // move every thing in active and inactive to handled and finish algo
+    handled.insert(handled.end(), active.begin(), active.end());
+    handled.insert(handled.end(), inactive.begin(), inactive.end());
 }
 
 bool LinearScanSSA::tryAllocateFreeRegister(Interval &current, int position) {
     int freeUntilPosition[NUM_REG];
     // set freeUntilPos of all physical registers to maxInt
-    for (int i = 0; i < NUM_REG; ++i) {
-        freeUntilPosition[i] = INT_MAX;
+    for (int & i : freeUntilPosition) {
+        i = INT_MAX;
     }
     // active and inactive
-    for (auto it: active) {
+    for (const auto& it: active) {
         freeUntilPosition[it.getRegister()] = 0;
     }
     for (auto it: inactive) {
@@ -277,18 +295,18 @@ void LinearScanSSA::allocateBlockedRegister(Interval &current, int position) {
     int nextUse = current.getNextUse(position);
     if (nextUse > nextUsePos[max_idx]) {
         // all other intervals are used before current, so it is best to spill current itself
-        int spillId = requireNewSpillSlot();
+        int spillId = requireNewSpillSlot(current.getValue());
         current.setSpill(spillId);
         unhandled.push_back(current.split(nextUse));
         std::sort(unhandled.begin(), unhandled.end());
     } else {
         bool flag = true;
         // make sure that current does not intersect with the fixed interval for reg
-        for(auto it : fixed){
+        for(const auto& it : fixed){
             if (it.intersect(current))
-                if(it.getRegister()==max_id)
+                if(it.getRegister()==max_idx)
                 {
-                    int spillId = requireNewSpillSlot();
+                    int spillId = requireNewSpillSlot(current.getValue());
                     current.setSpill(spillId);
                     unhandled.push_back(current.split(nextUse));
                     std::sort(unhandled.begin(), unhandled.end());
@@ -317,7 +335,7 @@ void LinearScanSSA::allocateBlockedRegister(Interval &current, int position) {
             }
         }
         current.setRegister(max_idx);
-        int spillId = requireNewSpillSlot();
+        int spillId = requireNewSpillSlot(to_spill.getValue());
         to_spill.setSpill(spillId);
         unhandled.push_back(to_spill.split(nextUsePos[max_idx]));
         std::sort(unhandled.begin(), unhandled.end());

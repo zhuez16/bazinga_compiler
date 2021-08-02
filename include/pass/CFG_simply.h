@@ -8,11 +8,13 @@
 #include "IR/Instruction.h"
 #include "IR/Module.h"
 #include "pass_manager.h"
+#include "include/pass/CFG.h"
 
 class CFG_simply : public Pass {
 private:
   Function *func_;
   CFG_simply();
+  std::vector<BasicBlock *> bb_del;
 
 public:
   CFG_simply(Module *m) : Pass(m) {}
@@ -24,4 +26,7 @@ public:
   void del_uncond();
   void del_self_loop();
   void del_no_pre_(BasicBlock * bb);
+  void fix_succ();
+  void fix_phi();
+  void fix_pre();
 };

@@ -14,11 +14,11 @@ private:
     ASMBuilder *_builder;
     RegMapper *_mapper;
 public:
-    SimpleASMPrinter(ASMBuilder *builder) : _builder(builder) {
-        _mapper = new InfRegMapper();
+    SimpleASMPrinter(ASMBuilder *builder, RegMapper *mapper) : _builder(builder), _mapper(mapper) {
+        // _mapper = new InfRegMapper();
     };
 
-    ~SimpleASMPrinter() { delete _mapper; }
+    ~SimpleASMPrinter() {  }
 
     std::string print() {
         const std::string spacing = "    ";
@@ -36,6 +36,7 @@ public:
             for (auto b: f->getBlockList()) {
                 ret += b->print(_mapper);
                 for (auto i: b->getInstList()) {
+                    // If spill => Spill
                     ret += i->print(_mapper);
                 }
             }
