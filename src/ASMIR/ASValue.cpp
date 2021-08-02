@@ -5,7 +5,7 @@
 #include "ASMIR/ASValue.hpp"
 
 template<class T>
-bool isa(ASValue *inst) { return dynamic_cast<T *>(inst) == nullptr; }
+bool isa(ASValue *inst) { return dynamic_cast<T *>(inst) != nullptr; }
 
 
 

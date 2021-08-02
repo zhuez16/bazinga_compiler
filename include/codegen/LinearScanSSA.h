@@ -294,7 +294,7 @@ private:
     std::map<Value *, ASValue*> map;
     // We use this class to transfer data between methods
     ASFunction *currentFunc = nullptr;
-    BBOrderGenerator *BG;
+    BBOrderGenerator *BG = nullptr;
     void assignOpID(Function *of, ASFunction *f);
     void buildIntervals();
     void linearScan();

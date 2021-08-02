@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 #include <map>
+#include <algorithm>
 
 #include "IR/Function.h"
 #include "ASMIR/RegAllocMapper.h"
@@ -78,6 +79,15 @@ public:
     void setName(std::string n) { _name = std::move(n); }
 
     void expandNumOperand(unsigned by) { _operands.resize(_operands.size() + by); }
+
+    std::string printUser(RegMapper *mapper) {
+        std::string ret = "    @ User: ";
+        for (auto user: getUseList()) {
+            ret += mapper->getName(nullptr, user._user);
+        }
+        ret += "\n";
+        return ret;
+    }
 };
 
 class ASArgument : public ASValue {
