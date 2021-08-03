@@ -282,7 +282,7 @@ std::string ASFunction::print(RegMapper *mapper) {
         if (has_call) ret += "r11,lr}\n";
         else ret += "r11}\n";
         ret += l_spacing + "add r11,sp,#0\n";
-        ret += l_spacing + "sub sp,sp #" + std::to_string(getStackSize()) + "\n";
+        ret += l_spacing + "sub sp,sp,#" + std::to_string(getStackSize()) + "\n";
         return ret;
     }
     ret += l_spacing + "push {r11, lr}\n";
@@ -507,7 +507,7 @@ std::vector<std::pair<ASBlock *, ASValue *>> ASPhiInst::getBBValuePair()  {
 std::string ASReturn::print(RegMapper *mapper) {
     std::string ret = l_spacing;
     ret += "mov r0," + mapper->getName(this,this->getOperand(0))+"\n";
-    ret += l_spacing + "br "+this->getBlock()->getFunction()->getName()+"_"+this->getBlock()->getFunction()->getName()+"_Exit\n";
+    ret += l_spacing + "b "+this->getBlock()->getFunction()->getName()+"_"+this->getBlock()->getFunction()->getName()+"_Exit\n";
     return ret;
 }
 

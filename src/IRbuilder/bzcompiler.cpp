@@ -182,7 +182,11 @@ int main(int argc, char **argv) {
     SsaRegMapper temp(ra.getInstId(),ra.getIntervals());
     SsaASMPrinter printer_(&asmBuilder, &temp);
 
-    std::cout << printer_.print() << std::endl;
+    std::ofstream asm_stream;
+    auto asm_file=target_path+".S";
+    asm_stream.open(asm_file,std::ios::out);
+    asm_stream << printer_.print() << std::endl;
+    asm_stream.close();
 //    asmBuilder.buildPhi(ra);
 
     // A simple printer for MIR

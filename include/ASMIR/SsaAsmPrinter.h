@@ -22,8 +22,8 @@ public:
 
     std::string print() {
         const std::string spacing = "    ";
-        std::string ret = spacing + ".arch armv7\n";
-        ret += spacing + ".file \"test.sy\"";
+        std::string ret = spacing + ".arch armv8 -a\n";
+        ret += spacing + ".file \"test.sy\"\n";
         ret += spacing + ".data\n";
         // Print all global values
         for (auto gv: _builder->getGlobalValuables()) {
