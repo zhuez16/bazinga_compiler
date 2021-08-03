@@ -1,8 +1,8 @@
 //
 // Created by 顾超 on 2021/7/30.
 //
-#include "ASMIR/ASValue.hpp"
-
+//#include "ASMIR/ASValue.hpp"
+#include "ASMIR/RegAllocMapper.h"
 
 const std::string l_spacing = "    ";
 const std::string s_spacing = "  ";

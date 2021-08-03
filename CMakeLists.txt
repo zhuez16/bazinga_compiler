@@ -86,7 +86,8 @@ ADD_EXECUTABLE(compiler
         src/ASMIR/ASMBuilder.cpp
         src/ASMIR/ASMPrinter.cpp
         src/ASMIR/ASValue.cpp
-        src/ASMIR/RegAllocMapper.cpp src/ASMIR/ASMcodeprinter.cpp include/ASMIR/ASMcodeprinter.h)
+        src/ASMIR/RegAllocMapper.cpp src/ASMIR/SsaAsmPrinter.cpp include/ASMIR/SsaAsmPrinter.h)
+# src/ASMIR/ASMcodeprinter.cpp include/ASMIR/ASMcodeprinter.h)
 # TARGET_LINK_LIBRARIES(
 #         builder IR_lib
 # )

@@ -2,7 +2,6 @@
 // Created by 顾超 on 2021/8/1.
 //
 #include "ASMIR/RegAllocMapper.h"
-#include "ASMIR/ASValue.hpp"
 
 
 std::string RegMapper::getName(ASInstruction *inst, ASValue *operand) {

@@ -13,6 +13,7 @@ class ASValue;
 class ASInstruction;
 class ASConstant;
 class ASLabel;
+class Interval;
 
 class RegMapper {
 public:

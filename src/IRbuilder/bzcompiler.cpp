@@ -1,3 +1,5 @@
+
+
 #include "bzcompiler_builder.hpp"
 #include "parser.h"
 #include "ast.h"
@@ -5,22 +7,26 @@
 #include "pass/global2local.h"
 #include "pass/loop_expansion.h"
 #include "pass/SCPcombineDCE.h"
+#include "codegen/LinearScanSSA.h"
 #include "pass/CFG.h"
 #include "pass/Sink.h"
+#include "pass/GVN.h"
 #include "pass/loop_search.h"
 #include "pass/active_vars.h"
 #include "pass/CFG_simply.h"
 #include "pass/CodeElimination.h"
-#include "codegen/codegen.h"
-#include "codegen/instgen.h"
+#include "ASMIR/ASMBuilder.h"
+#include "ASMIR/SimpleASMPrinter.h"
+#include "ASMIR/RegAllocMapper.h"
 #include <cstring>
 #include <iostream>
 #include <fstream>
 #include <memory>
+#include "ASMIR/SsaAsmPrinter.h"
 
 void print_help(const std::string& exe_name) {
     std::cout << "Usage: " << exe_name <<
-        " [ -h | --help ] [ -o <target-file> ] [ -emit-llvm ] [-mem2reg] [-loop-search] [-loop-inv-hoist] [-const-propagation] [-active-vars] [-available-expression] [-analyze] <input-file>" << std::endl;
+              " [ -h | --help ] [ -o <target-file> ] [ -emit-llvm ] [-mem2reg] [-loop-search] [-loop-inv-hoist] [-const-propagation] [-active-vars] [-available-expression] [-analyze] <input-file>" << std::endl;
 }
 
 int main(int argc, char **argv) {
@@ -112,20 +118,27 @@ int main(int argc, char **argv) {
 //    PM.add_pass<Global2Local>();
     m->set_print_name();
 //    printf("start running pass manager\n");
-    PM.add_pass<Global2Local>();
+//    PM.add_pass<Global2Local>();
     PM.add_pass<Mem2Reg>();
+    PM.add_pass<ConstFoldingDCEliminating>();
+    PM.add_pass<CodeElimination>();
+    PM.add_pass<LoopExpansion>();
+    PM.add_pass<ConstFoldingDCEliminating>();
+    PM.add_pass<GVN>();
+
+
 //    if ( const_propagation ) {
-        PM.add_pass<ConstFoldingDCEliminating>();
-        PM.add_pass<CodeElimination>();
+//        PM.add_pass<ConstFoldingDCEliminating>();
+//        PM.add_pass<CodeElimination>();
 //    }
 //    if ( code_sink ) {
-        PM.add_pass<CodeSinking>();
+//        PM.add_pass<CodeSinking>();
 //    }
-    PM.add_pass<ActiveVars>();
-    PM.add_pass<LoopSearch>();
-    PM.add_pass<LoopExpansion>();
+//    PM.add_pass<active_vars>();
+//    PM.add_pass<LoopSearch>();
+//    PM.add_pass<LoopExpansion>();
 //    if( loop_search ){
-        PM.add_pass<LoopSearch>();
+//        PM.add_pass<LoopSearch>();
 //    }
 //    if( const_propagation )
 //    {
@@ -143,7 +156,7 @@ int main(int argc, char **argv) {
 //        PM.add_pass<AvailableExpression>(true);
 //    }
 //    printf("555\n");
-    PM.add_pass<CFG_simply>();
+    //PM.add_pass<CFG_simply>();
     PM.run();
     auto IR = m->print();
 
@@ -154,8 +167,29 @@ int main(int argc, char **argv) {
     output_stream << "source_filename = \""+ input_path +"\"\n\n";
     output_stream << IR;
     output_stream.close();
+
+    std::cout << IR << std::endl;
+
+    ASMBuilder asmBuilder;
+    asmBuilder.build(builder.getModule());
+    RegMapper *mp = new InfRegMapper();
+    SimpleASMPrinter printer(&asmBuilder, mp);
+    std::cout << printer.print() << std::endl;
+    LinearScanSSA ra;
+    ra.run(&asmBuilder, builder.getModule(), mp);
+    for (const auto& iv: ra.getIntervals()) {
+        std::cout << iv.toString(mp);
+    }
+    SsaRegMapper temp(ra.getInstId(),ra.getIntervals());
+    SsaASMPrinter printer_(&asmBuilder, &temp);
+
+    std::cout << printer_.print() << std::endl;
+//    asmBuilder.buildPhi(ra);
+
+    // A simple printer for MIR
+    /*
     if (!emit) {
-        
+
         auto command_string = "clang -O0 -w " + target_path + ".ll -o " + target_path + " -L. -lsylib";
         int re_code0 = std::system(command_string.c_str());
         command_string = "rm " + target_path + ".ll";
@@ -163,20 +197,9 @@ int main(int argc, char **argv) {
         if(re_code0==0 && re_code1==0) return 0;
         else return 1;
     }
+     */
 
-/*
-    codegen temp=codegen(m);
-    std::map<Value *, int> reg_alloc;
-    reg_alloc=temp.regAlloc();
-    for (auto val: reg_alloc){
-        std::cout << val.first->get_name() << " " << val.second << std::endl;
-    }
-    std::string asm_code=temp.generateModuleCode(reg_alloc);
-    std::ofstream output_asm_stream;
-    auto output_asm_file=target_path+".S";
-    output_asm_stream.open(output_asm_file, std::ios::out);
-    output_asm_stream << asm_code;
-    output_asm_stream.close();
-    */
     return 0;
+
 }
+

@@ -46,15 +46,16 @@ public:
                                 }
                             }
                             else if (lr.first == pos){
-                                bool flag=false;
+                                int get_spill=-1;
+                                int last_pos=0;
                                 for (auto reg_:_mapper->get_intervals()){
-                                    if (reg.getSpill() != -1){
-                                        for (auto lr_:reg.getIntervals()){
-                                            if ()
-                                        }
+                                    if (reg_.getValue()==reg.getValue() && reg_.getEnd()<reg.getBegin() && reg_.getEnd()>last_pos){
+                                        get_spill=reg_.getSpill();
+                                        last_pos=reg_.getEnd();
                                     }
                                 }
-                                ret +="    load"+std::to_string(reg.getRegister())+",[sp,"+std::to_string(reg.getSpill())+"]\n";
+                                if (get_spill > 0)
+                                    ret +="    load"+std::to_string(reg.getRegister())+",[sp,"+std::to_string(get_spill)+"]\n";
                             }
                         }
                     }

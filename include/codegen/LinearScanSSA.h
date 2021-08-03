@@ -16,6 +16,8 @@
 #include "pass/dominator.h"
 #include "pass/loop_search.h"
 #include "pass/active_vars.h"
+#include "ASMIR/ASMBuilder.h"
+#include "ASMIR/RegAllocMapper.h"
 #include <climits>
 
 #define NUM_REG 10
@@ -46,7 +48,7 @@ class Interval {
 public:
     std::string toString(RegMapper *mapper) const;
     Interval(ASValue *v, int pos) : _reg(-1), _spill(-1), _begin(pos), _end(pos), _v(v) {
-        _intervals.emplace_back(pos, pos);
+        // _intervals.emplace_back(pos, pos);
     }
 
     Interval() : _reg(-1), _begin(INT_MAX), _end(-1), _spill(-1) {
@@ -88,6 +90,7 @@ public:
      * @return
      */
     Interval split(int position){
+        assert(!isFixed() && "Fixed interval is not splittable");
         // if (position < 0) assert(0);
         // setSpill(position);
         Interval P1;
@@ -156,6 +159,8 @@ public:
         }
         return 0;
     }
+
+    bool isFixed() const { return _fixed; }
 
     bool operator< (const Interval &rhs) const {
         return _begin < rhs._begin;

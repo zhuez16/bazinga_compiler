@@ -11,13 +11,15 @@
 #include <algorithm>
 
 #include "IR/Function.h"
-#include "ASMIR/RegAllocMapper.h"
+
 
 class ASValue;
 
 class ASBlock;
 
 class ASFunction;
+
+class RegMapper;
 
 struct ASUse {
     ASValue *_user;

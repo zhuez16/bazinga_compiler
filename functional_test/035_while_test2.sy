@@ -22,7 +22,7 @@ int FourWhile() {
     }
     b = b - 2;
   }
-  
+
   return (a + (b + d) + c);
 }
 

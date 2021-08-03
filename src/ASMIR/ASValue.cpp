@@ -2,7 +2,8 @@
 // Created by 顾超 on 2021/7/30.
 //
 
-#include "ASMIR/ASValue.hpp"
+//#include "ASMIR/ASValue.hpp"
+#include "ASMIR/RegAllocMapper.h"
 
 template<class T>
 bool isa(ASValue *inst) { return dynamic_cast<T *>(inst) != nullptr; }
