@@ -99,12 +99,20 @@ public:
             //generate mov for phi
             for (auto phi:phi_inst){
                 auto instID=_mapper->getInstructionID(phi);
+                int i=0;
                 for (auto val:phi->getOperands()){
+                    i++;
                     auto bb=dynamic_cast<ASBlock *> (val);
-                    auto temp_inst=bb->getInstList().back();
-                    bb->getInstList().pop_back();
-                    bb->addInstruction("    mov "+std::to_string(_mapper->getRegister(instID,phi))+","+std::to_string(_mapper->getRegister(instID,val))+"\n");
-                    bb->addInstruction(temp_inst);
+                    if (!bb) continue;
+                    if (!bb->getInstList().empty()){
+                        auto temp_inst=bb->get_inst_print().back();
+                        bb->get_inst_print().pop_back();
+                        bb->addInstruction("    mov "+_mapper->getName(phi,phi)+","+_mapper->getName(phi,phi->getOperand((i-1)/2))+"\n");
+                        bb->addInstruction(temp_inst);
+                    }
+                    else{
+                        bb->addInstruction("    mov "+_mapper->getName(phi,phi)+","+_mapper->getName(phi,phi->getOperand((i-1)/2))+"\n");
+                    }
                 }
             }
             for (auto b:f->getBlockList()){
@@ -120,7 +128,7 @@ public:
                     if (instr->getInstType()==ASInstruction::ASMCallTy) has_call=true;
                     int reg=_mapper->getRegister(_mapper->getInstructionID(instr),instr);
                     if (!saved_register_map.count(reg)){
-                        if (std::min(f->getNumArguments(),4) <= reg && reg < 11){
+                        if (std::min(std::max(f->getNumArguments(),1),4) <= reg && reg < 11){
                             saved_register_map[reg]=true;
                             saved_register.push_back(reg);
                         }

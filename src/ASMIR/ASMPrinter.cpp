@@ -33,7 +33,7 @@ std::string ASFunctionCall::print(RegMapper *mapper) {
     std::string ret = "";
     // TODO
     // Step 1: push all operands into the regs and the stack
-    std::map<int, int> reg_in, reg_out;
+
     int i=0;
     if (getNumOperands()>4) ret+="    sub sp,sp,#"+std::to_string((getNumOperands()-5)*4)+"\n";
     for (auto op:getOperands()){
@@ -52,76 +52,139 @@ std::string ASFunctionCall::print(RegMapper *mapper) {
         i++;
     }
     i=0;
+    int numOfOperands=std::min(getNumOperands()-1,3);
+    int regAssignMap[4]={-1,-1,-1,-1};
+    bool isConstAssign[4]={false,false,false,false};
     for (auto op:getOperands()){
         if (dynamic_cast<ASFunction*>(op)) continue;
         if (dynamic_cast<ASConstant*>(op)){
-            if (i>=4){
-                break;
-            }
-            ret+="    mov r"+std::to_string(i)+",#"+std::to_string(dynamic_cast<ASConstant *>(op)->getValue())+"\n";
-            reg_in[i]=i;
-            reg_out[i]=i;
+            regAssignMap[i]=dynamic_cast<ASConstant*>(op)->getValue();
+            isConstAssign[i]=true;
+            i++;
         }
         else{
-            if (i<4){
-                reg_in[mapper->getRegister(this,op)]=i;
-                reg_out[i]=mapper->getRegister(this,op);
+            regAssignMap[i]=mapper->getRegister(this,op);
+            i++;
+        }
+    }
+    bool handled[4]={false,false,false,false};
+    while (numOfOperands > 0){
+        int cur_handle=-1;
+        int num_of_handled=0;
+        for (int i=0;i<=numOfOperands;i++){
+            if (handled[i]){
+                num_of_handled++;
+                continue;
             }
-            else{
+            bool flag=true;
+            for (int j=0;j<=numOfOperands;j++){
+                if (j==i) continue;
+                if (regAssignMap[j]==i){
+                    flag=false;
+                    break;
+                }
+            }
+            if (flag){
+                cur_handle=i;
                 break;
             }
         }
-        i++;
-    }
-    int num_of_op=getNumOperands()-1;
-    while (num_of_op){
-        std::stack<int> sta;
-        int temp=getNumOperands()-2;
-        while (!reg_in.count(temp) || reg_in.at(temp)<0) temp--;
-        if (reg_in[temp]==temp){
-            num_of_op--;
-            continue;
-        }
-        sta.push(temp);
-        while (sta.top() < getNumOperands()-1){
-            int flag=sta.top();
-            if (!reg_in.count(sta.top()))break;
-            int next=reg_in[sta.top()];
-            if (next==temp) break;
-            sta.push(next);
-        }
-        int next=sta.top();
-        num_of_op-=sta.size();
-        if (next==temp){
-            ret+="    mov r12,"+std::to_string(temp)+"\n";
-            while (sta.size()>1){
-                ret+="    mov r"+std::to_string(reg_in[sta.top()])+",r"+std::to_string(sta.top());
-                reg_in[sta.top()]=-1;
-                sta.pop();
+        if (num_of_handled==numOfOperands) break;
+        if (cur_handle==-1) { //exists a loop
+            for (int i=0;i<=numOfOperands;i++){
+                if (!handled[i]){
+                    cur_handle=i;
+                    break;
+                }
             }
-            ret+="    mov r"+std::to_string(sta.top())+",r12\n";
-            reg_in[sta.top()]=-1;
-            sta.pop();
+            ret+="    mov r12,r"+std::to_string(cur_handle);
+            handled[cur_handle]=true;
+            int start=cur_handle;
+            cur_handle=regAssignMap[cur_handle];
+            while (regAssignMap[cur_handle]!=start){
+                ret+="    mov r"+std::to_string(cur_handle)+",r"+std::to_string(regAssignMap[cur_handle])+"\n";
+                handled[cur_handle]=true;
+                cur_handle=regAssignMap[cur_handle];
+            }
+            ret+="    mov r"+std::to_string(cur_handle)+",r12";
+            handled[cur_handle]=true;
         }
         else{
-            sta.pop();
-            while (!sta.empty()){
-                ret+="mov r"+std::to_string(reg_in[sta.top()])+",r"+std::to_string(sta.top())+"\n";
-                reg_in[sta.top()]=-1;
-                sta.pop();
-            }
+            ret+="    mov r"+std::to_string(cur_handle)+",#"+std::to_string(regAssignMap[cur_handle])+"\n";
+            handled[cur_handle]=true;
         }
     }
-    for (int j=0;j<i;j++){
-        if (reg_out[j]>=i)
-            ret+="    mov r"+std::to_string(j)+",r"+std::to_string(reg_out[j])+"\n";
-    }
+//    i=0;
+//    for (auto op:getOperands()){
+//        if (dynamic_cast<ASFunction*>(op)) continue;
+//        if (dynamic_cast<ASConstant*>(op)){
+//            if (i>=4){
+//                break;
+//            }
+//            ret+="    mov r"+std::to_string(i)+",#"+std::to_string(dynamic_cast<ASConstant *>(op)->getValue())+"\n";
+//            reg_in[i]=i;
+//            reg_out[i]=i;
+//        }
+//        else{
+//            if (i<4){
+//                reg_in[mapper->getRegister(this,op)]=i;
+//                reg_out[i]=mapper->getRegister(this,op);
+//            }
+//            else{
+//                break;
+//            }
+//        }
+//        i++;
+//    }
+//    int num_of_op=getNumOperands()-1;
+//    while (num_of_op){
+//        std::stack<int> sta;
+//        int temp=getNumOperands()-2;
+//        while (!reg_in.count(temp) || reg_in.at(temp)<0) temp--;
+//        if (reg_in[temp]==temp){
+//            num_of_op--;
+//            continue;
+//        }
+//        sta.push(temp);
+//        while (sta.top() < getNumOperands()-1){
+//            int flag=sta.top();
+//            if (!reg_in.count(sta.top()))break;
+//            int next=reg_in[sta.top()];
+//            if (next==temp) break;
+//            sta.push(next);
+//        }
+//        int next=sta.top();
+//        num_of_op-=sta.size();
+//        if (next==temp){
+//            ret+="    mov r12,"+std::to_string(temp)+"\n";
+//            while (sta.size()>1){
+//                ret+="    mov r"+std::to_string(reg_in[sta.top()])+",r"+std::to_string(sta.top());
+//                reg_in[sta.top()]=-1;
+//                sta.pop();
+//            }
+//            ret+="    mov r"+std::to_string(sta.top())+",r12\n";
+//            reg_in[sta.top()]=-1;
+//            sta.pop();
+//        }
+//        else{
+//            sta.pop();
+//            while (!sta.empty()){
+//                ret+="mov r"+std::to_string(reg_in[sta.top()])+",r"+std::to_string(sta.top())+"\n";
+//                reg_in[sta.top()]=-1;
+//                sta.pop();
+//            }
+//        }
+//    }
+//    for (int j=0;j<i;j++){
+//        if (reg_out[j]>=i)
+//            ret+="    mov r"+std::to_string(j)+",r"+std::to_string(reg_out[j])+"\n";
+//    }
     // Step 2: generate br asm code
     //ret += l_spacing+OpNameMap.at(getInstType());
     ret += "    bl "+this->getOperand(0)->getName()+"\n";
     // TODO: remove this if function doesn't have a return value
-
-    ret += "    mov "+mapper->getName(this,this)+","+"r0\n";
+    if (getCallee()->hasReturnValue())
+        if (mapper->getRegister(this,this)!=0) ret += "    mov "+mapper->getName(this,this)+","+"r0\n";
     if (getNumOperands()>4) ret+="    add sp,sp,#"+std::to_string((getNumOperands()-5)*4)+"\n";
     return ret;
 }
@@ -291,7 +354,7 @@ std::string ASFunction::print(RegMapper *mapper) {
                 if (instr->getInstType()==ASInstruction::ASMCallTy) has_call=true;
                 int reg=mapper->getRegister(instr,instr);
                 if (!saved_register_map.count(reg)){
-                    if (std::min(getNumArguments(),4) <= reg && reg < 11){
+                    if (std::min(std::max(getNumArguments(),1),4) <= reg && reg < 11){
                         saved_register_map[reg]=true;
                         saved_register.push_back(reg);
                     }
@@ -530,7 +593,7 @@ std::vector<std::pair<ASBlock *, ASValue *>> ASPhiInst::getBBValuePair()  {
 }
 std::string ASReturn::print(RegMapper *mapper) {
     std::string ret = l_spacing;
-    ret += "mov r0," + mapper->getName(this,this->getOperand(0))+"\n";
+    if (this->getNumOperands()>0 && mapper->getRegister(this,this->getOperand(0)) != 0)ret += "mov r0," + mapper->getName(this,this->getOperand(0))+"\n";
     ret += l_spacing + "b "+this->getBlock()->getFunction()->getName()+"_"+this->getBlock()->getFunction()->getName()+"_Exit\n";
     return ret;
 }
