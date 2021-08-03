@@ -474,10 +474,15 @@ void LinearScanSSA::allocateBlockedRegister(Interval &current, int position) {
         // 如果是因为固定寄存器导致Spill，位置设置为当前位置
         if (current.getRegister() == -1) {
             unhandled.push_back(to_spill.split(nextUsePos[max_idx]));
+            handled.push_back(to_spill);
         } else {
-            unhandled.push_back(to_spill.split(position));
+            // 寄存器同时被fixed而且被指定，摆烂
+            if (!to_spill.isFixed()) {
+                unhandled.push_back(to_spill.split(position));
+                handled.push_back(to_spill);
+            }
         }
-        handled.push_back(to_spill);
+
         // 为当前Interval分配指定寄存器
         current.setRegister(max_idx);
         std::sort(unhandled.begin(), unhandled.end());

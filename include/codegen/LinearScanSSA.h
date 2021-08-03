@@ -19,7 +19,6 @@
 #include "ASMIR/ASMBuilder.h"
 #include "ASMIR/RegAllocMapper.h"
 #include <climits>
-
 #define NUM_REG 10
 
 class RegMapper;
@@ -77,7 +76,7 @@ public:
         this->_reg=regId;
     }
 
-    ASValue *getValue() { return _v; }
+    ASValue *getValue() const { return _v; }
     std::vector<std::pair<int,int>> getIntervals(){ return _intervals; }
 
     /**
