@@ -66,8 +66,12 @@ public:
     void addRange(int from, int to);
     void addRange(const BlockIDRange &br) { addRange(br.from,br.to); }
     void setFrom(int from){
-        this->_begin=from;
-        this->_intervals.front().first=from;
+        _begin=from;
+        if (this->_intervals.empty()) {
+            _intervals.emplace_back(_begin, _end);
+        } else {
+            _intervals.front().first = from;
+        }
     }
     void setSpill(int spillSlot){
         _spill = spillSlot;
