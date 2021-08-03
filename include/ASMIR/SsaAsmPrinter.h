@@ -46,7 +46,7 @@ public:
             int i=0;
             for (auto instr:f->getBlockList().front()->getInstList()){
                 if (i>=4){
-                    instr->setOperand(0,ASConstant::getConstant(-4*(arg_in_stack-i+offset)));
+                    instr->setOperand(0,ASConstant::getConstant(4*(i-4+offset)));
                 }
                 i++;
             }

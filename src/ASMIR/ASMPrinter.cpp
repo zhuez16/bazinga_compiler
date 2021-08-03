@@ -35,6 +35,7 @@ std::string ASFunctionCall::print(RegMapper *mapper) {
     // Step 1: push all operands into the regs and the stack
     std::map<int, int> reg_in, reg_out;
     int i=0;
+    if (getNumOperands()>4) ret+="    sub sp,sp,#"+std::to_string((getNumOperands()-5)*4)+"\n";
     for (auto op:getOperands()){
         if (dynamic_cast<ASFunction*>(op)) continue;
         if (dynamic_cast<ASConstant*>(op)){
@@ -50,7 +51,6 @@ std::string ASFunctionCall::print(RegMapper *mapper) {
         }
         i++;
     }
-    if (getNumOperands()>4) ret+="    add sp,sp,#"+std::to_string((getNumOperands()-5)*4)+"\n";
     i=0;
     for (auto op:getOperands()){
         if (dynamic_cast<ASFunction*>(op)) continue;
@@ -122,7 +122,7 @@ std::string ASFunctionCall::print(RegMapper *mapper) {
     // TODO: remove this if function doesn't have a return value
 
     ret += "    mov "+mapper->getName(this,this)+","+"r0\n";
-    if (getNumOperands()>4) ret+="    sub sp,sp,#"+std::to_string((getNumOperands()-5)*4)+"\n";
+    if (getNumOperands()>4) ret+="    add sp,sp,#"+std::to_string((getNumOperands()-5)*4)+"\n";
     return ret;
 }
 
