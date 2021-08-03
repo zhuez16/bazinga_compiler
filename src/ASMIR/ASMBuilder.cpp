@@ -53,6 +53,7 @@ void ASMBuilder::build(Module *m) {
             for (auto arg: f->get_args()) {
                 if (i < 4) insertAndAddToMapping(arg, ASUnaryInst::createASMMov(ASConstant::getConstant(0)));
                 else insertAndAddToMapping(arg, ASLoadInst::createSpLoad(ASConstant::getConstant(0)));
+                i+=1;
             }
             // Step 3. Add all basic blocks to mapping
             for (auto bb: f->get_basic_blocks()) {

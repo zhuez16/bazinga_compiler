@@ -31,6 +31,13 @@ public:
         }
         ret += spacing + ".text\n";
         // Print all functions
+        while (_builder->getFunctions().front()->getName() != "main"){
+            _builder->getFunctions().insert(_builder->getFunctions().begin(),_builder->getFunctions().back());
+            _builder->getFunctions().pop_back();
+        }
+        for (auto f:_builder->getFunctions()){
+            ret += spacing + ".global "+f->getName()+"\n";
+        }
         for (auto f: _builder->getFunctions()) {
             ret += f->print(_mapper);
             std::vector<ASInstruction *> phi_inst;
@@ -54,14 +61,15 @@ public:
                         continue;
                     }
                     int pos=_mapper->getInstructionID(i);
+                    std::string inst="";
                     for (auto reg:_mapper->get_intervals()){
                         for (auto lr:reg.getIntervals()){
                             if (lr.second+1 == pos){
                                 if (reg.getSpill() != -1){
-                                    ret+="    str "+std::to_string(reg.getRegister())+",[sp,"+std::to_string(reg.getSpill())+"]\n";
+                                    inst += "    str r"+std::to_string(reg.getRegister())+",[sp,#"+std::to_string(reg.getSpill())+"]\n";
                                 }
                             }
-                            else if (lr.first == pos){
+                            if (lr.first == pos){
                                 int get_spill=-1;
                                 int last_pos=0;
                                 for (auto reg_:_mapper->get_intervals()){
@@ -71,12 +79,12 @@ public:
                                     }
                                 }
                                 if (get_spill > 0)
-                                    ret +="    load"+std::to_string(reg.getRegister())+",[sp,"+std::to_string(get_spill)+"]\n";
+                                    inst +="    ldr r"+std::to_string(reg.getRegister())+",[sp,#"+std::to_string(get_spill)+"]\n";
                             }
                         }
                     }
 //                    ret += i->print(_mapper);
-                    b->addInstruction(i->print(_mapper));
+                    b->addInstruction(inst+i->print(_mapper));
                 }
             }
             //generate mov for phi

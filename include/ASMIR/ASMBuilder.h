@@ -61,7 +61,7 @@ private:
 public:
     void build(Module *m);
     std::vector<ASGlobalValue *> getGlobalValuables() { return globals; }
-    std::vector<ASFunction *> getFunctions() { return functions; }
+    std::vector<ASFunction *> &getFunctions() { return functions; }
 
     template<class T> T* getMapping(Value *ori) {
         assert(_mapping.find(ori) != _mapping.end() && "Can't find mapping for value");

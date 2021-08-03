@@ -38,16 +38,38 @@ std::string ASFunctionCall::print(RegMapper *mapper) {
     for (auto op:getOperands()){
         if (dynamic_cast<ASFunction*>(op)) continue;
         if (dynamic_cast<ASConstant*>(op)){
+            if (i>=4){
+                ret+="    mov r0,#"+std::to_string(dynamic_cast<ASConstant*>(op)->getValue())+"\n";
+                ret+="    str r0,[sp,#"+std::to_string((i-4)*4)+"]\n";
+            }
+        }
+        else{
+            if (i>=4){
+                ret+="    str "+mapper->getName(this,op)+",[sp,#"+std::to_string((i-4)*4)+"]\n";
+            }
+        }
+        i++;
+    }
+    if (getNumOperands()>4) ret+="    add sp,sp,#"+std::to_string((getNumOperands()-5)*4)+"\n";
+    i=0;
+    for (auto op:getOperands()){
+        if (dynamic_cast<ASFunction*>(op)) continue;
+        if (dynamic_cast<ASConstant*>(op)){
+            if (i>=4){
+                break;
+            }
             ret+="    mov r"+std::to_string(i)+",#"+std::to_string(dynamic_cast<ASConstant *>(op)->getValue())+"\n";
             reg_in[i]=i;
             reg_out[i]=i;
         }
-        else if (i<4){
-            reg_in[mapper->getRegister(this,op)]=i;
-            reg_out[i]=mapper->getRegister(this,op);
-        }
         else{
-            ret+="    str "+mapper->getName(this,op)+",[sp,"+std::to_string(i*4)+"]\n";
+            if (i<4){
+                reg_in[mapper->getRegister(this,op)]=i;
+                reg_out[i]=mapper->getRegister(this,op);
+            }
+            else{
+                break;
+            }
         }
         i++;
     }
@@ -55,7 +77,7 @@ std::string ASFunctionCall::print(RegMapper *mapper) {
     while (num_of_op){
         std::stack<int> sta;
         int temp=getNumOperands()-2;
-        while (reg_in.at(temp)<0) temp--;
+        while (!reg_in.count(temp) || reg_in.at(temp)<0) temp--;
         if (reg_in[temp]==temp){
             num_of_op--;
             continue;
@@ -100,6 +122,7 @@ std::string ASFunctionCall::print(RegMapper *mapper) {
     // TODO: remove this if function doesn't have a return value
 
     ret += "    mov "+mapper->getName(this,this)+","+"r0\n";
+    if (getNumOperands()>4) ret+="    sub sp,sp,#"+std::to_string((getNumOperands()-5)*4)+"\n";
     return ret;
 }
 
@@ -252,7 +275,7 @@ std::string ASFunction::print(RegMapper *mapper) {
      * add    r11, sp, #0
      * sub    sp, sp, #16
      * */
-    auto ret = "ASFunction: " + getName() + ":\n";
+    auto ret = getName() + ":\n";
     ret += s_spacing + "@ Alloca Stack Required: " + std::to_string(getStackSize()) + '\n';
     ret += s_spacing + "@ Arguments:\n";
 //    for (auto arg: getArguments()) {
