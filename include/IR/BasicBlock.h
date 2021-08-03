@@ -38,6 +38,14 @@ public:
     std::list<BasicBlock *> &get_succ_basic_blocks() { return succ_bbs_; }
     void add_pre_basic_block(BasicBlock *bb) { pre_bbs_.push_back(bb); }
     void add_succ_basic_block(BasicBlock *bb) { succ_bbs_.push_back(bb); }
+    void set_pre_bb(const std::set<BasicBlock *> &bb_list) {
+        pre_bbs_.clear();
+        pre_bbs_.insert(pre_bbs_.begin(), bb_list.begin(), bb_list.end());
+    }
+    void set_succ_bb(const std::set<BasicBlock *> &bb_list) {
+        succ_bbs_.clear();
+        succ_bbs_.insert(succ_bbs_.begin(), bb_list.begin(), bb_list.end());
+    }
     void replace_basic_block(BasicBlock *oldBB, BasicBlock *newBB) {
         for(auto it = pre_bbs_.begin(); it != pre_bbs_.end(); ++it) {
             if(*it == oldBB) {
