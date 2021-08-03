@@ -17,7 +17,9 @@
 #include "pass/Sink.h"
 #include "pass/global2local.h"
 
-#include "codegen/codegen.h"
+#include "codegen/LinearScanSSA.h"
+#include "ASMIR/SsaAsmPrinter.h"
+
 
 
 int main(int argc, char *argv[]) {
@@ -68,6 +70,9 @@ int main(int argc, char *argv[]) {
     Pass_manager pm(builder.getModule());
     // We always need to apply mem2reg
     pm.add_pass<Mem2Reg>();
+    // We have to eliminate the  Constant +/-/*// Constant, as out ASM builder can't handle these type of operands
+    pm.add_pass<ConstFoldingDCEliminating>();
+    pm.add_pass<CodeElimination>();
     // O2 optimizations
     if (apply_optimization) {
         pm.add_pass<Global2Local>();
@@ -95,18 +100,15 @@ int main(int argc, char *argv[]) {
     }
     // Generate assembly if needed
     if (generate_assemble) {
-        codegen temp=codegen(builder.getModule());
-        std::map<Value *, int> reg_alloc;
-        reg_alloc=temp.regAlloc();
-/*
-        for (auto val: reg_alloc){
-            std::cout << val.first->get_name() << " " << val.second << std::endl;
-        }
-*/
-        std::string asm_code=temp.generateModuleCode(reg_alloc);
-        std::ofstream output_asm_stream;
-        output_asm_stream.open(output_filepath, std::ios::out);
-        output_asm_stream << asm_code;
-        output_asm_stream.close();
+        ASMBuilder asmBuilder;
+        asmBuilder.build(builder.getModule());
+        LinearScanSSA ra;
+        ra.run(&asmBuilder, builder.getModule());
+        auto *mapper = new SsaRegMapper(ra.getInstId(), ra.getIntervals());
+        SsaASMPrinter printer(&asmBuilder, mapper);
+        std::ofstream ASMStream;
+        ASMStream.open(output_filepath, std::ios::out);
+        ASMStream << printer.print() << std::endl;
+        ASMStream.close();
     }
 }

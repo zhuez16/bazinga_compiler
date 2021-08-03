@@ -239,7 +239,7 @@ public:
  */
 class LinearScanSSA {
 public:
-    void run(ASMBuilder *builder, Module *m, RegMapper *rm);
+    void run(ASMBuilder *builder, Module *m);
 
     std::vector<Interval> getIntervals() { return handled; };
 

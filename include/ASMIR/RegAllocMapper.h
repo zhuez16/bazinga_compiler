@@ -47,7 +47,7 @@ private:
 public:
     std::vector<Interval> get_intervals();
 
-    SsaRegMapper(const std::map<ASInstruction *,int> &inst_id_, const std::vector<Interval> &interval_);
+    SsaRegMapper(std::map<ASInstruction *,int> inst_id_, std::vector<Interval> interval_);
     int getInstructionID(ASInstruction *inst) final ;
     std::string getName(ASInstruction *instr, ASValue *val) final;
     int getRegister(int instID, ASValue *operand) final ;

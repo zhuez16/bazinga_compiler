@@ -24,22 +24,30 @@ ADD_EXECUTABLE(compiler
         src/IRbuilder/bzcompiler_builder.cpp
         src/ast.cpp
         # Back end
-        src/codegen/codegen.cpp
-        src/codegen/instgen.cpp
-        src/codegen/regAlloc.cpp
+        src/ASMIR/ASMBuilder.cpp
+        src/ASMIR/ASMPrinter.cpp
+        src/ASMIR/ASValue.cpp
+        src/ASMIR/RegAllocMapper.cpp
+        src/ASMIR/SsaAsmPrinter.cpp
+        src/codegen/linearScanOnSSA.cpp
         # Opt/Analysis Pass
         src/pass_manager.cpp
         src/pass/active_vars.cpp
-        src/pass/SCPcombineDCE.cpp
-        src/pass/GVN.cpp
         src/pass/CFG.cpp
-        src/pass/dominator.cpp
-        src/pass/mem2reg.cpp
-        src/pass/loop_search.cpp
-        src/pass/global2local.cpp
-        src/pass/loop_expansion.cpp
-        src/pass/Sink.cpp
+        src/pass/CFG_simply.cpp
         src/pass/CodeElimination.cpp
+        src/pass/dominator.cpp
+        src/pass/get_ptr_simply.cpp
+        src/pass/global2local.cpp
+        src/pass/GVN.cpp
+        src/pass/Inline.cpp
+        src/pass/loop_expansion.cpp
+        src/pass/loop_search.cpp
+        src/pass/mem2reg.cpp
+        src/pass/power_sum.cpp
+        src/pass/reassociate.cpp
+        src/pass/SCPcombineDCE.cpp
+        src/pass/Sink.cpp
         )
 TARGET_LINK_LIBRARIES(
         compiler IR_lib
