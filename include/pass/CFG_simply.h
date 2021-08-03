@@ -12,21 +12,32 @@
 
 class CFG_simply : public Pass {
 private:
-  Function *func_;
-  CFG_simply();
-  std::vector<BasicBlock *> bb_del;
+    Function *func_{};
+    std::vector<BasicBlock *> bb_del;
+    bool changed{};
+    CFG *_cfg = nullptr;
+
+    void del_no_pre();
+
+    void merge_single();
+
+    void del_singel_phi();
+
+    void del_uncond();
+
+    void del_self_loop();
+
+    void del_no_pre_(BasicBlock *bb);
+
+    void rebuildCFG();
+
+    void fix_phi();
 
 public:
-  CFG_simply(Module *m) : Pass(m) {}
-  ~CFG_simply(){};
-  void run() override;
-  void del_no_pre();
-  void merge_single();
-  void del_singel_phi();
-  void del_uncond();
-  void del_self_loop();
-  void del_no_pre_(BasicBlock * bb);
-  void fix_succ();
-  void fix_phi();
-  void fix_pre();
+    explicit CFG_simply(Module *m) : Pass(m), _cfg(new CFG(m)) {}
+
+    ~CFG_simply() { delete _cfg; };
+
+    void run() override;
+
 };
