@@ -45,7 +45,7 @@ public:
     void replace_all_use_with(Value *new_val);
     void remove_use(Value *val);
 
-    virtual std::string print() { return get_name(); };
+    virtual std::string print() { return ""; }
 protected:
     Type *type_;
     std::list<Use> use_list_;   // who use this value

@@ -6,7 +6,6 @@
 #include "Module.h"
 #include "Function.h"
 
-#include <algorithm>
 #include <list>
 #include <set>
 #include <string>
@@ -76,11 +75,6 @@ public:
     bool is_fake_block() {return _fake; }
     int get_num_of_instr() { return instr_list_.size(); }
     std::list<Instruction *> &get_instructions() { return instr_list_; }
-    std::list<Instruction *> get_reverse_instructions() {
-        std::list<Instruction *> ret = get_instructions();
-        std::reverse(ret.begin(), ret.end());
-        return ret;
-    }
 
     void erase_from_parent();
 

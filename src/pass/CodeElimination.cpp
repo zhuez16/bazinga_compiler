@@ -38,4 +38,3 @@ void CodeElimination::run() {
         }
     }
 }
-
