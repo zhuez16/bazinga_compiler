@@ -83,7 +83,7 @@ public:
         this->_reg=regId;
     }
 
-    ASValue *getValue() { return _v; }
+    ASValue *getValue() const { return _v; }
     std::vector<std::pair<int,int>> getIntervals(){ return _intervals; }
 
     /**
@@ -288,6 +288,8 @@ public:
     }
 
     std::vector<Interval> getInterval() { return handled; };
+
+    std::map<ASInstruction *, int> getInstructionIDMapper() { return _inst_id; }
 
 
     LinearScanSSA() = default;
