@@ -5,14 +5,14 @@
 #include "include/pass/CFG_simply.h"
 
 void CFG_simply::run() {
-    CFG cfg = CFG(m_);
+
     for (auto fun : m_->get_functions())
     {
         func_ = fun;
-        cfg.runOnFunction(func_);
         if(func_->is_declaration())
             continue;
-
+        rebuildCFG();
+        /*
         fix_succ();
         fix_pre();
         for (auto bb : func_->get_basic_blocks())
@@ -21,26 +21,18 @@ void CFG_simply::run() {
             bb->get_succ_basic_blocks().unique();
         }
         fix_phi();
-
-        del_no_pre();
-        del_singel_phi();
-        merge_single();
-
-        fix_succ();
-        fix_pre();
-        for (auto bb : func_->get_basic_blocks())
-        {
-            bb->get_pre_basic_blocks().unique();
-            bb->get_succ_basic_blocks().unique();
+        */
+        changed = true;
+        while(changed) {
+            changed = false;
+            rebuildCFG();
+            fix_phi();
+            del_no_pre();
+            del_singel_phi();
+            merge_single();
+            del_uncond();
+            del_self_loop();
         }
-        fix_phi();
-
-        del_uncond();
-
-        del_self_loop();
-        del_no_pre();
-
-        del_singel_phi();
     }
 }
 
@@ -70,51 +62,6 @@ void CFG_simply::fix_phi()
     }
 }
 
-void CFG_simply::fix_pre()
-{
-    std::vector<BasicBlock *>del_pre;
-    for (auto bb : func_->get_basic_blocks())
-    {
-        del_pre.clear();
-        for(auto pre_bb : bb->get_pre_basic_blocks())
-        {
-            bool flag = true;
-            for(auto succ_bb : pre_bb->get_succ_basic_blocks())
-            {
-                if(bb == succ_bb)
-                    flag = false;
-            }
-            if(flag)
-                del_pre.push_back(pre_bb);
-        }
-        for(auto tmp : del_pre)
-            bb->remove_pre_basic_block(tmp);
-    }
-}
-
-void CFG_simply::fix_succ()
-{
-    std::vector<BasicBlock *> Succ_bb;
-    for (auto bb : func_->get_basic_blocks())
-    {
-        Succ_bb.clear();
-        auto instr = bb->get_terminator();
-        if(instr== nullptr)
-            continue;
-        if (instr->is_br()&&instr->get_num_operand()==1) {
-            auto target_bb = static_cast<BasicBlock *>(instr->get_operand(0));
-            for (auto succ_bb : bb->get_succ_basic_blocks()) {
-                if (succ_bb != target_bb)
-                    Succ_bb.push_back(succ_bb);
-            }
-            for (auto succ_bb : Succ_bb) {
-                bb->remove_succ_basic_block(succ_bb);
-                succ_bb->remove_pre_basic_block(bb);
-            }
-        }
-    }
-}
-
 void CFG_simply::del_self_loop() {
     bb_del.clear();
     for (auto bb : func_->get_basic_blocks())
@@ -125,12 +72,15 @@ void CFG_simply::del_self_loop() {
             bb_del.push_back(bb);
     }
     for(auto bb : bb_del)
+    {
         func_->remove(bb);
+        changed = true;
+    }
 }
 
 void CFG_simply::del_no_pre_(BasicBlock * bb) {
     if (bb->get_pre_basic_blocks().empty() && bb != func_->get_entry_block()) {
-        for (auto succ_bb : bb->get_succ_basic_blocks()) {
+        for (auto succ_bb : _cfg->getSuccBB(bb)) {
             succ_bb->remove_pre_basic_block(bb);
             del_no_pre_(succ_bb);
         }
@@ -144,7 +94,10 @@ void CFG_simply::del_no_pre() {
         del_no_pre_(bb);
     }
     for(auto bb : bb_del)
+    {
+        changed = true;
         func_->remove(bb);
+    }
 }
 
 void CFG_simply::merge_single() {
@@ -171,7 +124,10 @@ void CFG_simply::merge_single() {
         }
     }
     for(auto bb : bb_del)
+    {
+        changed = true;
         func_->remove(bb);
+    }
 }
 
 void CFG_simply::del_singel_phi() {
@@ -182,14 +138,17 @@ void CFG_simply::del_singel_phi() {
             for (auto instr : bb->get_instructions()) {
                 if (instr->is_phi()) {
                     for (auto use : instr->get_use_list())
-                        static_cast<User *>(use.val_)->set_operand(
+                        dynamic_cast<User *>(use.val_)->set_operand(
                                     use.arg_no_, instr->get_operand(0));
                     instr_del.push_back(instr);
                 }
             }
         }
         for(auto instr : instr_del)
+        {
+            changed = true;
             bb->delete_instr(instr);
+        }
     }
 }
 
@@ -202,11 +161,11 @@ void CFG_simply::del_uncond() {
             if (terminator->is_br() && terminator->get_num_operand() == 1) {
                 bool if_del = true;
                 for (auto pre_bb : bb->get_pre_basic_blocks()) {
-                    auto br = static_cast<BranchInst *>(pre_bb->get_terminator());
+                    auto br = dynamic_cast<BranchInst *>(pre_bb->get_terminator());
                     if (br->is_cond_br()) {
                         auto target1 = br->get_operand(1);
                         auto target2 = br->get_operand(2);
-                        auto target3 = static_cast<BranchInst *>(terminator)->get_operand(0);
+                        auto target3 = dynamic_cast<BranchInst *>(terminator)->get_operand(0);
                         if ((target1 == bb && target2 == target3) ||
                             (target2 == bb && target1 == target3)) {
                             if_del = false;
@@ -215,7 +174,7 @@ void CFG_simply::del_uncond() {
                     } else if (br->is_cmp()) {
                         auto target1 = br->get_operand(2);
                         auto target2 = br->get_operand(3);
-                        auto target3 = static_cast<BranchInst *>(terminator)->get_operand(0);
+                        auto target3 = dynamic_cast<BranchInst *>(terminator)->get_operand(0);
                         if ((target1 == bb && target2 == target3) ||
                             (target2 == bb && target1 == target3)) {
                             if_del = false;
@@ -254,7 +213,7 @@ void CFG_simply::del_uncond() {
                         auto instr = dynamic_cast<Instruction *>(use.val_);
                         if (instr) {
                             if (instr->is_br()) {
-                                static_cast<User *>(use.val_)->set_operand(use.arg_no_,
+                                dynamic_cast<User *>(use.val_)->set_operand(use.arg_no_,
                                                                         *succ_bb);
                             }
                         }
@@ -272,5 +231,16 @@ void CFG_simply::del_uncond() {
         }
     }
     for(auto bb : bb_del)
+    {
+        changed = true;
         func_->remove(bb);
+    }
+}
+
+void CFG_simply::rebuildCFG() {
+    _cfg->runOnFunction(func_);
+    for (auto bb: func_->get_basic_blocks()) {
+        bb->set_succ_bb(_cfg->getSuccBB(bb));
+        bb->set_pre_bb(_cfg->getPrevBB(bb));
+    }
 }

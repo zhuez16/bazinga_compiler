@@ -87,6 +87,8 @@ int main(int argc, char *argv[]) {
         // Code sink
         pm.add_pass<CodeSinking>();
         pm.add_pass<CodeElimination>();
+
+
     }
     pm.run();
     // Now we can print the llvm ir code if needed
