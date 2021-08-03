@@ -2,7 +2,7 @@
 // Created by 万嘉诚 on 2021/7/26.
 //
 
-#include "include/pass/CFG_simply.h"
+#include "pass/CFG_simply.h"
 
 void CFG_simply::run() {
 

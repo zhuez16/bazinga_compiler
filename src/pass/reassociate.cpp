@@ -2,7 +2,7 @@
 // Created by mskhana on 2021/8/1.
 //
 
-#include "include/pass/reassociate.h"
+#include "pass/reassociate.h"
 
 
 //use rank to get all the instructions that can be reassociated.
