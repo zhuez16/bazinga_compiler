@@ -174,7 +174,6 @@ int main(int argc, char **argv) {
     asmBuilder.build(builder.getModule());
     RegMapper *mp = new InfRegMapper();
     SimpleASMPrinter printer(&asmBuilder, mp);
-    std::cout << printer.print() << std::endl;
     LinearScanSSA ra;
     ra.run(&asmBuilder, builder.getModule(), mp);
     for (const auto& iv: ra.getIntervals()) {

@@ -186,10 +186,11 @@ private:
 
 public:
     std::list<std::string> get_asm_inst();
-    void addInstruction(ASInstruction *inst) ;
+    void addInstruction(ASInstruction *inst);
     void addInstruction(std::string inst);
 
-    std::list<ASInstruction *> getInstList();
+    std::list<ASInstruction *> &getInstList();
+    std::list<std::string> &get_inst_print();
 
     std::list<ASInstruction *> getReverseInstList();
 

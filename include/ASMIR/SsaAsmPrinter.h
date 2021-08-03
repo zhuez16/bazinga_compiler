@@ -33,10 +33,26 @@ public:
         // Print all functions
         for (auto f: _builder->getFunctions()) {
             ret += f->print(_mapper);
+            std::vector<ASInstruction *> phi_inst;
             for (auto b: f->getBlockList()) {
-                ret += b->print(_mapper);
+                b->addInstruction(b->print(_mapper));
+                if (b==f->getBlockList().front()){
+                    if (b->getInstList().size() < 4){
+                        b->getInstList().clear();
+                    }
+                    else{
+                        b->getInstList().pop_front();
+                        b->getInstList().pop_front();
+                        b->getInstList().pop_front();
+                        b->getInstList().pop_front();
+                    }
+                }
                 for (auto i: b->getInstList()) {
                     // If spill => Spill
+                    if (i->getInstType()==ASInstruction::ASMPhiTy){
+                        phi_inst.push_back(i);
+                        continue;
+                    }
                     int pos=_mapper->getInstructionID(i);
                     for (auto reg:_mapper->get_intervals()){
                         for (auto lr:reg.getIntervals()){
@@ -59,9 +75,48 @@ public:
                             }
                         }
                     }
-                    ret += i->print(_mapper);
+//                    ret += i->print(_mapper);
+                    b->addInstruction(i->print(_mapper));
                 }
             }
+            //generate mov for phi
+            for (auto phi:phi_inst){
+                auto instID=_mapper->getInstructionID(phi);
+                for (auto val:phi->getOperands()){
+                    auto bb=dynamic_cast<ASBlock *> (val);
+                    auto temp_inst=bb->getInstList().back();
+                    bb->getInstList().pop_back();
+                    bb->addInstruction("    mov "+std::to_string(_mapper->getRegister(instID,phi))+","+std::to_string(_mapper->getRegister(instID,val))+"\n");
+                    bb->addInstruction(temp_inst);
+                }
+            }
+            for (auto b:f->getBlockList()){
+                for (auto instr:b->get_asm_inst()){
+                    ret+=instr;
+                }
+            }
+            std::vector<int> saved_register;
+            std::map<int, bool> saved_register_map;
+            bool has_call=false;
+            for (auto bb:f->getBlockList()){
+                for (auto instr:bb->getInstList()){
+                    if (instr->getInstType()==ASInstruction::ASMCallTy) has_call=true;
+                    int reg=_mapper->getRegister(_mapper->getInstructionID(instr),instr);
+                    if (!saved_register_map.count(reg)){
+                        if (std::min(f->getNumArguments(),4) <= reg && reg < 11){
+                            saved_register_map[reg]=true;
+                            saved_register.push_back(reg);
+                        }
+                    }
+                }
+            }
+            ret +="    add sp,r11,#0\n";
+            ret +="    pop {";
+            for (auto reg:saved_register){
+                ret+="r"+std::to_string(reg)+",";
+            }
+            if (has_call) ret += "r11,pc}\n";
+            else ret += "r11}\n    bx lr\n";
         }
         return ret;
     }

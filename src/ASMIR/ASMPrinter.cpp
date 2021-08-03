@@ -2,10 +2,12 @@
 // Created by 顾超 on 2021/7/30.
 //
 //#include "ASMIR/ASValue.hpp"
+
 #include "ASMIR/RegAllocMapper.h"
 
 const std::string l_spacing = "    ";
 const std::string s_spacing = "  ";
+const std::string temp_reg="r12";
 const std::map<ASInstruction::ASMInstType, std::string>
         OpNameMap({
                           {ASInstruction::ASMMovTy, "mov"},
@@ -28,22 +30,76 @@ const std::map<ASInstruction::ASMInstType, std::string>
 std::string PrintReg(int i) { return " r" + std::to_string(i); }
 
 std::string ASFunctionCall::print(RegMapper *mapper) {
-    std::string ret = l_spacing;
+    std::string ret = "";
     // TODO
-    // Step 1: push all active vars in registers into the stack, except the one to store the return value.
-
-    // Step 2: generate br asm code
-    ret += OpNameMap.at(getInstType());
-    // TODO: remove this if function doesn't have a return value
-    ret += mapper->getName(this, this);
-    ret += ", ";
-    ret += mapper->getName(this, getOperand(0));
-    for (int i = 1; i < getNumOperands(); ++i) {
-        ret += ", ";
-        ret += mapper->getName(this, getOperand(i));
+    // Step 1: push all operands into the regs and the stack
+    std::map<int, int> reg_in, reg_out;
+    int i=0;
+    for (auto op:getOperands()){
+        if (dynamic_cast<ASFunction*>(op)) continue;
+        if (dynamic_cast<ASConstant*>(op)){
+            ret+="    mov r"+std::to_string(i)+",#"+std::to_string(dynamic_cast<ASConstant *>(op)->getValue())+"\n";
+            reg_in[i]=i;
+            reg_out[i]=i;
+        }
+        else if (i<4){
+            reg_in[mapper->getRegister(this,op)]=i;
+            reg_out[i]=mapper->getRegister(this,op);
+        }
+        else{
+            ret+="    str "+mapper->getName(this,op)+",[sp,"+std::to_string(i*4)+"]\n";
+        }
+        i++;
     }
-    ret += "\n";
-    // Step 3: pull all active vars from the stack to the register.
+    int num_of_op=getNumOperands()-1;
+    while (num_of_op){
+        std::stack<int> sta;
+        int temp=getNumOperands()-2;
+        while (reg_in.at(temp)<0) temp--;
+        if (reg_in[temp]==temp){
+            num_of_op--;
+            continue;
+        }
+        sta.push(temp);
+        while (sta.top() < getNumOperands()-1){
+            int flag=sta.top();
+            if (!reg_in.count(sta.top()))break;
+            int next=reg_in[sta.top()];
+            if (next==temp) break;
+            sta.push(next);
+        }
+        int next=sta.top();
+        num_of_op-=sta.size();
+        if (next==temp){
+            ret+="    mov r12,"+std::to_string(temp)+"\n";
+            while (sta.size()>1){
+                ret+="    mov r"+std::to_string(reg_in[sta.top()])+",r"+std::to_string(sta.top());
+                reg_in[sta.top()]=-1;
+                sta.pop();
+            }
+            ret+="    mov r"+std::to_string(sta.top())+",r12\n";
+            reg_in[sta.top()]=-1;
+            sta.pop();
+        }
+        else{
+            sta.pop();
+            while (!sta.empty()){
+                ret+="mov r"+std::to_string(reg_in[sta.top()])+",r"+std::to_string(sta.top())+"\n";
+                reg_in[sta.top()]=-1;
+                sta.pop();
+            }
+        }
+    }
+    for (int j=0;j<i;j++){
+        if (reg_out[j]>=i)
+            ret+="    mov r"+std::to_string(j)+",r"+std::to_string(reg_out[j])+"\n";
+    }
+    // Step 2: generate br asm code
+    //ret += l_spacing+OpNameMap.at(getInstType());
+    ret += "    bl "+this->getOperand(0)->getName()+"\n";
+    // TODO: remove this if function doesn't have a return value
+
+    ret += "    mov "+mapper->getName(this,this)+","+"r0\n";
     return ret;
 }
 
@@ -172,7 +228,7 @@ void ASBlock::addInstruction(std::string inst) {
     _inst_print.push_back(inst);
 }
 
-std::list<ASInstruction *> ASBlock::getInstList()  { return _inst_list; }
+std::list<ASInstruction *> &ASBlock::getInstList()  { return _inst_list; }
 
 std::list<ASInstruction *> ASBlock::getReverseInstList()  {
     std::list<ASInstruction *> ret = _inst_list;
@@ -183,6 +239,10 @@ std::list<ASInstruction *> ASBlock::getReverseInstList()  {
 void ASBlock::setParent(ASFunction *f){ _parent = f; }
 
 ASFunction *ASBlock::getFunction() const { return _parent; }
+
+std::list<std::string> &ASBlock::get_inst_print() {
+    return _inst_print;
+}
 
 std::string ASFunction::print(RegMapper *mapper) {
     // TODO: Function header
@@ -198,6 +258,33 @@ std::string ASFunction::print(RegMapper *mapper) {
 //    for (auto arg: getArguments()) {
 //        ret += l_spacing + "@Arg: " + mapper->getName(nullptr, arg) + "\n";
 //    }
+    auto ssa_mapper=dynamic_cast<SsaRegMapper *> (mapper);
+    if (ssa_mapper != nullptr){
+        std::vector<int> saved_register;
+        std::map<int, bool> saved_register_map;
+        bool has_call=false;
+        for (auto bb:getBlockList()){
+            for (auto instr:bb->getInstList()){
+                if (instr->getInstType()==ASInstruction::ASMCallTy) has_call=true;
+                int reg=mapper->getRegister(instr,instr);
+                if (!saved_register_map.count(reg)){
+                    if (std::min(getNumArguments(),4) <= reg && reg < 11){
+                        saved_register_map[reg]=true;
+                        saved_register.push_back(reg);
+                    }
+                }
+            }
+        }
+        ret += l_spacing + "push {";
+        for (auto reg:saved_register){
+            ret+="r"+std::to_string(reg)+",";
+        }
+        if (has_call) ret += "r11,lr}\n";
+        else ret += "r11}\n";
+        ret += l_spacing + "add r11,sp,#0\n";
+        ret += l_spacing + "sub sp,sp #" + std::to_string(getStackSize()) + "\n";
+        return ret;
+    }
     ret += l_spacing + "push {r11, lr}\n";
     ret += l_spacing + "add r11, sp, #0\n";
     ret += l_spacing + "sub sp, sp, #" + std::to_string(getStackSize()) + "\n";
@@ -419,11 +506,8 @@ std::vector<std::pair<ASBlock *, ASValue *>> ASPhiInst::getBBValuePair()  {
 }
 std::string ASReturn::print(RegMapper *mapper) {
     std::string ret = l_spacing;
-    ret += "ret ";
-    if (!isVoid()) {
-        ret += mapper->getName(this, getReturnValue());
-    }
-    ret += "\n";
+    ret += "mov r0," + mapper->getName(this,this->getOperand(0))+"\n";
+    ret += l_spacing + "br "+this->getBlock()->getFunction()->getName()+"_"+this->getBlock()->getFunction()->getName()+"_Exit\n";
     return ret;
 }
 
