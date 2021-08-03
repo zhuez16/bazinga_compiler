@@ -306,6 +306,7 @@ std::string ASFunction::print(RegMapper *mapper) {
         else ret += "r11}\n";
         ret += l_spacing + "add r11,sp,#0\n";
         ret += l_spacing + "sub sp,sp,#" + std::to_string(getStackSize()) + "\n";
+        this->pushed_offset=saved_register.size()+has_call+1;
         return ret;
     }
     ret += l_spacing + "push {r11, lr}\n";

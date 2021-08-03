@@ -211,6 +211,7 @@ private:
     unsigned _num_args = 0;
     int _sp_pointer = 0;
     bool _has_ret;
+    int pushed_offset = 0;
 
     explicit ASFunction(std::string name, unsigned num_args, bool hasRet) : ASLabel(std::move(name)), _num_args(num_args), _has_ret(hasRet) {
         expandNumOperand(num_args);
@@ -221,6 +222,8 @@ private:
 
 public:
     std::list<ASBlock *> getBlockList();
+
+    int get_pushed_offset() {return pushed_offset;}
 
     void addBlock(ASBlock *block) ;
 

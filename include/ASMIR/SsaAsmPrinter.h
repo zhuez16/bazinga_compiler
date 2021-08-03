@@ -41,6 +41,15 @@ public:
         for (auto f: _builder->getFunctions()) {
             ret += f->print(_mapper);
             std::vector<ASInstruction *> phi_inst;
+            int offset=f->get_pushed_offset();
+            int arg_in_stack=f->getNumArguments();
+            int i=0;
+            for (auto instr:f->getBlockList().front()->getInstList()){
+                if (i>=4){
+                    instr->setOperand(0,ASConstant::getConstant(-4*(arg_in_stack-i+offset)));
+                }
+                i++;
+            }
             for (auto b: f->getBlockList()) {
                 b->addInstruction(b->print(_mapper));
                 if (b==f->getBlockList().front()){
