@@ -86,7 +86,8 @@ void LinearScanSSA::assignOpID(Function *of, ASFunction *f) {
                 _interval[inst] = Interval(inst, id);
             }
             if (inst->getInstType() == ASInstruction::ASMCallTy) {
-                for (int i = 0; i < 4; ++i) {
+                auto callee = dynamic_cast<ASFunction *>(inst->getOperand(0));
+                for (int i = 0; i < std::min(callee->getNumArguments(), 4); ++i) {
                     Interval iv(id, i, inst, true);
                     fixed.push_back(iv);
                 }
