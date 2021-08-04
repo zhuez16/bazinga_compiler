@@ -124,13 +124,15 @@ public:
             std::map<int, bool> saved_register_map;
             bool has_call=false;
             for (auto bb:f->getBlockList()){
-                for (auto instr:bb->getInstList()){
-                    if (instr->getInstType()==ASInstruction::ASMCallTy) has_call=true;
-                    int reg=_mapper->getRegister(_mapper->getInstructionID(instr),instr);
-                    if (!saved_register_map.count(reg)){
-                        if (std::min(std::max(f->getNumArguments(),1),4) <= reg && reg < 11){
-                            saved_register_map[reg]=true;
-                            saved_register.push_back(reg);
+                for (auto instr:bb->getInstList()) {
+                    if (instr->getInstType() == ASInstruction::ASMCallTy) has_call = true;
+                    if (instr->hasResult()) {
+                        int reg = _mapper->getRegister(_mapper->getInstructionID(instr), instr);
+                        if (!saved_register_map.count(reg)) {
+                            if (std::min(std::max(f->getNumArguments(), 1), 4) <= reg && reg < 11) {
+                                saved_register_map[reg] = true;
+                                saved_register.push_back(reg);
+                            }
                         }
                     }
                 }

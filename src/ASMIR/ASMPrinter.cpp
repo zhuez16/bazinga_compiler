@@ -352,11 +352,13 @@ std::string ASFunction::print(RegMapper *mapper) {
         for (auto bb:getBlockList()){
             for (auto instr:bb->getInstList()){
                 if (instr->getInstType()==ASInstruction::ASMCallTy) has_call=true;
-                int reg=mapper->getRegister(instr,instr);
-                if (!saved_register_map.count(reg)){
-                    if (std::min(std::max(getNumArguments(),1),4) <= reg && reg < 11){
-                        saved_register_map[reg]=true;
-                        saved_register.push_back(reg);
+                if (instr->hasResult()) {
+                    int reg = mapper->getRegister(instr, instr);
+                    if (!saved_register_map.count(reg)) {
+                        if (std::min(std::max(getNumArguments(), 1), 4) <= reg && reg < 11) {
+                            saved_register_map[reg] = true;
+                            saved_register.push_back(reg);
+                        }
                     }
                 }
             }
@@ -593,7 +595,14 @@ std::vector<std::pair<ASBlock *, ASValue *>> ASPhiInst::getBBValuePair()  {
 }
 std::string ASReturn::print(RegMapper *mapper) {
     std::string ret = l_spacing;
-    if (this->getNumOperands()>0 && mapper->getRegister(this,this->getOperand(0)) != 0)ret += "mov r0," + mapper->getName(this,this->getOperand(0))+"\n";
+    if (getNumOperands() > 0) {
+        if(auto ac = dynamic_cast<ASConstant *>(getOperand(0))) {
+            ret += "mov r0, #" + std::to_string(ac->getValue()) + "\n";
+        }
+        else if (mapper->getRegister(this, this->getOperand(0)) != 0) {
+            ret += "mov r0," + mapper->getName(this, this->getOperand(0)) + "\n";
+        }
+    }
     ret += l_spacing + "b "+this->getBlock()->getFunction()->getName()+"_"+this->getBlock()->getFunction()->getName()+"_Exit\n";
     return ret;
 }
