@@ -36,7 +36,9 @@ void BBOrderGenerator::runOnFunction(Function *f) {
             _queue.push_back(bb);
         }
         for (auto succ: _cfg->getSuccBB(bb)) {
-            _visit_queue.push(succ);
+            if (succ != bb) {
+                _visit_queue.push(succ);
+            }
         }
     }
 }
@@ -49,13 +51,14 @@ void BBOrderGenerator::runOnLoop(Loop *loop) {
         visit_queue.pop();
         if (visited(bb)) continue;
         if (_lp->get_smallest_loop(bb) != loop) {
-            runOnLoop(loop);
+            runOnLoop(_lp->get_smallest_loop(bb));
         } else {
             _visited.insert(bb);
             visit_queue.push(bb);
+            _queue.push_back(bb);
         }
         for (auto succ: _cfg->getSuccBB(bb)) {
-            if (loop->contain_bb(succ)) {
+            if (loop->contain_bb(succ) && bb != succ) {
                 visit_queue.push(succ);
             }
         }
