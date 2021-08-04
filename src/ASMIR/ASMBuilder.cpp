@@ -28,7 +28,7 @@ void ASMBuilder::build(Module *m) {
     _mapping.clear();
     // Add all global values
     for (auto gv: m->get_global_variable()) {
-        setGlobalValue(gv, ASGlobalValue::create(gv->get_name(), gv->get_type(), gv->get_init()));
+        setGlobalValue(gv, ASGlobalValue::create(gv->get_name(), gv->get_type(), gv->get_init(), gv->getFlattenInit()));
     }
     // Prepare all labels, so that br inst can find its destination
     for (auto f: m->get_functions()) {

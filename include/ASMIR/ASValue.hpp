@@ -101,7 +101,7 @@ public:
     int getInitialValue() const ;
 
     std::vector<int> getArrayInitial();
-    static ASGlobalValue *create(std::string name, Type *ty, Constant *init = nullptr) ;
+    static ASGlobalValue *create(std::string name, Type *ty, Constant *init = nullptr, const std::vector<int> &flat={}) ;
 
     std::string print(RegMapper *mapper) final;
 };

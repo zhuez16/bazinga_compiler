@@ -263,11 +263,20 @@ int ASGlobalValue::getInitialValue() const {
         return 0;
 }
 
-ASGlobalValue *ASGlobalValue::create(std::string name, Type *ty, Constant *init){
+ASGlobalValue *ASGlobalValue::create(std::string name, Type *ty, Constant *init, const std::vector<int> &flat){
     // TODO Init
     auto ret = new ASGlobalValue(std::move(name), {});
     ty = ty->get_pointer_element_type();
-    if (ty->is_int32_type()) { ret->_array = false; ret->_size = 1; }
+    if (ty->is_int32_type()) {
+        ret->_array = false;
+        ret->_size = 1;
+        if (auto ci = dynamic_cast<ConstantInt *>(init)) {
+            ret->_initial.push_back(ci->get_value());
+        }
+        else {
+            ret->_initial.push_back(0);
+        }
+    }
     else {
         ret->_array = true;
         int sz = 1;
@@ -277,6 +286,10 @@ ASGlobalValue *ASGlobalValue::create(std::string name, Type *ty, Constant *init)
             arr_ty = dynamic_cast<ArrayType *>(arr_ty->get_array_element_type());
         }
         ret->_size = sz;
+        if(dynamic_cast<ConstantArray *>(init)) {
+            ret->_initial = flat;
+        }
+
     }
     return ret;
 }

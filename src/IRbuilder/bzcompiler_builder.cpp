@@ -675,6 +675,7 @@ void BZBuilder::visit(ASTVarDecl &node) {
                     std::vector<int> init;
                     ConstInitialValueWalker(it->initial_value[0], dimension, 0, init);
                     auto gv = GlobalVariable::create(it->var_name, getModule(), arr_ty, true, ConstantArray::get(arr_ty, ConstantArray::IntegerList2Constant(dimension, init, getModule())));
+                    gv->setFlattenInit(init);
                     scope.push(it->var_name, gv, true, dimension, init);
                 } else {
                     int scala_init = compute_ast_constant(it->initial_value[0]->value);
@@ -706,6 +707,7 @@ void BZBuilder::visit(ASTVarDecl &node) {
                         std::vector<int> init;
                         ConstInitialValueWalker(it->initial_value[0], dimension, 0, init);
                         auto gv = GlobalVariable::create(it->var_name, getModule(), arr_ty, false, ConstantArray::get(arr_ty, ConstantArray::IntegerList2Constant(dimension, init, getModule())));
+                        gv->setFlattenInit(init);
                         scope.push(it->var_name, gv, false, dimension, init);
                     } else {
                         auto gv = GlobalVariable::create(it->var_name, getModule(), arr_ty, false, ConstantZero::get(arr_ty, getModule()));
