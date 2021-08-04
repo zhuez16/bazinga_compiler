@@ -237,6 +237,32 @@ public:
 
     CmpOp get_cmp_op() { return cmp_op_; }
 
+    void setCmpOp(CmpOp op) { cmp_op_ = op; }
+
+    void inverseCmpOp() {
+        std::cout << "CmpOpInversed" << std::endl;
+        switch (get_cmp_op()) {
+            case EQ:
+                setCmpOp(NE);
+                break;
+            case NE:
+                setCmpOp(EQ);
+                break;
+            case GT:
+                setCmpOp(LE);
+                break;
+            case GE:
+                setCmpOp(LT);
+                break;
+            case LT:
+                setCmpOp(GE);
+                break;
+            case LE:
+                setCmpOp(LT);
+                break;
+        }
+    }
+
     bool isStaticCalculable() final;
 
     int calculate() final;

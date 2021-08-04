@@ -52,20 +52,38 @@ void BZBuilder::visit(ASTUnaryOp &node)
         val = builder->create_load(val->get_type()->get_pointer_element_type(), val);
     }
     if (val->get_type()->is_int1_type()) {
-        val = builder->create_zext(val, TyInt32);
+        // 必定是从 Cmp 来的
+        if (auto sub_cmp = dynamic_cast<CmpInst *>(val)) {
+            switch (node.getUnaryOpType()) {
+                case ASTUnaryOp::AST_OP_POSITIVE:
+                    tmp_val = builder->create_zext(val, TyInt32);
+                    break;
+                case ASTUnaryOp::AST_OP_NEGATIVE:
+                    val = builder->create_zext(val, TyInt32);
+                    tmp_val = builder->create_isub(CONST(0), val);
+                    break;
+                case ASTUnaryOp::AST_OP_INVERSE:
+                    sub_cmp->inverseCmpOp();
+                    break;
+            }
+        } else {
+            assert(0 && "Unknown runtime");
+        }
+    } else {
+        switch (node.getUnaryOpType()) {
+            case ASTUnaryOp::AST_OP_POSITIVE:
+                // val = builder->create_iadd(CONST(0), val);
+                // Do nothing
+                break;
+            case ASTUnaryOp::AST_OP_NEGATIVE:
+                val = builder->create_isub(CONST(0), val);
+                break;
+            case ASTUnaryOp::AST_OP_INVERSE:
+                val = builder->create_icmp_eq(val, CONST(0));
+                break;
+        }
+        tmp_val = val;
     }
-    switch (node.getUnaryOpType()) {
-    case ASTUnaryOp::AST_OP_POSITIVE:
-        val = builder->create_iadd(CONST(0), val);
-        break;
-    case ASTUnaryOp::AST_OP_NEGATIVE:
-        val = builder->create_isub(CONST(0), val);
-        break;
-    case ASTUnaryOp::AST_OP_INVERSE:
-        val = builder->create_icmp_eq(val, CONST(0));
-        break;
-    }
-    tmp_val = val;
 }
 
 void BZBuilder::visit(ASTMulOp &node)
@@ -246,7 +264,13 @@ void BZBuilder::visit(ASTAndOp &node)
         if (node.getOperand1()->getTrueList().empty() && node.getOperand1()->getFalseList().empty()) {
             CmpInst *cod;
             if (tmp_val->get_type()->is_int1_type()) {
-                cod = builder->create_icmp_ne(CONST(false), tmp_val);
+                // cod = builder->create_icmp_ne(CONST(false), tmp_val);
+                cod = dynamic_cast<CmpInst *>(tmp_val);
+                if (cod) {
+                    // cod->inverseCmpOp();
+                } else {
+                    assert(0 && "Error simplify icmp");
+                }
             } else {
                 cod = builder->create_icmp_ne(CONST(0), tmp_val);
             }
