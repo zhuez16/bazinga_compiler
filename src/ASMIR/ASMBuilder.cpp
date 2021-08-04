@@ -186,6 +186,9 @@ void ASMBuilder::build(Module *m) {
                             if (auto c_a = dynamic_cast<ASConstant *>(a)) {
                                 a = insert(ASUnaryInst::createASMMov(c_a));
                             }
+                            if (auto c_b = dynamic_cast<ASConstant *>(b)) {
+                                b = insert(ASUnaryInst::createASMMov(c_b));
+                            }
                             auto adb = insert(ASBinaryInst::createASMDiv(a, b));
                             auto apb = insert(ASBinaryInst::createASMMul(adb, b));
                             insertAndAddToMapping(inst, ASBinaryInst::createASMSub(a, apb));
@@ -382,7 +385,8 @@ void ASMBuilder::build(Module *m) {
                                         const_offset += c->get_value() * accumulate_offset[i - 2];
                                     }
                                     else {
-                                        var_offset.push_back(ASBinaryInst::createASMMul(getMapping(idx), ASConstant::getConstant(accumulate_offset[i - 2])));
+                                        auto mv = insert(ASUnaryInst::createASMMov(ASConstant::getConstant(accumulate_offset[i - 2])));
+                                        var_offset.push_back(ASBinaryInst::createASMMul(getMapping(idx), mv));
                                     }
                                 }
                                 // 判断是否是顶层GEP
