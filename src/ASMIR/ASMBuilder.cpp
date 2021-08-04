@@ -10,9 +10,9 @@ bool inverseOperandIfNeeded(Value *&lhs, Value *&rhs) {
     // 第一个操作数不能是立即数
     if (dynamic_cast<ConstantInt *>(lhs)) {
         std::swap(lhs, rhs);
-        return false;
-    } else {
         return true;
+    } else {
+        return false;
     }
 }
 
@@ -157,7 +157,7 @@ void ASMBuilder::build(Module *m) {
                                     insertAndAddToMapping(inst, ASBinaryInst::createASMDiv(mov, getMapping(lhs)));
                                 }
                             } else {
-                                insert(ASBinaryInst::createASMSub(getMapping(lhs), getMapping(rhs)));
+                                insertAndAddToMapping(inst, ASBinaryInst::createASMSub(getMapping(lhs), getMapping(rhs)));
                             }
                             break;
                         }
