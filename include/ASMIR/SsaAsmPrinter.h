@@ -129,7 +129,7 @@ public:
                     // 把东西插入
                     bb->addInstruction("    mov "+_mapper->getName(phi,phi)+", "+_mapper->getName(phi, va)+"\n");
                     // 把pop出去的填回来
-                    for (int j = (int)br_tmp.size() - 1; j > 0; --j) {
+                    for (int j = (int)br_tmp.size() - 1; j >= 0; --j) {
                         bb->addInstruction(br_tmp[j]);
                     }
                 }
