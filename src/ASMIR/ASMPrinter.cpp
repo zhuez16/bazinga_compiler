@@ -224,9 +224,9 @@ std::string ASGlobalValue::print(RegMapper *mapper) {
      */
     std::string ret = l_spacing + ".global\t" + getName() + '\n';
     ret += l_spacing + ".align\t2\n";
-    ret += l_spacing + ".type\t" + getName() + ", %object";
+    ret += l_spacing + ".type\t" + getName() + ", %object\n";
     ret += l_spacing + ".size\t" + getName() + ", " + (isArray() ? std::to_string(getArraySize() * 4) : "4") + '\n';
-    ret += getName() + '\n';
+    ret += getName() + ":\n";
     if (isArray()) {
         for (auto i: getArrayInitial()) {
             ret += l_spacing;
@@ -266,6 +266,7 @@ int ASGlobalValue::getInitialValue() const {
 ASGlobalValue *ASGlobalValue::create(std::string name, Type *ty, Constant *init){
     // TODO Init
     auto ret = new ASGlobalValue(std::move(name), {});
+    ty = ty->get_pointer_element_type();
     if (ty->is_int32_type()) { ret->_array = false; ret->_size = 1; }
     else {
         ret->_array = true;
