@@ -3,6 +3,7 @@
 //
 
 #include "ASMIR/ASMBuilder.h"
+#include "ASMIR/BBOrderGenerator.h"
 
 bool inverseOperandIfNeeded(Value *&lhs, Value *&rhs) {
     assert(!(dynamic_cast<ConstantInt *>(lhs) && dynamic_cast<ConstantInt *>(rhs)) && "ARM doesn't support cmp between Imme. Please run ConstantFolding first.");
@@ -23,6 +24,7 @@ void getDimensionByType(std::vector<int> &dim, Type *ty) {
 }
 
 void ASMBuilder::build(Module *m) {
+    BBOrderGenerator BG(m);
     _mapping.clear();
     // Add all global values
     for (auto gv: m->get_global_variable()) {
@@ -67,7 +69,8 @@ void ASMBuilder::build(Module *m) {
     // Code gen
     for (auto f: m->get_functions()) {
         if (!f->is_declaration()) {
-            for (auto bb: f->get_basic_blocks()) {
+            BG.runOnFunction(f);
+            for (auto bb: BG.getBBOrder()) {
                 setInsertBlock(bb);
                 for (auto inst: bb->get_instructions()) {
                     switch (inst->get_instr_type()) {
@@ -323,6 +326,9 @@ void ASMBuilder::build(Module *m) {
                             // 无论是哪种情况，我们都只需要计算偏移量即可。
                             // 如果计算得到的偏移量是一个常数，则直接传入的是ASConstant而不是ASBinaryInst
                             auto gep = dynamic_cast<GetElementPtrInst *>(inst);
+                            if (gep->get_name() == "%op33") {
+                                printf("DEBUG");
+                            }
                             // 若 ptr 是 i32* 则只能有一个参数offset，计算的是 ptr + offset * 4. Argument型
                             if (gep->get_operand(0)->get_type()->get_pointer_element_type()->is_int32_type()) {
                                 // 判断是来自GEP还是来自Argument

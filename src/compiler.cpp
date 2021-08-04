@@ -94,7 +94,7 @@ int main(int argc, char *argv[]) {
     // Now we can print the llvm ir code if needed
     if (generate_ir) {
         std::ofstream llvmIRStream;
-        llvmIRStream.open(output_filepath, std::ios::out);
+        llvmIRStream.open(output_filepath + ".ll", std::ios::out);
         llvmIRStream << "; ModuleID = 'sysy2021_bzcompiler'\n";
         llvmIRStream << "source_filename = \""+ input_filepath +"\"\n\n";
         llvmIRStream << builder.getModule()->print();

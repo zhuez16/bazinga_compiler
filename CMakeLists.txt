@@ -30,6 +30,7 @@ ADD_EXECUTABLE(compiler
         src/ASMIR/RegAllocMapper.cpp
         src/ASMIR/SsaAsmPrinter.cpp
         src/codegen/linearScanOnSSA.cpp
+        src/ASMIR/BBOrderGenerator.cpp
         # Opt/Analysis Pass
         src/pass_manager.cpp
         src/pass/active_vars.cpp
@@ -48,7 +49,7 @@ ADD_EXECUTABLE(compiler
         src/pass/reassociate.cpp
         src/pass/SCPcombineDCE.cpp
         src/pass/Sink.cpp
-        )
+        include/ASMIR/BBOrderGenerator.h src/ASMIR/BBOrderGenerator.cpp)
 TARGET_LINK_LIBRARIES(
         compiler IR_lib
 )
