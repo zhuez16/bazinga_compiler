@@ -97,7 +97,7 @@ std::string ASFunctionCall::print(RegMapper *mapper) {
                     break;
                 }
             }
-            ret+="    mov r12,r"+std::to_string(cur_handle);
+            ret+="    mov r12,r"+std::to_string(cur_handle) + "\n";
             handled[cur_handle]=true;
             int start=cur_handle;
             cur_handle=regAssignMap[cur_handle];
@@ -106,7 +106,7 @@ std::string ASFunctionCall::print(RegMapper *mapper) {
                 handled[cur_handle]=true;
                 cur_handle=regAssignMap[cur_handle];
             }
-            ret+="    mov r"+std::to_string(cur_handle)+",r12";
+            ret+="    mov r"+std::to_string(cur_handle)+",r12\n";
             handled[cur_handle]=true;
         }
         else{
