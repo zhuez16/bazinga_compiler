@@ -128,12 +128,24 @@ public:
     int getEnd() const {return this->_end;};
     int getRegister() const {return this->_reg;};
     int getSpill() const {return this->_spill;}
-    int getNextUse(int after) const {
+    int getNextUse(int after, const std::map<ASInstruction *, int> &instIdMap) const {
+        int nextUse = INT_MAX;
+        for (const auto &u: getValue()->getUseList()) {
+            auto val = u._user;
+            if (dynamic_cast<ASInstruction *>(val)) {
+                int pos = instIdMap.at(dynamic_cast<ASInstruction *>(val));
+                if (pos > after) {
+                    nextUse = std::min(nextUse, pos);
+                }
+            }
+        }
+        /*
         for (auto it: this->_intervals){
             if (it.first > after)
                 return it.first;
         }
-        return INT_MAX;
+         */
+        return nextUse;
     };
     bool cover(int pos) const {
         for (auto it: this->_intervals){

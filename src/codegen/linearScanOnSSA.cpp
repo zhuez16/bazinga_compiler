@@ -308,7 +308,7 @@ void LinearScanSSA::allocateBlockedRegister(Interval &current, int position) {
     // active and inactive
     for (const auto& it: active) {
         if (it.intersect(current)) {
-            auto np = it.getNextUse(position);
+            auto np = it.getNextUse(position, _inst_id);
             if (np < nextUsePos[it.getRegister()]) {
                 nextUsePos[it.getRegister()] = np;
                 nextList[it.getRegister()] = it;
@@ -318,7 +318,7 @@ void LinearScanSSA::allocateBlockedRegister(Interval &current, int position) {
     for (const auto& it: inactive) {
         if (it.intersect(current)) {
             if (it.intersect(current)) {
-                auto np = it.getNextUse(position);
+                auto np = it.getNextUse(position, _inst_id);
                 if (np < nextUsePos[it.getRegister()]) {
                     nextUsePos[it.getRegister()] = np;
                     nextList[it.getRegister()] = it;
@@ -335,7 +335,7 @@ void LinearScanSSA::allocateBlockedRegister(Interval &current, int position) {
             if (nextList[max_idx].isFixed() || (!nextList[i].isFixed() && nextUsePos[i] > nextUsePos[max_idx])) max_idx = i;
         }
     }
-    int nextUse = current.getNextUse(position);
+    int nextUse = current.getNextUse(position, _inst_id);
     if (current.getRegister() == -1 && nextUse > nextUsePos[max_idx]) {
         // all other intervals are used before current, so it is best to spill current itself
         int spillId = requireNewSpillSlot(current.getValue());
