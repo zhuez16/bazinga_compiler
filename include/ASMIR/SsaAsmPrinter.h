@@ -80,14 +80,15 @@ public:
                             }
                             if (lr.first == pos){
                                 int get_spill=-1;
-                                int last_pos=0;
+                                int last_pos=-1;
+                                auto temp=_mapper->get_intervals();
                                 for (auto reg_:_mapper->get_intervals()){
                                     if (reg_.getValue()==reg.getValue() && reg_.getEnd()<reg.getBegin() && reg_.getEnd()>last_pos){
                                         get_spill=reg_.getSpill();
                                         last_pos=reg_.getEnd();
                                     }
                                 }
-                                if (get_spill > 0)
+                                if (get_spill >= 0)
                                     inst +="    ldr r"+std::to_string(reg.getRegister())+",[sp,#"+std::to_string(get_spill)+"]\n";
                             }
                         }
@@ -97,6 +98,7 @@ public:
                 }
             }
             //generate mov for phi
+            std::string phi_inst_code="";
             for (auto phi:phi_inst){
                 auto instID=_mapper->getInstructionID(phi);
                 // PhiInst Operands定义: op[2*i] = Label, op[2*i+1] = Value

@@ -124,7 +124,7 @@ std::string ASFunctionCall::print(RegMapper *mapper) {
                 ret+="    mov r"+std::to_string(cur_handle)+",#"+std::to_string(regAssignMap[cur_handle])+"\n";
             }
             else{
-                if (regAssignMap[cur_handle] != cur_handle)ret+="    mov r"+std::to_string(cur_handle)+",#"+std::to_string(regAssignMap[cur_handle])+"\n";
+                if (regAssignMap[cur_handle] != cur_handle)ret+="    mov r"+std::to_string(cur_handle)+",r"+std::to_string(regAssignMap[cur_handle])+"\n";
             }
             handled[cur_handle]=true;
             regAssignMap[cur_handle]=-1;
