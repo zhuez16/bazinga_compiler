@@ -20,7 +20,7 @@
 #include "codegen/LinearScanSSA.h"
 #include "ASMIR/SsaAsmPrinter.h"
 
-
+#include "ASMIR/SimpleASMPrinter.h"
 
 int main(int argc, char *argv[]) {
     int i = 1;
@@ -31,6 +31,7 @@ int main(int argc, char *argv[]) {
     bool generate_assemble = false;
     bool generate_executable = true;
     bool apply_optimization = false;
+    bool debug = false;
 
     while (i < argc) {
         std::string arg = argv[i];
@@ -42,6 +43,8 @@ int main(int argc, char *argv[]) {
             output_filepath = argv[++i];
         } else if (arg == "-O2") {
             apply_optimization = true;
+        } else if (arg == "-debug") {
+            debug = true;
         }
         else {
             if (input_filepath.empty()) {
@@ -105,7 +108,15 @@ int main(int argc, char *argv[]) {
         ASMBuilder asmBuilder;
         asmBuilder.build(builder.getModule());
         LinearScanSSA ra;
-        ra.run(&asmBuilder, builder.getModule());
+        if (debug) {
+            auto inf = new InfRegMapper();
+            ra.run(&asmBuilder, builder.getModule(), inf);
+            SimpleASMPrinter sap(&asmBuilder, inf);
+            std::cout << sap.print() << std::endl;
+        }
+        else {
+            ra.run(&asmBuilder, builder.getModule());
+        }
         auto *mapper = new SsaRegMapper(ra.getInstId(), ra.getIntervals());
         SsaASMPrinter printer(&asmBuilder, mapper);
         std::ofstream ASMStream;

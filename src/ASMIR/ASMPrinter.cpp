@@ -15,7 +15,7 @@ const std::map<ASInstruction::ASMInstType, std::string>
                           {ASInstruction::ASMAddTy, "add"},
                           {ASInstruction::ASMSubTy, "sub"},
                           {ASInstruction::ASMMulTy, "mul"},
-                          {ASInstruction::ASMDivTy, "div"},
+                          {ASInstruction::ASMDivTy, "sdiv"},
                           {ASInstruction::ASMLoadTy, "ldr"},
                           {ASInstruction::ASMStoreTy, "str"},
                           {ASInstruction::ASMBrTy, "b"},
