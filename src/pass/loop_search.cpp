@@ -60,6 +60,7 @@ void LoopSearch::build_map() {
         for (auto bb: f->get_basic_blocks()) {
             _sub_map[bb] = get_inner_loop(get_loop(f), bb);
         }
+        _nested_loop[f] = _sub_map;
     }
 }
 
