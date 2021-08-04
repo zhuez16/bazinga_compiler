@@ -6,7 +6,7 @@
 #define BAZINGA_COMPILER_SSAASMPRINTER_H
 
 
-#include "ASMIR/ASMBuilder.h"
+//#include "ASMIR/ASMBuilder.h"
 #include "ASMIR/RegAllocMapper.h"
 
 class SsaASMPrinter {
@@ -18,7 +18,7 @@ public:
         // _mapper = new InfRegMapper();
     };
 
-    ~SsaASMPrinter() {  }
+    ~SsaASMPrinter() = default;
 
     std::string print() {
         const std::string spacing = "    ";
@@ -99,8 +99,45 @@ public:
             //generate mov for phi
             for (auto phi:phi_inst){
                 auto instID=_mapper->getInstructionID(phi);
+                // PhiInst Operands定义: op[2*i] = Label, op[2*i+1] = Value
+                for (int i = 0; i < phi->getNumOperands() / 2; ++i) {
+                    auto bb = dynamic_cast<ASBlock *>(phi->getOperand(2 * i));
+                    auto va = phi->getOperand(2 * i + 1);
+                    // 有没有可能是最后两条指令都是branch呢
+                    std::vector<std::string> br_tmp;
+                    auto it = bb->getInstList().end();
+                    auto bg = bb->getInstList().begin();
+                    if (it == bg) {
+                        // 没有指令，空的块
+                    } else {
+                        --it;
+                        // 判断是否是branch
+                        if ((*it)->getInstType() == ASInstruction::ASMBrTy) {
+                            // 倒数第一条
+                            br_tmp.push_back(bb->get_inst_print().back());
+                            bb->get_inst_print().pop_back();
+                            if (it != bg) {
+                                --it;
+                                // 倒数第二条
+                                if ((*it)->getInstType() == ASInstruction::ASMBrTy) {
+                                    br_tmp.push_back(bb->get_inst_print().back());
+                                    bb->get_inst_print().pop_back();
+                                }
+                            }
+                        }
+                    }
+                    // 把东西插入
+                    bb->addInstruction("    mov "+_mapper->getName(phi,phi)+", "+_mapper->getName(phi, va)+"\n");
+                    // 把pop出去的填回来
+                    for (int j = (int)br_tmp.size() - 1; j > 0; --j) {
+                        bb->addInstruction(br_tmp[j]);
+                    }
+                }
+
+                /*
                 int i=0;
                 for (auto val:phi->getOperands()){
+
                     i++;
                     auto bb=dynamic_cast<ASBlock *> (val);
                     if (!bb) continue;
@@ -114,6 +151,7 @@ public:
                         bb->addInstruction("    mov "+_mapper->getName(phi,phi)+","+_mapper->getName(phi,phi->getOperand((i-1)/2))+"\n");
                     }
                 }
+                */
             }
             for (auto b:f->getBlockList()){
                 for (auto instr:b->get_asm_inst()){
@@ -124,13 +162,15 @@ public:
             std::map<int, bool> saved_register_map;
             bool has_call=false;
             for (auto bb:f->getBlockList()){
-                for (auto instr:bb->getInstList()){
-                    if (instr->getInstType()==ASInstruction::ASMCallTy) has_call=true;
-                    int reg=_mapper->getRegister(_mapper->getInstructionID(instr),instr);
-                    if (!saved_register_map.count(reg)){
-                        if (std::min(std::max(f->getNumArguments(),1),4) <= reg && reg < 11){
-                            saved_register_map[reg]=true;
-                            saved_register.push_back(reg);
+                for (auto instr:bb->getInstList()) {
+                    if (instr->getInstType() == ASInstruction::ASMCallTy) has_call = true;
+                    if (instr->hasResult()) {
+                        int reg = _mapper->getRegister(_mapper->getInstructionID(instr), instr);
+                        if (!saved_register_map.count(reg)) {
+                            if (std::min(std::max(f->getNumArguments(), 1), 4) <= reg && reg < 11) {
+                                saved_register_map[reg] = true;
+                                saved_register.push_back(reg);
+                            }
                         }
                     }
                 }

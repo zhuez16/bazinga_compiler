@@ -1,8 +1,0 @@
-//
-// Created by 顾超 on 2021/7/17.
-//
-
-#ifndef BAZINGA_COMPILER_BASIC_BLOCK_H
-#define BAZINGA_COMPILER_BASIC_BLOCK_H
-
-#endif //BAZINGA_COMPILER_BASIC_BLOCK_H

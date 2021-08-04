@@ -8,7 +8,7 @@
 #include "IR/Instruction.h"
 #include "IR/Module.h"
 #include "pass_manager.h"
-#include "include/pass/CFG.h"
+#include "pass/CFG.h"
 
 class CFG_simply : public Pass {
 private:

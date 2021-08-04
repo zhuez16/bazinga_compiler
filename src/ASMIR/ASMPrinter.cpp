@@ -33,7 +33,10 @@ std::string ASFunctionCall::print(RegMapper *mapper) {
     std::string ret = "";
     // TODO
     // Step 1: push all operands into the regs and the stack
-
+    if (!dynamic_cast<SsaRegMapper *> (mapper)){
+        ret+="    call "+this->getName()+","+this->getOperand(0)->getName()+"\n";
+        return ret;
+    }
     int i=0;
     if (getNumOperands()>4) ret+="    sub sp,sp,#"+std::to_string((getNumOperands()-5)*4)+"\n";
     for (auto op:getOperands()){
@@ -352,6 +355,7 @@ std::string ASFunction::print(RegMapper *mapper) {
         for (auto bb:getBlockList()){
             for (auto instr:bb->getInstList()){
                 if (instr->getInstType()==ASInstruction::ASMCallTy) has_call=true;
+                if (instr->getInstType()==ASInstruction::ASMBrTy || instr->getInstType()==ASInstruction::ASMRetTy) continue;
                 int reg=mapper->getRegister(instr,instr);
                 if (!saved_register_map.count(reg)){
                     if (std::min(std::max(getNumArguments(),1),4) <= reg && reg < 11){

@@ -3,6 +3,8 @@
 //
 #include "ASMIR/RegAllocMapper.h"
 
+#include <utility>
+
 
 std::string RegMapper::getName(ASInstruction *inst, ASValue *operand) {
     if (dynamic_cast<ASConstant *>(operand)) {
@@ -35,7 +37,7 @@ std::string SsaRegMapper::getName(ASInstruction *instr, ASValue *val) {
             }
         }
     }
-    assert("A allocated space don't have a register!");
+    assert(0 && "A allocated space don't have a register!");
 }
 
 int SsaRegMapper::getRegister(int instID, ASValue *operand){
@@ -46,9 +48,10 @@ int SsaRegMapper::getRegister(int instID, ASValue *operand){
             }
         }
     }
+    assert(0 && "A allocated space don't have a register!");
 }
 
-SsaRegMapper::SsaRegMapper(const std::map<ASInstruction *, int> &inst_id_, const std::vector<Interval> &interval_)
-        :inst_id(inst_id_),intervals(interval_){}
+SsaRegMapper::SsaRegMapper(std::map<ASInstruction *, int> inst_id_, std::vector<Interval> interval_)
+        :inst_id(std::move(inst_id_)),intervals(std::move(interval_)){}
 
 std::vector<Interval> SsaRegMapper::get_intervals() {return intervals;}

@@ -8,7 +8,7 @@
 #include <climits>
 
 
-void LinearScanSSA::run(ASMBuilder *builder, Module *m, RegMapper *rm) {
+void LinearScanSSA::run(ASMBuilder *builder, Module *m) {
     {
         map = builder->getValueMap();
         delete _cfg;
@@ -19,7 +19,6 @@ void LinearScanSSA::run(ASMBuilder *builder, Module *m, RegMapper *rm) {
         _lp = new LoopSearch(m);
         BG = new BBOrderGenerator(m);
         _lp->run();
-        std::cout << "======= BEGIN BUILD INTERVAL DUMP ========" << std::endl;
         for (auto f: m->get_functions()) {
             if (!f->is_declaration()) {
                 _cfg->runOnFunction(f);
@@ -28,15 +27,9 @@ void LinearScanSSA::run(ASMBuilder *builder, Module *m, RegMapper *rm) {
                 currentFunc = asmF;
                 assignOpID(f, asmF);
                 buildIntervals();
-                std::cout << "Function Name: " << f->get_name() << std::endl;
-                for (const auto& iv: _interval) {
-                    std::cout << iv.second.toString(rm);
-                }
                 linearScan();
             }
         }
-        std::cout << "======= END BUILD INTERVAL DUMP ========\n\n" << std::endl;
-
     }
 }
 
@@ -58,86 +51,7 @@ std::string Interval::toString(RegMapper *mapper) const {
 
 }
 
-void BBOrderGenerator::clearQueue() {
-    std::queue<BasicBlock *> empty_queue;
-    std::swap(_visit_queue, empty_queue);
-    _visited.clear();
-    _queue.clear();
-}
 
-bool BBOrderGenerator::visited(BasicBlock *bb) {
-    return _visited.find(bb) != _visited.end();
-}
-
-void BBOrderGenerator::runOnFunction(Function *f) {
-    if (f->is_declaration()) return;
-    clearQueue();
-    _cfg->runOnFunction(f);
-
-    // BFS遍历BB，若遇到循环则优先处理循环中的块
-    _visit_queue.push(f->get_entry_block());
-    while (!_visit_queue.empty()) {
-        auto bb = _visit_queue.front();
-        _visit_queue.pop();
-        if (visited(bb)) continue;
-        // 若在循环中，则交给循环处理模块进行处理
-        Loop *loop = _lp->get_smallest_loop(bb);
-        if (loop != nullptr) {
-            runOnLoop(loop);
-        } else {
-            _visited.insert(bb);
-            _queue.push_back(bb);
-        }
-        for (auto succ: _cfg->getSuccBB(bb)) {
-            _visit_queue.push(succ);
-        }
-    }
-}
-
-void BBOrderGenerator::runOnLoop(Loop *loop) {
-    std::queue<BasicBlock *> visit_queue;
-    visit_queue.push(loop->get_loop_entry());
-    while (!visit_queue.empty()) {
-        auto bb = visit_queue.front();
-        visit_queue.pop();
-        if (visited(bb)) continue;
-        if (_lp->get_smallest_loop(bb) != loop) {
-            runOnLoop(loop);
-        } else {
-            _visited.insert(bb);
-            visit_queue.push(bb);
-        }
-        for (auto succ: _cfg->getSuccBB(bb)) {
-            if (loop->contain_bb(succ)) {
-                visit_queue.push(succ);
-            }
-        }
-    }
-}
-
-std::vector<ASBlock *> BBOrderGenerator::getInverseASMBBOrder(std::map<Value *, ASValue *> &map) {
-    {
-        std::vector<ASBlock *> ret;
-        for (auto bb: getInverseBBOrder()) {
-            auto asm_bb = dynamic_cast<ASBlock *>(map[bb]);
-            assert(asm_bb && "Can't get ASM Block by BasicBlock");
-            ret.push_back(asm_bb);
-        }
-        return ret;
-    }
-}
-
-std::vector<ASBlock *> BBOrderGenerator::getASMBBOrder(std::map<Value *, ASValue *> &map) {
-    {
-        std::vector<ASBlock *> ret;
-        for (auto bb: getBBOrder()) {
-            auto asm_bb = dynamic_cast<ASBlock *>(map[bb]);
-            assert(asm_bb && "Can't get ASM Block by BasicBlock");
-            ret.push_back(asm_bb);
-        }
-        return ret;
-    }
-}
 
 void LinearScanSSA::assignOpID(Function *of, ASFunction *f) {
     _interval.clear();
@@ -394,7 +308,7 @@ void LinearScanSSA::allocateBlockedRegister(Interval &current, int position) {
     // active and inactive
     for (const auto& it: active) {
         if (it.intersect(current)) {
-            auto np = it.getNextUse(position);
+            auto np = it.getNextUse(position, _inst_id);
             if (np < nextUsePos[it.getRegister()]) {
                 nextUsePos[it.getRegister()] = np;
                 nextList[it.getRegister()] = it;
@@ -404,7 +318,7 @@ void LinearScanSSA::allocateBlockedRegister(Interval &current, int position) {
     for (const auto& it: inactive) {
         if (it.intersect(current)) {
             if (it.intersect(current)) {
-                auto np = it.getNextUse(position);
+                auto np = it.getNextUse(position, _inst_id);
                 if (np < nextUsePos[it.getRegister()]) {
                     nextUsePos[it.getRegister()] = np;
                     nextList[it.getRegister()] = it;
@@ -421,7 +335,7 @@ void LinearScanSSA::allocateBlockedRegister(Interval &current, int position) {
             if (nextList[max_idx].isFixed() || (!nextList[i].isFixed() && nextUsePos[i] > nextUsePos[max_idx])) max_idx = i;
         }
     }
-    int nextUse = current.getNextUse(position);
+    int nextUse = current.getNextUse(position, _inst_id);
     if (current.getRegister() == -1 && nextUse > nextUsePos[max_idx]) {
         // all other intervals are used before current, so it is best to spill current itself
         int spillId = requireNewSpillSlot(current.getValue());
