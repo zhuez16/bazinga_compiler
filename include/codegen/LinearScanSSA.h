@@ -216,7 +216,7 @@ public:
  */
 class LinearScanSSA {
 public:
-    void run(ASMBuilder *builder, Module *m);
+    void run(ASMBuilder *builder, Module *m, RegMapper *mp = nullptr);
 
     std::vector<Interval> getIntervals() { return handled; };
 
@@ -250,7 +250,7 @@ private:
     std::map<ASInstruction *, int> get_inst_id(){return _inst_id;}
     void assignOpID(Function *of, ASFunction *f);
     void buildIntervals();
-    void linearScan();
+    void linearScan(RegMapper *mp = nullptr);
     bool tryAllocateFreeRegister(Interval &current, int position);
     void allocateBlockedRegister(Interval &current, int position);
     int requireNewSpillSlot(ASValue *v);

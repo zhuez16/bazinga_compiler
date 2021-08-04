@@ -8,7 +8,7 @@
 #include <climits>
 
 
-void LinearScanSSA::run(ASMBuilder *builder, Module *m) {
+void LinearScanSSA::run(ASMBuilder *builder, Module *m, RegMapper *mp) {
     {
         map = builder->getValueMap();
         delete _cfg;
@@ -19,6 +19,9 @@ void LinearScanSSA::run(ASMBuilder *builder, Module *m) {
         _lp = new LoopSearch(m);
         BG = new BBOrderGenerator(m);
         _lp->run();
+        if (mp) {
+            std::cout << "======== BEGIN OF INTERVAL DUMP ========" << std::endl;
+        }
         for (auto f: m->get_functions()) {
             if (!f->is_declaration()) {
                 _cfg->runOnFunction(f);
@@ -27,7 +30,18 @@ void LinearScanSSA::run(ASMBuilder *builder, Module *m) {
                 currentFunc = asmF;
                 assignOpID(f, asmF);
                 buildIntervals();
-                linearScan();
+                if (mp) {
+                    for (const auto& i: _interval) {
+                        std::cout << i.second.toString(mp);
+                    }
+                }
+                linearScan(mp);
+            }
+        }
+        if (mp) {
+            std::cout << "========= END OF INTERVAL DUMP =========" << std::endl << std::endl << std::endl;
+            for (const auto& iv:  getIntervals()) {
+                std::cout << iv.toString(mp);
             }
         }
     }
@@ -185,7 +199,7 @@ void Interval::addRange(int from, int to){
     std::sort(this->_intervals.begin(),this->_intervals.end());
 }
 
-void LinearScanSSA::linearScan() {
+void LinearScanSSA::linearScan(RegMapper *mp) {
     // 清空所有缓存
     unhandled.clear();
     // handled.clear();
@@ -211,7 +225,10 @@ void LinearScanSSA::linearScan() {
         // 弹出队列中的第一个元素
         Interval current = unhandled.front();
         unhandled.erase(unhandled.begin());
-        int position = current.getBegin();
+        if (mp) {
+            std::cout << "Processing: " << current.getValue()->print(mp) << std::endl;
+        }
+      int position = current.getBegin();
         // check for intervals in active that are handled or inactive
         auto it = active.begin();
         while ( it != active.end()) {
@@ -393,7 +410,11 @@ void LinearScanSSA::allocateBlockedRegister(Interval &current, int position) {
         } else {
             // 寄存器同时被fixed而且被指定，摆烂
             if (!to_spill.isFixed()) {
-                unhandled.push_back(to_spill.split(position));
+                // 原Interval start - current - end
+                // Spill后: 1. start - current 2. current - next use-1(在RAM中) 3. next use - end (在Reg中)
+                int nu = to_spill.getNextUse(position, _inst_id);
+                auto next = to_spill.split(position);
+                unhandled.push_back(next.split(nu));
                 handled.push_back(to_spill);
             }
         }

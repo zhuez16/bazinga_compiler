@@ -33,6 +33,16 @@ std::string ASFunctionCall::print(RegMapper *mapper) {
     std::string ret = "";
     // TODO
     // Step 1: push all operands into the regs and the stack
+    if (dynamic_cast<InfRegMapper *>(mapper)) {
+        ret = l_spacing + "call ";
+        if (dynamic_cast<ASFunction *>(getOperand(0))->hasReturnValue()) { ret += mapper->getName(this, this) + " "; }
+        ret += getOperand(0)->getName();
+        for (int i = 1; i < getNumOperands(); ++i) {
+            ret += ", " + mapper->getName(this, getOperand(i));
+        }
+        ret += "\n";
+        return ret;
+    }
 
     int i=0;
     if (getNumOperands()>4) ret+="    sub sp,sp,#"+std::to_string((getNumOperands()-5)*4)+"\n";
@@ -361,6 +371,9 @@ std::string ASFunction::print(RegMapper *mapper) {
     auto ret = getName() + ":\n";
     ret += s_spacing + "@ Alloca Stack Required: " + std::to_string(getStackSize()) + '\n';
     ret += s_spacing + "@ Arguments:\n";
+    if (dynamic_cast<InfRegMapper *>(mapper)) {
+        return ret;
+    }
 //    for (auto arg: getArguments()) {
 //        ret += l_spacing + "@Arg: " + mapper->getName(nullptr, arg) + "\n";
 //    }
