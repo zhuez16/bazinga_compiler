@@ -71,15 +71,15 @@ std::string ASFunctionCall::print(RegMapper *mapper) {
     while (numOfOperands > 0){
         int cur_handle=-1;
         int num_of_handled=0;
-        for (int i=0;i<=numOfOperands;i++){
+        for (int i=0;i<numOfOperands;i++){
             if (handled[i]){
                 num_of_handled++;
                 continue;
             }
             bool flag=true;
-            for (int j=0;j<=numOfOperands;j++){
+            for (int j=0;j<numOfOperands;j++){
                 if (j==i) continue;
-                if (regAssignMap[j]==i){
+                if (!isConstAssign[j] && regAssignMap[j]==i){
                     flag=false;
                     break;
                 }
@@ -91,13 +91,13 @@ std::string ASFunctionCall::print(RegMapper *mapper) {
         }
         if (num_of_handled==numOfOperands) break;
         if (cur_handle==-1) { //exists a loop
-            for (int i=0;i<=numOfOperands;i++){
+            for (int i=0;i<numOfOperands;i++){
                 if (!handled[i]){
                     cur_handle=i;
                     break;
                 }
             }
-            ret+="    mov r12,r"+std::to_string(cur_handle) + "\n";
+            ret+="    mov r12,r"+std::to_string(cur_handle);
             handled[cur_handle]=true;
             int start=cur_handle;
             cur_handle=regAssignMap[cur_handle];
@@ -106,12 +106,18 @@ std::string ASFunctionCall::print(RegMapper *mapper) {
                 handled[cur_handle]=true;
                 cur_handle=regAssignMap[cur_handle];
             }
-            ret+="    mov r"+std::to_string(cur_handle)+",r12\n";
+            ret+="    mov r"+std::to_string(cur_handle)+",r12";
             handled[cur_handle]=true;
         }
         else{
-            ret+="    mov r"+std::to_string(cur_handle)+",#"+std::to_string(regAssignMap[cur_handle])+"\n";
+            if (isConstAssign[cur_handle]){
+                ret+="    mov r"+std::to_string(cur_handle)+",#"+std::to_string(regAssignMap[cur_handle])+"\n";
+            }
+            else{
+                if (regAssignMap[cur_handle] != cur_handle)ret+="    mov r"+std::to_string(cur_handle)+",#"+std::to_string(regAssignMap[cur_handle])+"\n";
+            }
             handled[cur_handle]=true;
+            regAssignMap[cur_handle]=-1;
         }
     }
 //    i=0;
