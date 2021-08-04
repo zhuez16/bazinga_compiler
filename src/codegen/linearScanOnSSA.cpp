@@ -123,6 +123,17 @@ void LinearScanSSA::buildIntervals() {
         }
         for(auto succ: _cfg->getSuccBB(bb)) {
             live.unionLive(_live[dynamic_cast<ASBlock *>(succ)]);
+            for (auto inst: succ->get_instructions()) {
+                if (auto phi = dynamic_cast<PhiInst *>(inst)) {
+                    for (auto pair: phi->getValueBBPair()) {
+                        if (pair.second == succ) {
+                            live.add(map[pair.first]);
+                        }
+                    }
+                } else {
+                    break;
+                }
+            }
         }
         // Update live data
         for (auto op: live) {

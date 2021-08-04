@@ -129,20 +129,28 @@ void ASMBuilder::build(Module *m) {
                             break;
                         }
                         case Instruction::add:
-                        case Instruction::mul: {
+                        {
                             auto lhs = inst->get_operand(0);
                             auto rhs = inst->get_operand(1);
                             inverseOperandIfNeeded(lhs, rhs);
-                            if (inst->is_mul()) {
-                                insertAndAddToMapping(inst, ASBinaryInst::createASMMul(getMapping(lhs), getMapping(rhs)));
+                            insertAndAddToMapping(inst, ASBinaryInst::createASMAdd(getMapping(lhs), getMapping(rhs)));
+                            break;
+                        }
+                        case Instruction::mul:
+                        {
+                            auto lhs = getMapping(inst->get_operand(0));
+                            auto rhs = getMapping(inst->get_operand(1));
+                            if (dynamic_cast<ASConstant *>(lhs)) {
+                                lhs = insert(ASUnaryInst::createASMMov(lhs));
                             }
-                            else {
-                                insertAndAddToMapping(inst, ASBinaryInst::createASMAdd(getMapping(lhs), getMapping(rhs)));
+                            if (dynamic_cast<ASConstant *>(rhs)) {
+                                rhs = insert(ASUnaryInst::createASMMov(rhs));
                             }
+                            insertAndAddToMapping(inst, ASBinaryInst::createASMMul(lhs, rhs));
                             break;
                         }
                         case Instruction::sub:
-                        case Instruction::sdiv: {
+                        {
                             auto lhs = inst->get_operand(0);
                             auto rhs = inst->get_operand(1);
                             bool inv = inverseOperandIfNeeded(lhs, rhs);
@@ -150,15 +158,23 @@ void ASMBuilder::build(Module *m) {
                                 // 1 - a => mov r1, a; sub r2, r1, a
                                 auto mov = ASUnaryInst::createASMMov(getMapping(rhs));
                                 insert(mov);
-                                if (inst->get_instr_type() == Instruction::sub) {
-                                    insertAndAddToMapping(inst, ASBinaryInst::createASMSub(mov, getMapping(lhs)));
-                                }
-                                else {
-                                    insertAndAddToMapping(inst, ASBinaryInst::createASMDiv(mov, getMapping(lhs)));
-                                }
+                                insertAndAddToMapping(inst, ASBinaryInst::createASMSub(mov, getMapping(lhs)));
                             } else {
                                 insertAndAddToMapping(inst, ASBinaryInst::createASMSub(getMapping(lhs), getMapping(rhs)));
                             }
+                            break;
+                        }
+                        case Instruction::sdiv:
+                        {
+                            auto lhs = getMapping(inst->get_operand(0));
+                            auto rhs = getMapping(inst->get_operand(1));
+                            if (dynamic_cast<ASConstant *>(lhs)) {
+                                lhs = insert(ASUnaryInst::createASMMov(lhs));
+                            }
+                            if (dynamic_cast<ASConstant *>(rhs)) {
+                                rhs = insert(ASUnaryInst::createASMMov(rhs));
+                            }
+                            insertAndAddToMapping(inst, ASBinaryInst::createASMDiv(lhs, rhs));
                             break;
                         }
                         case Instruction::mod: {

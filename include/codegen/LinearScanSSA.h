@@ -165,15 +165,14 @@ public:
         return false;
     };
     int intersect(int pos, const Interval &current){
-        for (auto it_cur:current._intervals){
-            for (auto it_this:this->_intervals){
-                if (it_cur.first < it_this.second && it_cur.second > it_this.first){
-                    if (it_cur.first > pos)
-                        return it_cur.first;
-                }
-            }
-        }
-        return 0;
+        auto it_cur = current._intervals.begin();
+        auto it_thi = _intervals.begin();
+        while (it_cur != current._intervals.end() && it_cur->second < pos) it_cur++;
+        while (it_thi != _intervals.end() && it_thi->second < pos) it_thi++;
+        while (it_thi != _intervals.end() && it_thi->second < it_cur->first) ++it_thi;
+        while (it_cur != current._intervals.end() && it_cur->second < it_cur->first) ++it_cur;
+        if (it_thi == _intervals.end() || it_cur == current._intervals.end()) return 0;
+        else return std::max(it_cur->first, it_thi->first);
     }
 
     bool isFixed() const { return _fixed; }
